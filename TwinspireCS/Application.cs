@@ -10,6 +10,15 @@ namespace TwinspireCS
     public class Application
     {
 
+        private ResourceManager resourceManager;
+        /// <summary>
+        /// Gets the Resource Manager for this application.
+        /// </summary>
+        public ResourceManager ResourceManager
+        {
+            get => resourceManager;
+        }
+
         private int startingWidth;
         private int startingHeight;
 
@@ -84,10 +93,12 @@ namespace TwinspireCS
         {
             Raylib.InitWindow(startingWidth, startingHeight, windowTitle);
             Raylib.SetTargetFPS(TargetFPS);
-
-
             Raylib.InitAudioDevice();
+
+
         }
+
+
 
     }
 }
