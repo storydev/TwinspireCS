@@ -75,7 +75,6 @@ namespace TwinspireCS
             {
                 package.RawStream.Write(buffer, (int)package.FileCursor, (int)package.FileBufferCount);
             }
-            
         }
 
         /// <summary>
@@ -170,9 +169,120 @@ namespace TwinspireCS
             }
             catch
             {
-                throw new Exception("Unable to get image from identifier. Format from binary file is incorrect.");
+                throw new Exception("Unable to get music data from identifier. Format from binary file is incorrect.");
             }
         }
+
+        /// <summary>
+        /// Loads an audio file from a given identifier. This method will scan all known
+        /// packages for the given identifier until a name has been found.
+        /// 
+        /// If the name of the identifier gives anything but a Wave, or the name
+        /// could not be found, an exception is thrown.
+        /// </summary>
+        /// <param name="identifier">The name of the resource to find.</param>
+        /// <returns>A Raylib associated Wave.</returns>
+        public unsafe Wave LoadWave(string identifier)
+        {
+            long[] foundBytes = null;
+            DataPackage foundPackage = null;
+            var found = false;
+            foreach (var package in packages)
+            {
+                if (package.FileMapping.ContainsKey(identifier))
+                {
+                    found = true;
+                    foundPackage = package;
+                    foundBytes = package.FileMapping[identifier];
+                    break;
+                }
+            }
+
+            if (!found)
+                throw new Exception("Identifier could not be found. ID: " + identifier);
+
+            var fileExt = Path.GetExtension(foundPackage?.SourceFilePath);
+            var fileData = File.OpenRead(foundPackage?.SourceFilePath);
+            byte[] buffer = new byte[foundBytes[1]];
+            fileData.Read(buffer, (int)foundBytes[0], (int)foundBytes[1]);
+            fileData.Close();
+
+            var fileType = Utils.GetSByteFromString(fileExt);
+            var ptrData = Utils.GetBytePtrFromArray(buffer);
+
+            try
+            {
+                var result = Raylib.LoadWaveFromMemory(fileType, ptrData, (int)foundBytes[1]);
+                return result;
+            }
+            catch
+            {
+                throw new Exception("Unable to get wave data from identifier. Format from binary file is incorrect.");
+            }
+        }
+
+        /// <summary>
+        /// Loads a font from a given identifier. This method will scan all known
+        /// packages for the given identifier until a name has been found.
+        /// 
+        /// If the name of the identifier gives anything but a Font, or the name
+        /// could not be found, an exception is thrown.
+        /// </summary>
+        /// <param name="identifier">The name of the resource to find.</param>
+        /// <param name="fontSize">The size of the font when it loads.</param>
+        /// <param name="fontChars">The characters to be included from the font file. Pass null to include the default character set.</param>
+        /// <returns>A Raylib associated Font.</returns>
+        public unsafe Font LoadFont(string identifier, int fontSize, int[] fontChars = null)
+        {
+            long[] foundBytes = null;
+            DataPackage foundPackage = null;
+            var found = false;
+            foreach (var package in packages)
+            {
+                if (package.FileMapping.ContainsKey(identifier))
+                {
+                    found = true;
+                    foundPackage = package;
+                    foundBytes = package.FileMapping[identifier];
+                    break;
+                }
+            }
+
+            if (!found)
+                throw new Exception("Identifier could not be found. ID: " + identifier);
+
+            var fileExt = Path.GetExtension(foundPackage?.SourceFilePath);
+            var fileData = File.OpenRead(foundPackage?.SourceFilePath);
+            byte[] buffer = new byte[foundBytes[1]];
+            fileData.Read(buffer, (int)foundBytes[0], (int)foundBytes[1]);
+            fileData.Close();
+
+            var fileType = Utils.GetSByteFromString(fileExt);
+            var ptrData = Utils.GetBytePtrFromArray(buffer);
+
+            int* fontCharPtr = null;
+            int glyphs = 0;
+            if (fontChars != null)
+            {
+                fixed (int* tempPtr = fontChars)
+                {
+                    fontCharPtr = tempPtr;
+                }
+                glyphs = fontChars.Length;
+            }
+
+            try
+            {
+                var result = Raylib.LoadFontFromMemory(fileType, ptrData, (int)foundBytes[1], fontSize, fontCharPtr, glyphs);
+                return result;
+            }
+            catch
+            {
+                throw new Exception("Unable to get font from identifier. Format from binary file is incorrect.");
+            }
+        }
+
+        
 
     }
 }
