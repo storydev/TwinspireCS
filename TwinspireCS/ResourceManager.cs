@@ -282,7 +282,65 @@ namespace TwinspireCS
             }
         }
 
-        
+        /// <summary>
+        /// Loads a group of resources synchronously on the main thread. Use sparingly.
+        /// </summary>
+        /// <param name="group">The defined group containing the resources to load.</param>
+        /// <returns>The loaded resources.</returns>
+        public ResourceResults LoadGroup(ResourceGroup group)
+        {
+            var results = new ResourceResults();
+
+            if (group.RequestedFonts.Count > 0)
+            {
+                foreach (var font in group.RequestedFonts)
+                {
+                    var splitted = font.Split(':');
+                    if (splitted.Length <= 1)
+                    {
+                        continue;
+                    }
+
+                    results.AddFont(LoadFont(splitted[0], int.Parse(splitted[1])));
+                }
+            }
+
+            if (group.RequestedImages.Count > 0)
+            {
+                foreach (var image in group.RequestedImages)
+                {
+                    results.AddImage(LoadImage(image));
+                }
+            }
+
+            if (group.RequestedMusic.Count > 0)
+            {
+                foreach (var music in group.RequestedMusic)
+                {
+                    results.AddMusic(LoadMusic(music));
+                }
+            }
+
+            if (group.RequestedWaves.Count > 0)
+            {
+                foreach (var wave in group.RequestedWaves)
+                {
+                    results.AddWave(LoadWave(wave));
+                }
+            }
+
+            return results;
+        }
+
+        /// <summary>
+        /// Loads a group of resources asynchronously. Best used for loading screens.
+        /// </summary>
+        /// <param name="group">The defined group containing the resources to load.</param>
+        /// <returns>The loaded resources.</returns>
+        public async Task<ResourceResults> LoadGroupAsync(ResourceGroup group)
+        {
+            return await new Task<ResourceResults>(() => LoadGroup(group));
+        }
 
     }
 }
