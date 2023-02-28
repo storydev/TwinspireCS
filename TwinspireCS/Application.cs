@@ -10,6 +10,8 @@ namespace TwinspireCS
     public class Application
     {
 
+        private ImGuiController imguiController;
+
         private ResourceManager resourceManager;
         /// <summary>
         /// Gets the Resource Manager for this application.
@@ -84,6 +86,7 @@ namespace TwinspireCS
             windowTitle = title;
             startingWidth = width;
             startingHeight = height;
+            resourceManager = new ResourceManager();
         }
 
         /// <summary>
@@ -95,10 +98,29 @@ namespace TwinspireCS
             Raylib.SetTargetFPS(TargetFPS);
             Raylib.InitAudioDevice();
 
-
+            if (useImgui)
+            {
+                imguiController = new ImGuiController();
+            }
         }
 
+        /// <summary>
+        /// Initialise ImGui context.
+        /// </summary>
+        public void ImGuiInit()
+        {
+            imguiController.Init();
+        }
 
+        /// <summary>
+        /// Add a font to the imgui context from a path.
+        /// </summary>
+        /// <param name="fontPath">The path to the font file.</param>
+        /// <param name="fontSize">The size of the font.</param>
+        public void ImGuiAddFont(string fontPath, int fontSize)
+        {
+            imguiController.AddFontFile(fontPath, fontSize);
+        }
 
     }
 }

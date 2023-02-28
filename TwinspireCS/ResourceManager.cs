@@ -1,6 +1,7 @@
 ﻿using Raylib_cs;
 using System;
 using System.Collections.Generic;
+using System.IO.Compression;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -69,11 +70,35 @@ namespace TwinspireCS
             var package = packages[packageIndex];
             package.FileCursor = package.FileBufferCount;
             package.FileBufferCount += buffer.LongLength;
-            package.FileMapping.Add(identifier, new long[] { package.FileCursor, buffer.LongLength });
-
-            if (package.RawStream != null)
+            package.FileMapping.Add(identifier, new DataSegment()
             {
-                package.RawStream.Write(buffer, (int)package.FileCursor, (int)package.FileBufferCount);
+                Cursor = package.FileCursor,
+                Size = buffer.LongLength,
+                Data = buffer
+            });
+        }
+
+        public void WriteAll(int packageIndex, string outdir)
+        {
+            if (packageIndex < 0 || packageIndex >= packages.Count)
+            {
+                return;
+            }
+
+            if (!Directory.Exists(outdir))
+                Directory.CreateDirectory(outdir);
+
+            var package = packages[packageIndex];
+            using (var stream = new FileStream(Path.Combine(outdir, package.SourceFilePath), FileMode.Create))
+            {
+                using (GZipStream zip = new GZipStream(stream, CompressionMode.Compress))
+                {
+                    using (BinaryWriter writer = new BinaryWriter(zip))
+                    {
+                        int headerSize = sizeof(int) * 3;
+                        
+                    }
+                }
             }
         }
 
@@ -88,7 +113,7 @@ namespace TwinspireCS
         /// <returns>A Raylib associated Image.</returns>
         public unsafe Image LoadImage(string identifier)
         {
-            long[] foundBytes = null;
+            DataSegment foundData = null;
             DataPackage foundPackage = null;
             var found = false;
             foreach (var package in packages)
@@ -97,7 +122,7 @@ namespace TwinspireCS
                 {
                     found = true;
                     foundPackage = package;
-                    foundBytes = package.FileMapping[identifier];
+                    foundData = package.FileMapping[identifier];
                     break;
                 }
             }
@@ -107,8 +132,8 @@ namespace TwinspireCS
 
             var fileExt = Path.GetExtension(foundPackage?.SourceFilePath);
             var fileData = File.OpenRead(foundPackage?.SourceFilePath);
-            byte[] buffer = new byte[foundBytes[1]];
-            fileData.Read(buffer, (int)foundBytes[0], (int)foundBytes[1]);
+            byte[] buffer = new byte[foundData.Size];
+            fileData.Read(buffer, (int)foundData.Cursor, (int)foundData.Size);
             fileData.Close();
 
             var fileType = Utils.GetSByteFromString(fileExt);
@@ -116,7 +141,7 @@ namespace TwinspireCS
 
             try
             {
-                var result = Raylib.LoadImageFromMemory(fileType, ptrData, (int)foundBytes[1]);
+                var result = Raylib.LoadImageFromMemory(fileType, ptrData, (int)foundData.Size);
                 return result;
             }
             catch
@@ -136,7 +161,7 @@ namespace TwinspireCS
         /// <returns>A Raylib associated Music.</returns>
         public unsafe Music LoadMusic(string identifier)
         {
-            long[] foundBytes = null;
+            DataSegment foundData = null;
             DataPackage foundPackage = null;
             var found = false;
             foreach (var package in packages)
@@ -145,7 +170,7 @@ namespace TwinspireCS
                 {
                     found = true;
                     foundPackage = package;
-                    foundBytes = package.FileMapping[identifier];
+                    foundData = package.FileMapping[identifier];
                     break;
                 }
             }
@@ -155,8 +180,8 @@ namespace TwinspireCS
 
             var fileExt = Path.GetExtension(foundPackage?.SourceFilePath);
             var fileData = File.OpenRead(foundPackage?.SourceFilePath);
-            byte[] buffer = new byte[foundBytes[1]];
-            fileData.Read(buffer, (int)foundBytes[0], (int)foundBytes[1]);
+            byte[] buffer = new byte[foundData.Size];
+            fileData.Read(buffer, (int)foundData.Cursor, (int)foundData.Size);
             fileData.Close();
 
             var fileType = Utils.GetSByteFromString(fileExt);
@@ -164,7 +189,7 @@ namespace TwinspireCS
 
             try
             {
-                var result = Raylib.LoadMusicStreamFromMemory(fileType, ptrData, (int)foundBytes[1]);
+                var result = Raylib.LoadMusicStreamFromMemory(fileType, ptrData, (int)foundData.Size);
                 return result;
             }
             catch
@@ -184,7 +209,7 @@ namespace TwinspireCS
         /// <returns>A Raylib associated Wave.</returns>
         public unsafe Wave LoadWave(string identifier)
         {
-            long[] foundBytes = null;
+            DataSegment foundData = null;
             DataPackage foundPackage = null;
             var found = false;
             foreach (var package in packages)
@@ -193,7 +218,7 @@ namespace TwinspireCS
                 {
                     found = true;
                     foundPackage = package;
-                    foundBytes = package.FileMapping[identifier];
+                    foundData = package.FileMapping[identifier];
                     break;
                 }
             }
@@ -203,8 +228,8 @@ namespace TwinspireCS
 
             var fileExt = Path.GetExtension(foundPackage?.SourceFilePath);
             var fileData = File.OpenRead(foundPackage?.SourceFilePath);
-            byte[] buffer = new byte[foundBytes[1]];
-            fileData.Read(buffer, (int)foundBytes[0], (int)foundBytes[1]);
+            byte[] buffer = new byte[foundData.Size];
+            fileData.Read(buffer, (int)foundData.Cursor, (int)foundData.Size);
             fileData.Close();
 
             var fileType = Utils.GetSByteFromString(fileExt);
@@ -212,7 +237,7 @@ namespace TwinspireCS
 
             try
             {
-                var result = Raylib.LoadWaveFromMemory(fileType, ptrData, (int)foundBytes[1]);
+                var result = Raylib.LoadWaveFromMemory(fileType, ptrData, (int)foundData.Size);
                 return result;
             }
             catch
@@ -234,7 +259,7 @@ namespace TwinspireCS
         /// <returns>A Raylib associated Font.</returns>
         public unsafe Font LoadFont(string identifier, int fontSize, int[] fontChars = null)
         {
-            long[] foundBytes = null;
+            DataSegment foundData = null;
             DataPackage foundPackage = null;
             var found = false;
             foreach (var package in packages)
@@ -243,7 +268,7 @@ namespace TwinspireCS
                 {
                     found = true;
                     foundPackage = package;
-                    foundBytes = package.FileMapping[identifier];
+                    foundData = package.FileMapping[identifier];
                     break;
                 }
             }
@@ -253,8 +278,8 @@ namespace TwinspireCS
 
             var fileExt = Path.GetExtension(foundPackage?.SourceFilePath);
             var fileData = File.OpenRead(foundPackage?.SourceFilePath);
-            byte[] buffer = new byte[foundBytes[1]];
-            fileData.Read(buffer, (int)foundBytes[0], (int)foundBytes[1]);
+            byte[] buffer = new byte[foundData.Size];
+            fileData.Read(buffer, (int)foundData.Cursor, (int)foundData.Size);
             fileData.Close();
 
             var fileType = Utils.GetSByteFromString(fileExt);
@@ -273,7 +298,7 @@ namespace TwinspireCS
 
             try
             {
-                var result = Raylib.LoadFontFromMemory(fileType, ptrData, (int)foundBytes[1], fontSize, fontCharPtr, glyphs);
+                var result = Raylib.LoadFontFromMemory(fileType, ptrData, (int)foundData.Size, fontSize, fontCharPtr, glyphs);
                 return result;
             }
             catch

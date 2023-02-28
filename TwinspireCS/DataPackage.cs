@@ -12,15 +12,30 @@ namespace TwinspireCS
         public string SourceFilePath;
         public long FileBufferCount;
         public long FileCursor;
-        public Dictionary<string, long[]> FileMapping;
-        public FileStream? RawStream;
+        public Dictionary<string, DataSegment> FileMapping;
         public int Version;
 
         public DataPackage()
         {
             SourceFilePath = string.Empty;
-            FileMapping = new Dictionary<string, long[]>();
+            FileMapping = new Dictionary<string, DataSegment>();
             Version = 0;
+        }
+
+    }
+
+    public class DataSegment
+    {
+
+        public long Cursor;
+        public long Size;
+        public byte[] Data;
+
+        public DataSegment()
+        {
+            Cursor = 0;
+            Size = 0;
+            Data = Array.Empty<byte>();
         }
 
     }
