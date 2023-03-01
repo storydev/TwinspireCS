@@ -33,24 +33,8 @@ namespace TwinspireCS
         {
             var package = new DataPackage();
             package.SourceFilePath = sourceFile;
-            package.RawStream = new FileStream(sourceFile, FileMode.Open, FileAccess.Write);
             packages.Add(package);
             return packages.Count - 1;
-        }
-
-        /// <summary>
-        /// Close a package stream at a given index.
-        /// </summary>
-        /// <param name="packageIndex">The index of the package to close its' file stream.</param>
-        public void ClosePackage(int packageIndex)
-        {
-            if (packageIndex < 0 || packageIndex >= packages.Count)
-            {
-                return;
-            }
-
-            var package = packages[packageIndex];
-            package.RawStream?.Close();
         }
 
         /// <summary>
@@ -78,6 +62,11 @@ namespace TwinspireCS
             });
         }
 
+        /// <summary>
+        /// Write all the data for the given package.
+        /// </summary>
+        /// <param name="packageIndex">The package to write out to its source file.</param>
+        /// <param name="outdir">The directory the file should be output to.</param>
         public void WriteAll(int packageIndex, string outdir)
         {
             if (packageIndex < 0 || packageIndex >= packages.Count)
@@ -91,12 +80,101 @@ namespace TwinspireCS
             var package = packages[packageIndex];
             using (var stream = new FileStream(Path.Combine(outdir, package.SourceFilePath), FileMode.Create))
             {
-                using (GZipStream zip = new GZipStream(stream, CompressionMode.Compress))
+                using (GZipStream zip = new GZipStream(stream, CompressionLevel.SmallestSize))
                 {
                     using (BinaryWriter writer = new BinaryWriter(zip))
                     {
-                        int headerSize = sizeof(int) * 3;
-                        
+                        int headerSize = sizeof(int);
+                        headerSize += sizeof(int) * 2;
+
+                        foreach (var kv in package.FileMapping)
+                        {
+                            headerSize += sizeof(long) * 2 + (sizeof(char) * kv.Key.Length);
+                        }
+
+                        writer.Write(headerSize);
+                        writer.Write(package.Version);
+                        writer.Write(package.FileMapping.Count);
+
+                        foreach (var kv in package.FileMapping)
+                        {
+                            writer.Write(kv.Key);
+                            var data = kv.Value;
+                            writer.Write(data.Cursor);
+                            writer.Write(data.Size);
+                        }
+
+                        // end header data
+
+                        // write the contents
+                        foreach (var kv in package.FileMapping)
+                        {
+                            var data = kv.Value;
+                            writer.Write(data.Data);
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Write all the data for the given package asynchronously.
+        /// </summary>
+        /// <param name="packageIndex">The package to write out to its source file.</param>
+        /// <param name="outdir">The directory the file should be output to.</param>
+        public async void WriteAllAsync(int packageIndex, string outdir)
+        {
+            var task = new Task(() => WriteAll(packageIndex, outdir));
+            await task;
+        }
+
+        /// <summary>
+        /// Use this method to read the headers of the given files. If any one of the
+        /// files headers have already been processed, it will be ignored. This method
+        /// must be used for reading before loading in any files.
+        /// </summary>
+        /// <param name="directory">The directory to look in.</param>
+        /// <param name="files">The file paths (without their directories) to check.</param>
+        public void ReadHeaders(string directory, params string[] files)
+        {
+            for (int i = 0; i < files.Length; i++)
+            {
+                var path = Path.Combine(directory, files[i]);
+                var found = false;
+                foreach (var package in packages)
+                {
+                    if (package.SourceFilePath == files[i])
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found)
+                {
+                    var package = new DataPackage();
+                    package.SourceFilePath = files[i];
+                    using (FileStream stream = new FileStream(path, FileMode.Open, FileAccess.Read))
+                    {
+                        using (GZipStream zip = new GZipStream(stream, CompressionMode.Decompress))
+                        {
+                            using (BinaryReader reader = new BinaryReader(zip))
+                            {
+                                package.HeaderSize = reader.ReadInt32();
+                                package.Version = reader.ReadInt32();
+                                var count = reader.ReadInt32();
+                                for (int j = 0; j < count; j++)
+                                {
+                                    var identifier = reader.ReadString();
+                                    var segment = new DataSegment();
+                                    segment.Cursor = reader.ReadInt64();
+                                    segment.Size = reader.ReadInt64();
+
+                                    package.FileCursor = segment.Cursor + segment.Size;
+                                    package.FileMapping.Add(identifier, segment);
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -132,8 +210,11 @@ namespace TwinspireCS
 
             var fileExt = Path.GetExtension(foundPackage?.SourceFilePath);
             var fileData = File.OpenRead(foundPackage?.SourceFilePath);
+            var zipStream = new GZipStream(fileData, CompressionMode.Decompress);
+
             byte[] buffer = new byte[foundData.Size];
-            fileData.Read(buffer, (int)foundData.Cursor, (int)foundData.Size);
+            zipStream.Read(buffer, (int)foundData.Cursor, (int)foundData.Size);
+            zipStream.Close();
             fileData.Close();
 
             var fileType = Utils.GetSByteFromString(fileExt);
@@ -180,8 +261,11 @@ namespace TwinspireCS
 
             var fileExt = Path.GetExtension(foundPackage?.SourceFilePath);
             var fileData = File.OpenRead(foundPackage?.SourceFilePath);
+            var zipStream = new GZipStream(fileData, CompressionMode.Decompress);
+
             byte[] buffer = new byte[foundData.Size];
-            fileData.Read(buffer, (int)foundData.Cursor, (int)foundData.Size);
+            zipStream.Read(buffer, (int)foundData.Cursor, (int)foundData.Size);
+            zipStream.Close();
             fileData.Close();
 
             var fileType = Utils.GetSByteFromString(fileExt);
@@ -228,8 +312,11 @@ namespace TwinspireCS
 
             var fileExt = Path.GetExtension(foundPackage?.SourceFilePath);
             var fileData = File.OpenRead(foundPackage?.SourceFilePath);
+            var zipStream = new GZipStream(fileData, CompressionMode.Decompress);
+
             byte[] buffer = new byte[foundData.Size];
-            fileData.Read(buffer, (int)foundData.Cursor, (int)foundData.Size);
+            zipStream.Read(buffer, (int)foundData.Cursor, (int)foundData.Size);
+            zipStream.Close();
             fileData.Close();
 
             var fileType = Utils.GetSByteFromString(fileExt);
@@ -278,8 +365,11 @@ namespace TwinspireCS
 
             var fileExt = Path.GetExtension(foundPackage?.SourceFilePath);
             var fileData = File.OpenRead(foundPackage?.SourceFilePath);
+            var zipStream = new GZipStream(fileData, CompressionMode.Decompress);
+
             byte[] buffer = new byte[foundData.Size];
-            fileData.Read(buffer, (int)foundData.Cursor, (int)foundData.Size);
+            zipStream.Read(buffer, (int)foundData.Cursor, (int)foundData.Size);
+            zipStream.Close();
             fileData.Close();
 
             var fileType = Utils.GetSByteFromString(fileExt);

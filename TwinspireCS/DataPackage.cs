@@ -14,6 +14,7 @@ namespace TwinspireCS
         public long FileCursor;
         public Dictionary<string, DataSegment> FileMapping;
         public int Version;
+        public int HeaderSize;
 
         public DataPackage()
         {
