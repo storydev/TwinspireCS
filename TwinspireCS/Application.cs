@@ -122,5 +122,16 @@ namespace TwinspireCS
             imguiController.AddFontFile(fontPath, fontSize);
         }
 
+        /// <summary>
+        /// Gets a value to determine if the window remains open.
+        /// </summary>
+        /// <returns></returns>
+        public bool IsOpen()
+        {
+            return !Raylib.WindowShouldClose();
+        }
+
+
+
     }
 }
