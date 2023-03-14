@@ -12,6 +12,11 @@ namespace TwinspireCS
     public class ResourceManager
     {
 
+        private Dictionary<string, Font> fontCache;
+        private Dictionary<string, Image> imageCache;
+        private Dictionary<string, Wave> waveCache;
+        private Dictionary<string, Music> musicCache;
+
         private List<DataPackage> packages;
         /// <summary>
         /// Gets the packages that exist in this resource manager.
@@ -21,6 +26,10 @@ namespace TwinspireCS
         public ResourceManager()
         {
             packages = new List<DataPackage>();
+            fontCache = new Dictionary<string, Font>();
+            imageCache = new Dictionary<string, Image>();
+            waveCache = new Dictionary<string, Wave>();
+            musicCache = new Dictionary<string, Music>();
         }
 
         /// <summary>
@@ -51,6 +60,32 @@ namespace TwinspireCS
                 return;
             }
 
+            var package = packages[packageIndex];
+            package.FileCursor = package.FileBufferCount;
+            package.FileBufferCount += buffer.LongLength;
+            package.FileMapping.Add(identifier, new DataSegment()
+            {
+                Cursor = package.FileCursor,
+                Size = buffer.LongLength,
+                Data = buffer
+            });
+        }
+
+        /// <summary>
+        /// Add the raw bytes of a binary file into a package at the given package
+        /// index and identifier. Identifiers should be unique across all packages.
+        /// </summary>
+        /// <param name="packageIndex">The index of the package to access.</param>
+        /// <param name="identifier">The identifier used as the name for the resource.</param>
+        /// <param name="sourceFile">The file path to acquire the bytes.</param>
+        public void AddResource(int packageIndex, string identifier, string sourceFile)
+        {
+            if (packageIndex < 0 || packageIndex >= packages.Count)
+            {
+                return;
+            }
+
+            var buffer = File.ReadAllBytes(sourceFile);
             var package = packages[packageIndex];
             package.FileCursor = package.FileBufferCount;
             package.FileBufferCount += buffer.LongLength;
@@ -188,9 +223,13 @@ namespace TwinspireCS
         /// could not be found, an exception is thrown.
         /// </summary>
         /// <param name="identifier">The name of the resource to find.</param>
-        /// <returns>A Raylib associated Image.</returns>
-        public unsafe Image LoadImage(string identifier)
+        public unsafe void LoadImage(string identifier)
         {
+            if (imageCache.ContainsKey(identifier))
+            {
+                return;
+            }
+
             DataSegment foundData = null;
             DataPackage foundPackage = null;
             var found = false;
@@ -223,7 +262,7 @@ namespace TwinspireCS
             try
             {
                 var result = Raylib.LoadImageFromMemory(fileType, ptrData, (int)foundData.Size);
-                return result;
+                imageCache.Add(identifier, result);
             }
             catch
             {
@@ -239,9 +278,13 @@ namespace TwinspireCS
         /// could not be found, an exception is thrown.
         /// </summary>
         /// <param name="identifier">The name of the resource to find.</param>
-        /// <returns>A Raylib associated Music.</returns>
-        public unsafe Music LoadMusic(string identifier)
+        public unsafe void LoadMusic(string identifier)
         {
+            if (musicCache.ContainsKey(identifier))
+            {
+                return;
+            }
+
             DataSegment foundData = null;
             DataPackage foundPackage = null;
             var found = false;
@@ -274,7 +317,7 @@ namespace TwinspireCS
             try
             {
                 var result = Raylib.LoadMusicStreamFromMemory(fileType, ptrData, (int)foundData.Size);
-                return result;
+                musicCache.Add(identifier, result);
             }
             catch
             {
@@ -290,9 +333,13 @@ namespace TwinspireCS
         /// could not be found, an exception is thrown.
         /// </summary>
         /// <param name="identifier">The name of the resource to find.</param>
-        /// <returns>A Raylib associated Wave.</returns>
-        public unsafe Wave LoadWave(string identifier)
+        public unsafe void LoadWave(string identifier)
         {
+            if (waveCache.ContainsKey(identifier))
+            {
+                return;
+            }
+
             DataSegment foundData = null;
             DataPackage foundPackage = null;
             var found = false;
@@ -325,7 +372,7 @@ namespace TwinspireCS
             try
             {
                 var result = Raylib.LoadWaveFromMemory(fileType, ptrData, (int)foundData.Size);
-                return result;
+                waveCache.Add(identifier, result);
             }
             catch
             {
@@ -343,9 +390,13 @@ namespace TwinspireCS
         /// <param name="identifier">The name of the resource to find.</param>
         /// <param name="fontSize">The size of the font when it loads.</param>
         /// <param name="fontChars">The characters to be included from the font file. Pass null to include the default character set.</param>
-        /// <returns>A Raylib associated Font.</returns>
-        public unsafe Font LoadFont(string identifier, int fontSize, int[] fontChars = null)
+        public unsafe void LoadFont(string identifier, int fontSize, int[] fontChars = null)
         {
+            if (fontCache.ContainsKey(identifier))
+            {
+                return;
+            }
+
             DataSegment foundData = null;
             DataPackage foundPackage = null;
             var found = false;
@@ -389,7 +440,7 @@ namespace TwinspireCS
             try
             {
                 var result = Raylib.LoadFontFromMemory(fileType, ptrData, (int)foundData.Size, fontSize, fontCharPtr, glyphs);
-                return result;
+                fontCache.Add(identifier, result);
             }
             catch
             {
@@ -402,10 +453,8 @@ namespace TwinspireCS
         /// </summary>
         /// <param name="group">The defined group containing the resources to load.</param>
         /// <returns>The loaded resources.</returns>
-        public ResourceResults LoadGroup(ResourceGroup group)
+        public void LoadGroup(ResourceGroup group)
         {
-            var results = new ResourceResults();
-
             if (group.RequestedFonts.Count > 0)
             {
                 foreach (var font in group.RequestedFonts)
@@ -416,7 +465,7 @@ namespace TwinspireCS
                         continue;
                     }
 
-                    results.AddFont(LoadFont(splitted[0], int.Parse(splitted[1])));
+                    LoadFont(splitted[0], int.Parse(splitted[1]));
                 }
             }
 
@@ -424,7 +473,7 @@ namespace TwinspireCS
             {
                 foreach (var image in group.RequestedImages)
                 {
-                    results.AddImage(LoadImage(image));
+                    LoadImage(image);
                 }
             }
 
@@ -432,7 +481,7 @@ namespace TwinspireCS
             {
                 foreach (var music in group.RequestedMusic)
                 {
-                    results.AddMusic(LoadMusic(music));
+                    LoadMusic(music);
                 }
             }
 
@@ -440,11 +489,9 @@ namespace TwinspireCS
             {
                 foreach (var wave in group.RequestedWaves)
                 {
-                    results.AddWave(LoadWave(wave));
+                    LoadWave(wave);
                 }
             }
-
-            return results;
         }
 
         /// <summary>
@@ -452,9 +499,48 @@ namespace TwinspireCS
         /// </summary>
         /// <param name="group">The defined group containing the resources to load.</param>
         /// <returns>The loaded resources.</returns>
-        public async Task<ResourceResults> LoadGroupAsync(ResourceGroup group)
+        public async Task LoadGroupAsync(ResourceGroup group)
         {
-            return await new Task<ResourceResults>(() => LoadGroup(group));
+            await new Task(() => LoadGroup(group));
+        }
+
+        /// <summary>
+        /// Unload a group of resources.
+        /// </summary>
+        /// <param name="resources">The resources to load.</param>
+        public void UnloadResources(ResourceResults resources)
+        {
+            if (resources.Fonts.Count() > 0)
+            {
+                foreach (var font in resources.Fonts)
+                {
+                    Raylib.UnloadFont(font);
+                }
+            }
+            
+            if (resources.Images.Count() > 0)
+            {
+                foreach (var image in resources.Images)
+                {
+                    Raylib.UnloadImage(image);
+                }
+            }
+
+            if (resources.Music.Count() > 0)
+            {
+                foreach (var music in resources.Music)
+                {
+                    Raylib.UnloadMusicStream(music);
+                }
+            }
+
+            if (resources.Waves.Count() > 0)
+            {
+                foreach (var wav in resources.Waves)
+                {
+                    Raylib.UnloadWave(wav);
+                }
+            }
         }
 
     }

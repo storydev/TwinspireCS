@@ -11,4 +11,14 @@
     <ProjectReference Include="..\TwinspireCS\TwinspireCS.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Assets\Raw\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Assets\Raw\Fonts\TiltNeon-Regular.ttf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
