@@ -1,4 +1,5 @@
 ﻿using TwinspireCS;
+using Raylib_cs;
 using System.IO;
 
 namespace ResourceManager
@@ -8,13 +9,14 @@ namespace ResourceManager
         static void Main(string[] args)
         {
             var app = new Application("StoryDev Resource Manager", 1280, 720);
-            app.InitAll();
+            app.UseImGui = true;
 
             var corePackage = app.ResourceManager.CreatePackage("core.dat");
+            app.ResourceManager.AssetDirectory = "Assets";
             app.ResourceManager.AddResource(corePackage, "Font_Regular", "Assets/Raw/Fonts/TiltNeon-Regular.ttf");
             if (!File.Exists("Assets/core.dat"))
             {
-                app.ResourceManager.WriteAll(corePackage, "Assets");
+                app.ResourceManager.WriteAll(corePackage);
             }
             else
             {
@@ -22,17 +24,22 @@ namespace ResourceManager
             }
 
             ResourceGroup core = new ResourceGroup();
-            core.RequestedFonts.Add("Font_Regular");
+            core.RequestedFonts.Add("Font_Regular:40");
 
-            ResourceResults coreResults = app.ResourceManager.LoadGroup(core);
+            app.ResourceManager.LoadGroup(core);
+
+            app.InitAll();
 
             while (app.IsOpen())
             {
+                Raylib.BeginDrawing();
+                Raylib.ClearBackground(Color.GRAY);
 
 
+                Raylib.EndDrawing();
             }
 
-            app.ResourceManager.UnloadResources(coreResults);
+            app.ResourceManager.UnloadAll();
         }
     }
 }

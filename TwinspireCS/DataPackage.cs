@@ -28,12 +28,14 @@ namespace TwinspireCS
     public class DataSegment
     {
 
+        public string FileExt;
         public long Cursor;
         public long Size;
         public byte[] Data;
 
         public DataSegment()
         {
+            FileExt = string.Empty;
             Cursor = 0;
             Size = 0;
             Data = Array.Empty<byte>();

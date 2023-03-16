@@ -23,6 +23,11 @@ namespace TwinspireCS
         /// </summary>
         public IEnumerable<DataPackage> Packages => packages;
 
+        /// <summary>
+        /// The directory path in which to find asset files.
+        /// </summary>
+        public string AssetDirectory { get; set; }
+
         public ResourceManager()
         {
             packages = new List<DataPackage>();
@@ -30,6 +35,7 @@ namespace TwinspireCS
             imageCache = new Dictionary<string, Image>();
             waveCache = new Dictionary<string, Wave>();
             musicCache = new Dictionary<string, Music>();
+            AssetDirectory = string.Empty;
         }
 
         /// <summary>
@@ -93,7 +99,8 @@ namespace TwinspireCS
             {
                 Cursor = package.FileCursor,
                 Size = buffer.LongLength,
-                Data = buffer
+                Data = buffer,
+                FileExt = Path.GetExtension(sourceFile)[1..]
             });
         }
 
@@ -101,13 +108,14 @@ namespace TwinspireCS
         /// Write all the data for the given package.
         /// </summary>
         /// <param name="packageIndex">The package to write out to its source file.</param>
-        /// <param name="outdir">The directory the file should be output to.</param>
-        public void WriteAll(int packageIndex, string outdir)
+        public void WriteAll(int packageIndex)
         {
             if (packageIndex < 0 || packageIndex >= packages.Count)
             {
                 return;
             }
+
+            var outdir = AssetDirectory;
 
             if (!Directory.Exists(outdir))
                 Directory.CreateDirectory(outdir);
@@ -125,6 +133,7 @@ namespace TwinspireCS
                         foreach (var kv in package.FileMapping)
                         {
                             headerSize += sizeof(long) * 2 + (sizeof(char) * kv.Key.Length);
+                            headerSize += sizeof(char) * kv.Value.FileExt.Length;
                         }
 
                         writer.Write(headerSize);
@@ -135,6 +144,7 @@ namespace TwinspireCS
                         {
                             writer.Write(kv.Key);
                             var data = kv.Value;
+                            writer.Write(data.FileExt);
                             writer.Write(data.Cursor);
                             writer.Write(data.Size);
                         }
@@ -146,6 +156,7 @@ namespace TwinspireCS
                         {
                             var data = kv.Value;
                             writer.Write(data.Data);
+                            data.Data = null;
                         }
                     }
                 }
@@ -156,10 +167,9 @@ namespace TwinspireCS
         /// Write all the data for the given package asynchronously.
         /// </summary>
         /// <param name="packageIndex">The package to write out to its source file.</param>
-        /// <param name="outdir">The directory the file should be output to.</param>
-        public async void WriteAllAsync(int packageIndex, string outdir)
+        public async void WriteAllAsync(int packageIndex)
         {
-            var task = new Task(() => WriteAll(packageIndex, outdir));
+            var task = new Task(() => WriteAll(packageIndex));
             await task;
         }
 
@@ -168,13 +178,12 @@ namespace TwinspireCS
         /// files headers have already been processed, it will be ignored. This method
         /// must be used for reading before loading in any files.
         /// </summary>
-        /// <param name="directory">The directory to look in.</param>
         /// <param name="files">The file paths (without their directories) to check.</param>
-        public void ReadHeaders(string directory, params string[] files)
+        public void ReadHeaders(params string[] files)
         {
             for (int i = 0; i < files.Length; i++)
             {
-                var path = Path.Combine(directory, files[i]);
+                var path = Path.Combine(AssetDirectory, files[i]);
                 var found = false;
                 foreach (var package in packages)
                 {
@@ -202,6 +211,7 @@ namespace TwinspireCS
                                 {
                                     var identifier = reader.ReadString();
                                     var segment = new DataSegment();
+                                    segment.FileExt = reader.ReadString();
                                     segment.Cursor = reader.ReadInt64();
                                     segment.Size = reader.ReadInt64();
 
@@ -211,6 +221,7 @@ namespace TwinspireCS
                             }
                         }
                     }
+                    packages.Add(package);
                 }
             }
         }
@@ -247,8 +258,8 @@ namespace TwinspireCS
             if (!found)
                 throw new Exception("Identifier could not be found. ID: " + identifier);
 
-            var fileExt = Path.GetExtension(foundPackage?.SourceFilePath);
-            var fileData = File.OpenRead(foundPackage?.SourceFilePath);
+            var fullPath = Path.Combine(AssetDirectory, foundPackage?.SourceFilePath);
+            var fileData = File.OpenRead(fullPath);
             var zipStream = new GZipStream(fileData, CompressionMode.Decompress);
 
             byte[] buffer = new byte[foundData.Size];
@@ -256,7 +267,7 @@ namespace TwinspireCS
             zipStream.Close();
             fileData.Close();
 
-            var fileType = Utils.GetSByteFromString(fileExt);
+            var fileType = Utils.GetSByteFromString(foundData.FileExt);
             var ptrData = Utils.GetBytePtrFromArray(buffer);
 
             try
@@ -268,6 +279,26 @@ namespace TwinspireCS
             {
                 throw new Exception("Unable to get image from identifier. Format from binary file is incorrect.");
             }
+        }
+
+        public byte[] GetBytesFromMemory(string identifier)
+        {
+
+        }
+
+        /// <summary>
+        /// Get an image with an identifier. Must be loaded before retrieved.
+        /// </summary>
+        /// <param name="identifier">The identifier of the image to get.</param>
+        /// <returns>The image, if found. Returns an empty image if not found.</returns>
+        public Image GetImage(string identifier)
+        {
+            if (imageCache.ContainsKey(identifier))
+            {
+                return imageCache[identifier];
+            }
+
+            return new Image();
         }
 
         /// <summary>
@@ -302,8 +333,8 @@ namespace TwinspireCS
             if (!found)
                 throw new Exception("Identifier could not be found. ID: " + identifier);
 
-            var fileExt = Path.GetExtension(foundPackage?.SourceFilePath);
-            var fileData = File.OpenRead(foundPackage?.SourceFilePath);
+            var fullPath = Path.Combine(AssetDirectory, foundPackage?.SourceFilePath);
+            var fileData = File.OpenRead(fullPath);
             var zipStream = new GZipStream(fileData, CompressionMode.Decompress);
 
             byte[] buffer = new byte[foundData.Size];
@@ -311,7 +342,7 @@ namespace TwinspireCS
             zipStream.Close();
             fileData.Close();
 
-            var fileType = Utils.GetSByteFromString(fileExt);
+            var fileType = Utils.GetSByteFromString(foundData.FileExt);
             var ptrData = Utils.GetBytePtrFromArray(buffer);
 
             try
@@ -323,6 +354,21 @@ namespace TwinspireCS
             {
                 throw new Exception("Unable to get music data from identifier. Format from binary file is incorrect.");
             }
+        }
+
+        /// <summary>
+        /// Get a music with an identifier. Must be loaded before retrieved.
+        /// </summary>
+        /// <param name="identifier">The identifier of the music to get.</param>
+        /// <returns>The music, if found. Returns an empty music if not found.</returns>
+        public Music GetMusic(string identifier)
+        {
+            if (musicCache.ContainsKey(identifier))
+            {
+                return musicCache[identifier];
+            }
+
+            return new Music();
         }
 
         /// <summary>
@@ -357,8 +403,8 @@ namespace TwinspireCS
             if (!found)
                 throw new Exception("Identifier could not be found. ID: " + identifier);
 
-            var fileExt = Path.GetExtension(foundPackage?.SourceFilePath);
-            var fileData = File.OpenRead(foundPackage?.SourceFilePath);
+            var fullPath = Path.Combine(AssetDirectory, foundPackage?.SourceFilePath);
+            var fileData = File.OpenRead(fullPath);
             var zipStream = new GZipStream(fileData, CompressionMode.Decompress);
 
             byte[] buffer = new byte[foundData.Size];
@@ -366,7 +412,7 @@ namespace TwinspireCS
             zipStream.Close();
             fileData.Close();
 
-            var fileType = Utils.GetSByteFromString(fileExt);
+            var fileType = Utils.GetSByteFromString(foundData.FileExt);
             var ptrData = Utils.GetBytePtrFromArray(buffer);
 
             try
@@ -378,6 +424,21 @@ namespace TwinspireCS
             {
                 throw new Exception("Unable to get wave data from identifier. Format from binary file is incorrect.");
             }
+        }
+
+        /// <summary>
+        /// Get a wave with an identifier. Must be loaded before retrieved.
+        /// </summary>
+        /// <param name="identifier">The identifier of the wave to get.</param>
+        /// <returns>The wave, if found. Returns an empty wave if not found.</returns>
+        public Wave GetWave(string identifier)
+        {
+            if (waveCache.ContainsKey(identifier))
+            {
+                return waveCache[identifier];
+            }
+
+            return new Wave();
         }
 
         /// <summary>
@@ -414,8 +475,8 @@ namespace TwinspireCS
             if (!found)
                 throw new Exception("Identifier could not be found. ID: " + identifier);
 
-            var fileExt = Path.GetExtension(foundPackage?.SourceFilePath);
-            var fileData = File.OpenRead(foundPackage?.SourceFilePath);
+            var fullPath = Path.Combine(AssetDirectory, foundPackage?.SourceFilePath);
+            var fileData = File.OpenRead(fullPath);
             var zipStream = new GZipStream(fileData, CompressionMode.Decompress);
 
             byte[] buffer = new byte[foundData.Size];
@@ -423,7 +484,7 @@ namespace TwinspireCS
             zipStream.Close();
             fileData.Close();
 
-            var fileType = Utils.GetSByteFromString(fileExt);
+            var fileType = Utils.GetSByteFromString(foundData.FileExt);
             var ptrData = Utils.GetBytePtrFromArray(buffer);
 
             int* fontCharPtr = null;
@@ -446,6 +507,21 @@ namespace TwinspireCS
             {
                 throw new Exception("Unable to get font from identifier. Format from binary file is incorrect.");
             }
+        }
+
+        /// <summary>
+        /// Get a font with an identifier. Must be loaded before retrieved.
+        /// </summary>
+        /// <param name="identifier">The identifier of the font to get.</param>
+        /// <returns>The font, if found. Returns an empty font if not found.</returns>
+        public Font GetFont(string identifier)
+        {
+            if (fontCache.ContainsKey(identifier))
+            {
+                return fontCache[identifier];
+            }
+
+            return new Font();
         }
 
         /// <summary>
@@ -508,38 +584,80 @@ namespace TwinspireCS
         /// Unload a group of resources.
         /// </summary>
         /// <param name="resources">The resources to load.</param>
-        public void UnloadResources(ResourceResults resources)
+        public void UnloadResources(ResourceGroup resources)
         {
-            if (resources.Fonts.Count() > 0)
+            if (resources.RequestedFonts.Count > 0)
             {
-                foreach (var font in resources.Fonts)
+                foreach (var font in resources.RequestedFonts)
                 {
-                    Raylib.UnloadFont(font);
+                    if (fontCache.ContainsKey(font))
+                    {
+                        Raylib.UnloadFont(fontCache[font]);
+                        fontCache.Remove(font);
+                    }
                 }
             }
             
-            if (resources.Images.Count() > 0)
+            if (resources.RequestedImages.Count > 0)
             {
-                foreach (var image in resources.Images)
+                foreach (var image in resources.RequestedImages)
                 {
-                    Raylib.UnloadImage(image);
+                    if (imageCache.ContainsKey(image))
+                    {
+                        Raylib.UnloadImage(imageCache[image]);
+                        imageCache.Remove(image);
+                    }
                 }
             }
 
-            if (resources.Music.Count() > 0)
+            if (resources.RequestedMusic.Count > 0)
             {
-                foreach (var music in resources.Music)
+                foreach (var music in resources.RequestedMusic)
                 {
-                    Raylib.UnloadMusicStream(music);
+                    if (musicCache.ContainsKey(music))
+                    {
+                        Raylib.UnloadMusicStream(musicCache[music]);
+                        musicCache.Remove(music);
+                    }
                 }
             }
 
-            if (resources.Waves.Count() > 0)
+            if (resources.RequestedWaves.Count > 0)
             {
-                foreach (var wav in resources.Waves)
+                foreach (var wav in resources.RequestedWaves)
                 {
-                    Raylib.UnloadWave(wav);
+                    if (waveCache.ContainsKey(wav))
+                    {
+                        Raylib.UnloadWave(waveCache[wav]);
+                        waveCache.Remove(wav);
+                    }
                 }
+            }
+        }
+
+        /// <summary>
+        /// Unload all loaded resources.
+        /// </summary>
+        public void UnloadAll()
+        {
+            foreach (var kv in fontCache)
+            {
+                Raylib.UnloadFont(kv.Value);
+            }
+
+            foreach (var kv in musicCache)
+            {
+                Raylib.UnloadMusicStream(kv.Value);
+            }
+
+            foreach (var kv in waveCache)
+            {
+                Raylib.UnloadWave(kv.Value);
+            }
+
+            foreach (var kv in imageCache)
+            {
+                Raylib.UnloadImage(kv.Value);
             }
         }
 
