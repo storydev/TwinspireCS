@@ -11,7 +11,7 @@ using System.Runtime.InteropServices;
 
 namespace TwinspireCS
 {
-    internal unsafe class ImGuiController
+    public unsafe class ImGuiController
     {
 
         private Vector2 mousePosition;
@@ -29,10 +29,21 @@ namespace TwinspireCS
         static List<string> fontFilesToLoad;
         static List<int> fontFilesFontSizes;
 
+        static List<byte[]> fontDataToLoad;
+        static List<int> fontDataFontSizes;
+
+        static Dictionary<string, ImFontPtr> fonts;
+
         public void AddFontFile(string fontFile, int fontSize)
         {
             fontFilesToLoad.Add(fontFile);
             fontFilesFontSizes.Add(fontSize);
+        }
+
+        public void AddFontBytes(byte[] data, int fontSize)
+        {
+            fontDataToLoad.Add(data);
+            fontDataFontSizes.Add(fontSize);
         }
 
         static string GetClipboardText()
@@ -49,6 +60,21 @@ namespace TwinspireCS
         {
             fontFilesToLoad = new List<string>();
             fontFilesFontSizes = new List<int>();
+
+            fontDataToLoad = new List<byte[]>();
+            fontDataFontSizes = new List<int>();
+
+            fonts = new Dictionary<string, ImFontPtr>();
+        }
+
+        public ImFontPtr GetFont(string identifier)
+        {
+            if (fonts.ContainsKey(identifier))
+            {
+                return fonts[identifier];
+            }
+
+            return null;
         }
 
         public void Init()
@@ -83,7 +109,22 @@ namespace TwinspireCS
 
             for (int i = 0; i < fontFilesToLoad.Count; i++)
             {
-                io.Fonts.AddFontFromFileTTF(fontFilesToLoad[i], fontFilesFontSizes[i]);
+                var ptr = io.Fonts.AddFontFromFileTTF(fontFilesToLoad[i], fontFilesFontSizes[i]);
+                var filename = Path.GetFileName(fontFilesToLoad[i]);
+                fonts.Add(filename + ":" + fontFilesFontSizes[i], ptr);
+            }
+
+
+            for (int i = 0; i < fontDataToLoad.Count; i++)
+            {
+                Span<byte> dataSpan = fontDataToLoad[i].AsSpan();
+                fixed (byte* data = dataSpan)
+                {
+                    IntPtr buffer = (IntPtr)data;
+
+                    var ptr = io.Fonts.AddFontFromMemoryTTF(buffer, fontDataToLoad[i].Length, fontDataFontSizes[i]);
+                    fonts.Add("data_" + i + ":" + fontDataFontSizes[i], ptr);
+                }
             }
 
             LoadDefaultFontAtlas();

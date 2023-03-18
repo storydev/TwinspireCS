@@ -12,7 +12,8 @@ namespace TwinspireCS
         public static sbyte* GetSByteFromString(string value)
         {
             byte[] bytes = Encoding.UTF8.GetBytes(value);
-            fixed (byte* ptr = bytes)
+            Span<byte> buffer = bytes.AsSpan();
+            fixed (byte* ptr = buffer)
             {
                 sbyte* sp = (sbyte*)ptr;
                 return sp;

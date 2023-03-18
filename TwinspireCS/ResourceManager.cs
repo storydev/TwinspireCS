@@ -100,7 +100,7 @@ namespace TwinspireCS
                 Cursor = package.FileCursor,
                 Size = buffer.LongLength,
                 Data = buffer,
-                FileExt = Path.GetExtension(sourceFile)[1..]
+                FileExt = Path.GetExtension(sourceFile)
             });
         }
 
@@ -125,15 +125,16 @@ namespace TwinspireCS
             {
                 using (GZipStream zip = new GZipStream(stream, CompressionLevel.SmallestSize))
                 {
-                    using (BinaryWriter writer = new BinaryWriter(zip))
+                    using (BinaryWriter writer = new BinaryWriter(stream))
                     {
                         int headerSize = sizeof(int);
                         headerSize += sizeof(int) * 2;
 
                         foreach (var kv in package.FileMapping)
                         {
-                            headerSize += sizeof(long) * 2 + (sizeof(char) * kv.Key.Length);
-                            headerSize += sizeof(char) * kv.Value.FileExt.Length;
+                            headerSize += sizeof(long) * 2;
+                            headerSize += kv.Key.Length + 1;
+                            headerSize += kv.Value.FileExt.Length + 1;
                         }
 
                         writer.Write(headerSize);
@@ -185,6 +186,7 @@ namespace TwinspireCS
             {
                 var path = Path.Combine(AssetDirectory, files[i]);
                 var found = false;
+
                 foreach (var package in packages)
                 {
                     if (package.SourceFilePath == files[i])
@@ -202,7 +204,7 @@ namespace TwinspireCS
                     {
                         using (GZipStream zip = new GZipStream(stream, CompressionMode.Decompress))
                         {
-                            using (BinaryReader reader = new BinaryReader(zip))
+                            using (BinaryReader reader = new BinaryReader(stream))
                             {
                                 package.HeaderSize = reader.ReadInt32();
                                 package.Version = reader.ReadInt32();
@@ -227,20 +229,17 @@ namespace TwinspireCS
         }
 
         /// <summary>
-        /// Loads an image from a given identifier. This method will scan all known
-        /// packages for the given identifier until a name has been found.
-        /// 
-        /// If the name of the identifier gives anything but an Image, or the name
-        /// could not be found, an exception is thrown.
+        /// Read from a package the raw bytes of a given identifier.
+        /// If the identifier could not be found among all known packages, this function
+        /// throws an exception.
         /// </summary>
         /// <param name="identifier">The name of the resource to find.</param>
-        public unsafe void LoadImage(string identifier)
+        /// <param name="ext">A reference to a pointer of <c>sbyte</c> to obtain the file extension of the subject resource.</param>
+        /// <param name="size">A reference to an integer determining the size of the resource.</param>
+        /// <returns></returns>
+        /// <exception cref="Exception">Throws if an identifier could not be found.</exception>
+        public unsafe byte[] GetBytesFromMemory(string identifier, ref sbyte* ext, ref int size)
         {
-            if (imageCache.ContainsKey(identifier))
-            {
-                return;
-            }
-
             DataSegment foundData = null;
             DataPackage foundPackage = null;
             var found = false;
@@ -259,31 +258,56 @@ namespace TwinspireCS
                 throw new Exception("Identifier could not be found. ID: " + identifier);
 
             var fullPath = Path.Combine(AssetDirectory, foundPackage?.SourceFilePath);
-            var fileData = File.OpenRead(fullPath);
-            var zipStream = new GZipStream(fileData, CompressionMode.Decompress);
-
             byte[] buffer = new byte[foundData.Size];
-            zipStream.Read(buffer, (int)foundData.Cursor, (int)foundData.Size);
-            zipStream.Close();
-            fileData.Close();
 
-            var fileType = Utils.GetSByteFromString(foundData.FileExt);
-            var ptrData = Utils.GetBytePtrFromArray(buffer);
+            using (FileStream stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read))
+            {
+                using (GZipStream zip = new GZipStream(stream, CompressionMode.Decompress))
+                {
+                    using (BinaryReader reader = new BinaryReader(stream))
+                    {
+                        var headerSize = reader.ReadInt32();
+                        reader.ReadBytes(headerSize - sizeof(int) + (int)foundData.Cursor);
+                        reader.Read(buffer, 0, buffer.Length);
+                    }
+                }
+            }
 
-            try
-            {
-                var result = Raylib.LoadImageFromMemory(fileType, ptrData, (int)foundData.Size);
-                imageCache.Add(identifier, result);
-            }
-            catch
-            {
-                throw new Exception("Unable to get image from identifier. Format from binary file is incorrect.");
-            }
+            ext = Utils.GetSByteFromString(foundData.FileExt);
+            size = buffer.Length;
+            return buffer;
         }
 
-        public byte[] GetBytesFromMemory(string identifier)
+        /// <summary>
+        /// Loads an image from a given identifier. This method will scan all known
+        /// packages for the given identifier until a name has been found.
+        /// 
+        /// If the name of the identifier gives anything but an Image, or the name
+        /// could not be found, an exception is thrown.
+        /// </summary>
+        /// <param name="identifier">The name of the resource to find.</param>
+        public unsafe void LoadImage(string identifier)
         {
+            if (imageCache.ContainsKey(identifier))
+            {
+                return;
+            }
 
+            sbyte* fileType = null;
+            int size = 0;
+            var data = GetBytesFromMemory(identifier, ref fileType, ref size);
+            fixed (byte* ptrData = data.AsSpan())
+            {
+                try
+                {
+                    var result = Raylib.LoadImageFromMemory(fileType, ptrData, size);
+                    imageCache.Add(identifier, result);
+                }
+                catch
+                {
+                    throw new Exception("Unable to get image from identifier. Format from binary file is incorrect.");
+                }
+            }
         }
 
         /// <summary>
@@ -316,44 +340,22 @@ namespace TwinspireCS
                 return;
             }
 
-            DataSegment foundData = null;
-            DataPackage foundPackage = null;
-            var found = false;
-            foreach (var package in packages)
+            sbyte* fileType = null;
+            int size = 0;
+            var data = GetBytesFromMemory(identifier, ref fileType, ref size);
+            fixed (byte* ptrData = data.AsSpan())
             {
-                if (package.FileMapping.ContainsKey(identifier))
+                try
                 {
-                    found = true;
-                    foundPackage = package;
-                    foundData = package.FileMapping[identifier];
-                    break;
+                    var result = Raylib.LoadMusicStreamFromMemory(fileType, ptrData, size);
+                    musicCache.Add(identifier, result);
+                }
+                catch
+                {
+                    throw new Exception("Unable to get music data from identifier. Format from binary file is incorrect.");
                 }
             }
-
-            if (!found)
-                throw new Exception("Identifier could not be found. ID: " + identifier);
-
-            var fullPath = Path.Combine(AssetDirectory, foundPackage?.SourceFilePath);
-            var fileData = File.OpenRead(fullPath);
-            var zipStream = new GZipStream(fileData, CompressionMode.Decompress);
-
-            byte[] buffer = new byte[foundData.Size];
-            zipStream.Read(buffer, (int)foundData.Cursor, (int)foundData.Size);
-            zipStream.Close();
-            fileData.Close();
-
-            var fileType = Utils.GetSByteFromString(foundData.FileExt);
-            var ptrData = Utils.GetBytePtrFromArray(buffer);
-
-            try
-            {
-                var result = Raylib.LoadMusicStreamFromMemory(fileType, ptrData, (int)foundData.Size);
-                musicCache.Add(identifier, result);
-            }
-            catch
-            {
-                throw new Exception("Unable to get music data from identifier. Format from binary file is incorrect.");
-            }
+            
         }
 
         /// <summary>
@@ -386,43 +388,20 @@ namespace TwinspireCS
                 return;
             }
 
-            DataSegment foundData = null;
-            DataPackage foundPackage = null;
-            var found = false;
-            foreach (var package in packages)
+            sbyte* fileType = null;
+            int size = 0;
+            var data = GetBytesFromMemory(identifier, ref fileType, ref size);
+            fixed (byte* ptrData = data.AsSpan())
             {
-                if (package.FileMapping.ContainsKey(identifier))
+                try
                 {
-                    found = true;
-                    foundPackage = package;
-                    foundData = package.FileMapping[identifier];
-                    break;
+                    var result = Raylib.LoadWaveFromMemory(fileType, ptrData, size);
+                    waveCache.Add(identifier, result);
                 }
-            }
-
-            if (!found)
-                throw new Exception("Identifier could not be found. ID: " + identifier);
-
-            var fullPath = Path.Combine(AssetDirectory, foundPackage?.SourceFilePath);
-            var fileData = File.OpenRead(fullPath);
-            var zipStream = new GZipStream(fileData, CompressionMode.Decompress);
-
-            byte[] buffer = new byte[foundData.Size];
-            zipStream.Read(buffer, (int)foundData.Cursor, (int)foundData.Size);
-            zipStream.Close();
-            fileData.Close();
-
-            var fileType = Utils.GetSByteFromString(foundData.FileExt);
-            var ptrData = Utils.GetBytePtrFromArray(buffer);
-
-            try
-            {
-                var result = Raylib.LoadWaveFromMemory(fileType, ptrData, (int)foundData.Size);
-                waveCache.Add(identifier, result);
-            }
-            catch
-            {
-                throw new Exception("Unable to get wave data from identifier. Format from binary file is incorrect.");
+                catch
+                {
+                    throw new Exception("Unable to get wave data from identifier. Format from binary file is incorrect.");
+                }
             }
         }
 
@@ -458,55 +437,33 @@ namespace TwinspireCS
                 return;
             }
 
-            DataSegment foundData = null;
-            DataPackage foundPackage = null;
-            var found = false;
-            foreach (var package in packages)
-            {
-                if (package.FileMapping.ContainsKey(identifier))
-                {
-                    found = true;
-                    foundPackage = package;
-                    foundData = package.FileMapping[identifier];
-                    break;
-                }
-            }
-
-            if (!found)
-                throw new Exception("Identifier could not be found. ID: " + identifier);
-
-            var fullPath = Path.Combine(AssetDirectory, foundPackage?.SourceFilePath);
-            var fileData = File.OpenRead(fullPath);
-            var zipStream = new GZipStream(fileData, CompressionMode.Decompress);
-
-            byte[] buffer = new byte[foundData.Size];
-            zipStream.Read(buffer, (int)foundData.Cursor, (int)foundData.Size);
-            zipStream.Close();
-            fileData.Close();
-
-            var fileType = Utils.GetSByteFromString(foundData.FileExt);
-            var ptrData = Utils.GetBytePtrFromArray(buffer);
-
+            sbyte* fileType = null;
+            int size = 0;
             int* fontCharPtr = null;
-            int glyphs = 0;
-            if (fontChars != null)
-            {
-                fixed (int* tempPtr = fontChars)
-                {
-                    fontCharPtr = tempPtr;
-                }
-                glyphs = fontChars.Length;
-            }
+            var data = GetBytesFromMemory(identifier, ref fileType, ref size);
 
-            try
+            fixed (int* tempPtr = fontChars)
+            fixed (byte* ptrData = data.AsSpan())
             {
-                var result = Raylib.LoadFontFromMemory(fileType, ptrData, (int)foundData.Size, fontSize, fontCharPtr, glyphs);
-                fontCache.Add(identifier, result);
+                if (fontChars != null)
+                    fontCharPtr = tempPtr;
+
+                int glyphs = 0;
+                if (fontChars != null)
+                    glyphs = fontChars.Length;
+
+                try
+                {
+                    var result = Raylib.LoadFontFromMemory(fileType, ptrData, size, fontSize, fontCharPtr, glyphs);
+                    fontCache.Add(identifier, result);
+                }
+                catch
+                {
+                    throw new Exception("Unable to get font from identifier. Format from binary file is incorrect.");
+                }
+
             }
-            catch
-            {
-                throw new Exception("Unable to get font from identifier. Format from binary file is incorrect.");
-            }
+            
         }
 
         /// <summary>

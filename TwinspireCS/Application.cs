@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ImGuiNET;
 
 namespace TwinspireCS
 {
@@ -90,26 +91,36 @@ namespace TwinspireCS
         }
 
         /// <summary>
-        /// Initialise all options for Raylib.
+        /// Initialise ImGui context.
         /// </summary>
-        public void InitAll()
+        public void InitImGui()
         {
-            Raylib.InitWindow(startingWidth, startingHeight, windowTitle);
-            Raylib.SetTargetFPS(TargetFPS);
-            Raylib.InitAudioDevice();
-
             if (useImgui)
             {
+                var context = ImGui.CreateContext();
+                ImGui.SetCurrentContext(context);
+
                 imguiController = new ImGuiController();
             }
         }
 
         /// <summary>
-        /// Initialise ImGui context.
+        /// Get the instance of the imgui controller.
         /// </summary>
-        public void ImGuiInit()
+        /// <returns></returns>
+        public ImGuiController GetImGuiController()
         {
-            imguiController.Init();
+            return imguiController;
+        }
+
+        /// <summary>
+        /// Initialise all options for Raylib.
+        /// </summary>
+        public void InitAll()
+        {
+            Raylib.InitWindow(startingWidth, startingHeight, windowTitle);
+            Raylib.SetConfigFlags(ConfigFlags.FLAG_VSYNC_HINT);
+            Raylib.SetTargetFPS(TargetFPS);
         }
 
         /// <summary>
@@ -120,6 +131,16 @@ namespace TwinspireCS
         public void ImGuiAddFont(string fontPath, int fontSize)
         {
             imguiController.AddFontFile(fontPath, fontSize);
+        }
+
+        /// <summary>
+        /// Add a font to the imgui context from a buffer.
+        /// </summary>
+        /// <param name="data">The data of the font.</param>
+        /// <param name="fontSize">The size the font should be rendered at.</param>
+        public void ImGuiAddFont(byte[] data, int fontSize)
+        {
+            imguiController.AddFontBytes(data, fontSize);
         }
 
         /// <summary>
