@@ -15,12 +15,11 @@ namespace ResourceManager.Views
     {
 
         static Application resourceApp;
-        static string projectPath;
-        static bool openingProject;
+        static bool projectOpened;
 
         public static void Init()
         {
-            projectPath = string.Empty;
+            
         }
 
         public static void Render()
@@ -41,9 +40,13 @@ namespace ResourceManager.Views
                     ImGui.EndTabItem();
                 }
 
-                if (ImGui.BeginTabBar("Server"))
+                if (ImGui.BeginTabItem("Server"))
                 {
-
+#if !DEBUG_PROFESSIONAL || !RELEASE_PROFESSIONAL
+                    ImGui.Text("This functionality is not available in the Free Edition.");
+#else
+                    
+#endif
 
                     ImGui.EndTabItem();
                 }
@@ -52,6 +55,8 @@ namespace ResourceManager.Views
 
                 ImGui.End();
             }
+
+
 
             //
             // Navigation (Top-Left)
