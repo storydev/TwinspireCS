@@ -4,6 +4,7 @@ using ImGuiNET;
 using System.Numerics;
 
 using System.IO;
+using ResourceManager.Views;
 
 namespace ResourceManager
 {
@@ -32,7 +33,7 @@ namespace ResourceManager
             sbyte* regularFontExt = null;
             int regularFontSize = 0;
             var regularFontData = app.ResourceManager.GetBytesFromMemory("Font_Regular", ref regularFontExt, ref regularFontSize);
-            app.ImGuiAddFont(regularFontData, 24);
+            app.ImGuiAddFont(regularFontData, 14);
 
             app.InitAll();
 
@@ -43,6 +44,7 @@ namespace ResourceManager
             var imgui = app.GetImGuiController();
             imgui.Init();
 
+            MainView.Init();
 
             while (app.IsOpen())
             {
@@ -53,7 +55,7 @@ namespace ResourceManager
                 Raylib.BeginDrawing();
                 Raylib.ClearBackground(Color.GRAY);
 
-                
+                MainView.Render();
 
                 ImGui.Render();
                 imgui.Render(ImGui.GetDrawData());

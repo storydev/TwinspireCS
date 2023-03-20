@@ -91,6 +91,14 @@ namespace TwinspireCS
         }
 
         /// <summary>
+        /// Initialise a new application with only resource management.
+        /// </summary>
+        public Application()
+        {
+            resourceManager = new ResourceManager();
+        }
+
+        /// <summary>
         /// Initialise ImGui context.
         /// </summary>
         public void InitImGui()
