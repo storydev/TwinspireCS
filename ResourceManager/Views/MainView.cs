@@ -8,6 +8,7 @@ using System.Numerics;
 
 using ImGuiNET;
 using TwinspireCS;
+using ResourceManager.Data;
 
 namespace ResourceManager.Views
 {
@@ -16,10 +17,12 @@ namespace ResourceManager.Views
 
         static Application resourceApp;
         static bool projectOpened;
+        static Project currentProject;
+        static int selectedOpenTab;
 
         public static void Init()
         {
-            
+            currentProject = new Project();
         }
 
         public static void Render()
@@ -31,22 +34,35 @@ namespace ResourceManager.Views
             ImGui.SetNextWindowSize(new Vector2(400, 350), ImGuiCond.Appearing);
             if (ImGui.Begin("Open Project", ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar))
             {
+                ImGui.Text("Name:"); ImGui.SameLine();
+                ImGui.SetNextItemWidth(120f);
+                ImGui.InputText("##OpenProjectName", ref currentProject.Name, 256);
+
+                ImGui.SameLine();
+                if (ImGui.Button("Save"))
+                {
+                    
+                }
+
                 ImGui.BeginTabBar("OpenProjectMethods");
 
                 if (ImGui.BeginTabItem("Folder"))
                 {
+                    selectedOpenTab = 0;
+
+                    ImGui.Text("Folder Path:"); ImGui.SameLine();
+                    ImGui.InputText("##OpenFolderPath", ref currentProject.FolderPath, 512);
+
 
 
                     ImGui.EndTabItem();
                 }
 
+
+
                 if (ImGui.BeginTabItem("Server"))
                 {
-#if !DEBUG_PROFESSIONAL || !RELEASE_PROFESSIONAL
-                    ImGui.Text("This functionality is not available in the Free Edition.");
-#else
-                    
-#endif
+                    selectedOpenTab = 1;
 
                     ImGui.EndTabItem();
                 }
