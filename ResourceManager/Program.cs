@@ -37,10 +37,6 @@ namespace ResourceManager
 
             app.InitAll();
 
-            ResourceGroup core = new ResourceGroup();
-            core.RequestedFonts.Add("Font_Regular:40");
-            app.ResourceManager.LoadGroup(core);
-
             var imgui = app.GetImGuiController();
             imgui.Init();
 
