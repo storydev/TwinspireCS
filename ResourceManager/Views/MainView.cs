@@ -18,7 +18,7 @@ namespace ResourceManager.Views
 
         static List<Project> recentProjects;
         static string appCachePath;
-
+        static string recentProjectsPath;
 
         static Application resourceApp;
         static bool projectOpened;
@@ -36,10 +36,10 @@ namespace ResourceManager.Views
             appCachePath = Path.Combine(appCachePath, "StoryDev", "Resource Manager");
             Directory.CreateDirectory(appCachePath);
 
-            var recentsPath = Path.Combine(appCachePath, "recents.json");
-            if (File.Exists(recentsPath))
+            recentProjectsPath = Path.Combine(appCachePath, "recents.json");
+            if (File.Exists(recentProjectsPath))
             {
-                recentProjects = JsonConvert.DeserializeObject<List<Project>>(File.ReadAllText(recentsPath));
+                recentProjects = JsonConvert.DeserializeObject<List<Project>>(File.ReadAllText(recentProjectsPath));
             }
             else
             {
@@ -75,7 +75,15 @@ namespace ResourceManager.Views
                         }
                         else
                         {
-                            OpenProject();
+                            if (OpenProject())
+                            {
+                                projectOpened = true;
+                                resourceApp = new Application();
+                                resourceApp.ResourceManager.AssetDirectory = currentProject.FolderPath;
+
+                                recentProjects.Add(currentProject);
+                                File.WriteAllText(recentProjectsPath, JsonConvert.SerializeObject(recentProjects));
+                            }
                         }
                     }
                     else if (currentProject.OpenMethod == OpenMethod.Server)
@@ -133,12 +141,40 @@ namespace ResourceManager.Views
                     ImGui.EndTabItem();
                 }
 
+                if (ImGui.BeginTabItem("Recent Projects"))
+                {
+                    ImGui.BeginChild("RecentProjectList", new Vector2(380, 270), true);
+
+                    foreach (var recent in recentProjects)
+                    {
+                        ImGui.Text(recent.Name);
+                        ImGui.Indent();
+                        ImGui.TextColored(new Vector4(.4f, .4f, .4f, 1f), recent.OpenMethod == OpenMethod.LocalFolder 
+                            ? "Local Folder" : "Server");
+                        ImGui.Unindent();
+                        if (ImGui.Button("Open##Open" + recent.Name))
+                        {
+                            currentProject = recent;
+                            if (OpenProject())
+                            {
+                                projectOpened = true;
+                                resourceApp = new Application();
+                                resourceApp.ResourceManager.AssetDirectory = currentProject.FolderPath;
+                            }
+                        }
+                    }
+
+                    ImGui.EndChild();
+
+                    ImGui.EndTabItem();
+                }
+
                 ImGui.EndTabBar();
 
                 ImGui.End();
             }
 
-            if (resourceApp == null)
+            if (resourceApp == null || !projectOpened)
                 return;
 
             NEED_MAINVIEW:
@@ -154,7 +190,21 @@ namespace ResourceManager.Views
             ImGui.SetNextWindowPos(new Vector2(5, 5), ImGuiCond.Always);
             if (ImGui.Begin("##Views", ImGuiWindowFlags.NoDecoration))
             {
-                
+                if (ImGui.Button("Build All"))
+                {
+
+                }
+                if (ImGui.IsItemHovered())
+                    ImGui.SetTooltip("Build and compress all resource files.");
+
+                ImGui.SameLine();
+                if (ImGui.Button("Close Project"))
+                {
+                    projectOpened = false;
+                    currentProject = new Project();
+                }
+                if (ImGui.IsItemHovered())
+                    ImGui.SetTooltip("Close the current project.");
 
                 ImGui.End();
             }
@@ -191,9 +241,17 @@ namespace ResourceManager.Views
 
         #region Project Utils
 
-        static void OpenProject()
+        static bool OpenProject()
         {
+            if (string.IsNullOrEmpty(currentProject.Name))
+                return false;
 
+            if (currentProject.OpenMethod == OpenMethod.LocalFolder)
+            {
+                return Directory.Exists(currentProject.FolderPath);
+            }
+
+            return false;
         }
 
         #endregion
