@@ -8,6 +8,7 @@ using System.Numerics;
 
 using Newtonsoft.Json;
 using ImGuiNET;
+using Raylib_cs;
 using TwinspireCS;
 using ResourceManager.Data;
 
@@ -28,6 +29,10 @@ namespace ResourceManager.Views
         static bool showErrorOpenFolder;
         static string errorOpenFolderText;
 
+        static string[] resourceFiles;
+        static int selectedResource;
+        static string resourceNewFile;
+
         public static void Init()
         {
             currentProject = new Project();
@@ -45,6 +50,9 @@ namespace ResourceManager.Views
             {
                 recentProjects = new List<Project>();
             }
+
+            resourceNewFile = string.Empty;
+            selectedResource = -1;
         }
 
         public static void Render()
@@ -185,8 +193,9 @@ namespace ResourceManager.Views
             // Navigation (Top-Left)
             //
 
-            var navigationWidth = 250;
-            ImGui.SetNextWindowSize(new Vector2(navigationWidth, 90), ImGuiCond.Always);
+            var topHeight = 90f;
+            var sideWidth = 250;
+            ImGui.SetNextWindowSize(new Vector2(sideWidth, topHeight), ImGuiCond.Always);
             ImGui.SetNextWindowPos(new Vector2(5, 5), ImGuiCond.Always);
             if (ImGui.Begin("##Views", ImGuiWindowFlags.NoDecoration))
             {
@@ -212,31 +221,108 @@ namespace ResourceManager.Views
             //
             // Resource Files (Top-Middle)
             //
+            var middleWidth = Raylib.GetRenderWidth() - (sideWidth * 2) - 20f;
+            ImGui.SetNextWindowPos(new Vector2(sideWidth + 10f, 5f), ImGuiCond.Always);
+            ImGui.SetNextWindowSize(new Vector2(middleWidth, topHeight), ImGuiCond.Always);
+            if (ImGui.Begin("##ResourceFiles", ImGuiWindowFlags.NoDecoration))
+            {
+                for (int i = 0; i < resourceFiles.Length; i++)
+                {
+                    if (i > 0)
+                    {
+                        ImGui.SameLine();
+                    }
+                    
+                    if (ImGui.RadioButton(resourceFiles[i], selectedResource == i))
+                    {
+                        selectedResource = i;
+                    }
+                }
 
-            
+                ImGui.Text("New File:"); ImGui.SameLine();
+                if (ImGui.InputText("##InputNewFile", ref resourceNewFile, 64, ImGuiInputTextFlags.EnterReturnsTrue))
+                {
+                    var fileName = Path.Combine(currentProject.FolderPath, resourceNewFile);
+                    if (!fileName.EndsWith(".dat"))
+                        fileName += ".dat";
+
+                    var versionsName = fileName.Substring(0, fileName.Length - 4);
+                    versionsName += "-versions.dat";
+
+                    if (!File.Exists(fileName))
+                    {
+                        File.WriteAllText(fileName, "");
+                        File.WriteAllText(versionsName, "");
+                        PopulateResourceFiles();
+                    }
+                }
+
+                ImGui.End();
+            }
+
 
             //
             // Options (Top-Right)
             //
+            var rightX = Raylib.GetRenderWidth() - sideWidth - 5f;
+            ImGui.SetNextWindowPos(new Vector2(rightX, 5f), ImGuiCond.Always);
+            ImGui.SetNextWindowSize(new Vector2(sideWidth, topHeight), ImGuiCond.Always);
+            if (ImGui.Begin("##Options", ImGuiWindowFlags.NoDecoration))
+            {
 
 
+                ImGui.End();
+            }
 
             //
-            // Quick Search (Middle-Left)
+            // Filters (Middle-Left)
             //
+            var middleHeight = Raylib.GetRenderHeight() - topHeight;
+            ImGui.SetNextWindowPos(new Vector2(5f, topHeight + 10f), ImGuiCond.Always);
+            ImGui.SetNextWindowSize(new Vector2(sideWidth, middleHeight), ImGuiCond.Always);
+            if (ImGui.Begin("##Filters", ImGuiWindowFlags.NoDecoration))
+            {
 
-            
-            
+                ImGui.End();
+            }
+
             //
             // File List as Table (Middle)
             //
+            ImGui.SetNextWindowPos(new Vector2(sideWidth + 10f, topHeight + 10f), ImGuiCond.Always);
+            ImGui.SetNextWindowSize(new Vector2(middleWidth, middleHeight), ImGuiCond.Always);
+            if (ImGui.Begin("##FileList", ImGuiWindowFlags.NoDecoration))
+            {
 
+                ImGui.End();
+            }
 
 
             //
             // File Properties / Error Handling (Middle-Right)
             //
+            ImGui.SetNextWindowPos(new Vector2(rightX, topHeight + 10f), ImGuiCond.Always);
+            ImGui.SetNextWindowSize(new Vector2(sideWidth, middleHeight), ImGuiCond.Always);
+            if (ImGui.Begin("##Properties", ImGuiWindowFlags.NoDecoration))
+            {
+                ImGui.BeginTabBar("PropertyItems");
 
+                if (ImGui.BeginTabItem("File Properties"))
+                {
+
+                    ImGui.EndTabItem();
+                }
+
+                if (ImGui.BeginTabItem("Errors"))
+                {
+
+                    ImGui.EndTabItem();
+                }
+
+                ImGui.EndTabBar();
+
+                ImGui.End();
+            }
         }
 
         #region Project Utils
@@ -248,10 +334,19 @@ namespace ResourceManager.Views
 
             if (currentProject.OpenMethod == OpenMethod.LocalFolder)
             {
+                PopulateResourceFiles();
                 return Directory.Exists(currentProject.FolderPath);
             }
 
             return false;
+        }
+
+        static void PopulateResourceFiles()
+        {
+            if (currentProject.OpenMethod == OpenMethod.LocalFolder)
+            {
+                resourceFiles = Directory.GetFiles(currentProject.FolderPath, "*.dat");
+            }
         }
 
         #endregion
