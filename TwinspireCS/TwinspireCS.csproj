@@ -13,9 +13,4 @@
     <PackageReference Include="Raylib-cs" Version="4.2.0.1" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Engine\" />
-    <Folder Include="Engine\" />
-  </ItemGroup>
-
 </Project>
