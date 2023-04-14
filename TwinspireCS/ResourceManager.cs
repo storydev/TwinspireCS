@@ -202,6 +202,11 @@ namespace TwinspireCS
                     package.SourceFilePath = files[i];
                     using (FileStream stream = new FileStream(path, FileMode.Open, FileAccess.Read))
                     {
+                        if (stream.Length == 0) // empty file
+                        {
+                            goto SKIP_READING;
+                        }
+
                         using (GZipStream zip = new GZipStream(stream, CompressionMode.Decompress))
                         {
                             using (BinaryReader reader = new BinaryReader(stream))
@@ -222,6 +227,9 @@ namespace TwinspireCS
                                 }
                             }
                         }
+
+                    SKIP_READING:
+                        { }
                     }
                     packages.Add(package);
                 }
