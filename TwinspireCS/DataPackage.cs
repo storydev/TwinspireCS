@@ -28,6 +28,7 @@ namespace TwinspireCS
     public class DataSegment
     {
 
+        public string OriginalSourceFile;
         public string FileExt;
         public long Cursor;
         public long Size;
@@ -35,6 +36,7 @@ namespace TwinspireCS
 
         public DataSegment()
         {
+            OriginalSourceFile = string.Empty;
             FileExt = string.Empty;
             Cursor = 0;
             Size = 0;

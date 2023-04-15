@@ -97,9 +97,9 @@ namespace TwinspireCS
             package.FileBufferCount += buffer.LongLength;
             package.FileMapping.Add(identifier, new DataSegment()
             {
+                OriginalSourceFile = sourceFile,
                 Cursor = package.FileCursor,
                 Size = buffer.LongLength,
-                Data = buffer,
                 FileExt = Path.GetExtension(sourceFile)
             });
         }
@@ -156,8 +156,17 @@ namespace TwinspireCS
                         foreach (var kv in package.FileMapping)
                         {
                             var data = kv.Value;
-                            writer.Write(data.Data);
-                            data.Data = null;
+                            if (data.Data == null)
+                            {
+                                var bytes = File.ReadAllBytes(data.OriginalSourceFile);
+                                writer.Write(bytes);
+                            }
+                            else
+                            {
+                                writer.Write(data.Data);
+                                data.Data = null;
+                            }
+                            
                         }
                     }
                 }
@@ -168,9 +177,13 @@ namespace TwinspireCS
         /// Write all the data for the given package asynchronously.
         /// </summary>
         /// <param name="packageIndex">The package to write out to its source file.</param>
-        public async void WriteAllAsync(int packageIndex)
+        public async void WriteAllAsync(int packageIndex, Action ?complete = null)
         {
             var task = new Task(() => WriteAll(packageIndex));
+            if (complete != null)
+            {
+                task.GetAwaiter().OnCompleted(complete);
+            }
             await task;
         }
 
@@ -487,6 +500,23 @@ namespace TwinspireCS
             }
 
             return new Font();
+        }
+
+        /// <summary>
+        /// Checks all packages to determine if the given identifier exists.
+        /// </summary>
+        /// <param name="identifier">The identifier to check.</param>
+        /// <returns></returns>
+        public bool DoesNameExist(string identifier)
+        {
+            var result = false;
+            foreach (var pack in packages)
+            {
+                result = pack.FileMapping.ContainsKey(identifier);
+                if (result)
+                    break;
+            }
+            return result;
         }
 
         /// <summary>
