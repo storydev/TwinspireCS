@@ -39,9 +39,7 @@ namespace TwinspireCS
         }
 
         /// <summary>
-        /// Create a package from which a binary file is read. This method opens
-        /// a file stream for editing for the given source file. Packages must be
-        /// closed before exiting.
+        /// Create a package from which a binary file is read.
         /// </summary>
         /// <param name="sourceFile">The binary source file to read from.</param>
         public int CreatePackage(string sourceFile)
