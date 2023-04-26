@@ -39,9 +39,7 @@ namespace TwinspireCS
         }
 
         /// <summary>
-        /// Create a package from which a binary file is read. This method opens
-        /// a file stream for editing for the given source file. Packages must be
-        /// closed before exiting.
+        /// Create a package from which a binary file is read.
         /// </summary>
         /// <param name="sourceFile">The binary source file to read from.</param>
         public int CreatePackage(string sourceFile)
@@ -97,9 +95,9 @@ namespace TwinspireCS
             package.FileBufferCount += buffer.LongLength;
             package.FileMapping.Add(identifier, new DataSegment()
             {
+                OriginalSourceFile = sourceFile,
                 Cursor = package.FileCursor,
                 Size = buffer.LongLength,
-                Data = buffer,
                 FileExt = Path.GetExtension(sourceFile)
             });
         }
@@ -156,8 +154,17 @@ namespace TwinspireCS
                         foreach (var kv in package.FileMapping)
                         {
                             var data = kv.Value;
-                            writer.Write(data.Data);
-                            data.Data = null;
+                            if (data.Data == null)
+                            {
+                                var bytes = File.ReadAllBytes(data.OriginalSourceFile);
+                                writer.Write(bytes);
+                            }
+                            else
+                            {
+                                writer.Write(data.Data);
+                                data.Data = null;
+                            }
+                            
                         }
                     }
                 }
@@ -168,9 +175,13 @@ namespace TwinspireCS
         /// Write all the data for the given package asynchronously.
         /// </summary>
         /// <param name="packageIndex">The package to write out to its source file.</param>
-        public async void WriteAllAsync(int packageIndex)
+        public async void WriteAllAsync(int packageIndex, Action ?complete = null)
         {
             var task = new Task(() => WriteAll(packageIndex));
+            if (complete != null)
+            {
+                task.GetAwaiter().OnCompleted(complete);
+            }
             await task;
         }
 
@@ -202,6 +213,11 @@ namespace TwinspireCS
                     package.SourceFilePath = files[i];
                     using (FileStream stream = new FileStream(path, FileMode.Open, FileAccess.Read))
                     {
+                        if (stream.Length == 0) // empty file
+                        {
+                            goto SKIP_READING;
+                        }
+
                         using (GZipStream zip = new GZipStream(stream, CompressionMode.Decompress))
                         {
                             using (BinaryReader reader = new BinaryReader(stream))
@@ -222,6 +238,9 @@ namespace TwinspireCS
                                 }
                             }
                         }
+
+                    SKIP_READING:
+                        { }
                     }
                     packages.Add(package);
                 }
@@ -479,6 +498,23 @@ namespace TwinspireCS
             }
 
             return new Font();
+        }
+
+        /// <summary>
+        /// Checks all packages to determine if the given identifier exists.
+        /// </summary>
+        /// <param name="identifier">The identifier to check.</param>
+        /// <returns></returns>
+        public bool DoesNameExist(string identifier)
+        {
+            var result = false;
+            foreach (var pack in packages)
+            {
+                result = pack.FileMapping.ContainsKey(identifier);
+                if (result)
+                    break;
+            }
+            return result;
         }
 
         /// <summary>
