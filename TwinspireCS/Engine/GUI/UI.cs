@@ -11,6 +11,9 @@ namespace TwinspireCS.Engine.GUI
     {
 
         private static List<Canvas> canvases;
+        private static int currentCanvasIndex;
+        private static int nextCanvasIndex;
+        private static bool allowInput;
 
         public static Canvas CreateCanvas()
         {
@@ -21,9 +24,24 @@ namespace TwinspireCS.Engine.GUI
 
 
 
-        public void Render()
+        public static void Render()
         {
-            
+            if (currentCanvasIndex == -1)
+                return;
+
+            var canvas = canvases[currentCanvasIndex];
+            for (int i = 0; i < canvas.Layouts.Count(); i++)
+            {
+                RenderLayout(canvas.Layouts.ElementAt(i));
+            }
+        }
+
+        static void RenderLayout(Grid grid)
+        {
+            var startX = 0.0f;
+            var startY = 0.0f;
+
+
         }
 
     }

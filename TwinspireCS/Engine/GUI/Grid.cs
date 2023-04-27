@@ -15,8 +15,7 @@ namespace TwinspireCS.Engine.GUI
         public Vector4 Dimension;
         public float[] Columns;
         public float[] Rows;
-        public float[] Margin;
-        public float[] Padding;
+        
 
         public ColorMethod[] BackgroundColors;
         public string[] BackgroundImages;
@@ -29,13 +28,21 @@ namespace TwinspireCS.Engine.GUI
         public bool[] Borders;
         public float[] RadiusCorners;
 
+        public float[] MarginTop;
+        public float[] MarginBottom;
+        public float[] MarginLeft;
+        public float[] MarginRight;
+
+        public float[] PaddingTop;
+        public float[] PaddingBottom;
+        public float[] PaddingLeft;
+        public float[] PaddingRight;
+
         public Grid()
         {
             Dimension = new Vector4();
             Columns = Array.Empty<float>();
             Rows = Array.Empty<float>();
-            Margin = Array.Empty<float>();
-            Padding = Array.Empty<float>();
 
             BackgroundColors = Array.Empty<ColorMethod>();
             BackgroundImages = Array.Empty<string>();
@@ -51,7 +58,11 @@ namespace TwinspireCS.Engine.GUI
 
         }
 
-
+        public Grid SetColumnWidth(int column, float percentageWidth)
+        {
+            Columns[column] = Dimension.Z * percentageWidth;
+            return this;
+        }
 
     }
 }

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
+using Raylib_cs;
 
 namespace TwinspireCS.Engine.GUI
 {
@@ -18,6 +19,7 @@ namespace TwinspireCS.Engine.GUI
         public IEnumerable<ElementType> Elements => elements;
         public IEnumerable<object> ElementContent => elementContent;
 
+        public bool UseBackBuffer { get; set; }
 
         public Canvas()
         {
@@ -31,10 +33,19 @@ namespace TwinspireCS.Engine.GUI
             var grid = new Grid();
             grid.Dimension = dimension;
             int totalCells = columns * rows;
-            grid.Columns = new float[totalCells];
-            grid.Rows = new float[totalCells];
+            grid.Columns = new float[columns];
+            grid.Rows = new float[rows];
             grid.Margin = new float[totalCells];
             grid.Padding = new float[totalCells];
+            grid.BackgroundColors = new Extras.ColorMethod[totalCells];
+            grid.BackgroundImages = new string[totalCells];
+            grid.Offsets = new Vector2[totalCells];
+
+            int cornerTotals = totalCells * 4;
+            grid.BorderColors = new Color[cornerTotals];
+            grid.Borders = new bool[cornerTotals];
+            grid.BorderThicknesses = new int[cornerTotals];
+            grid.RadiusCorners = new float[cornerTotals];
 
             layouts.Add(grid);
             return layouts[layouts.Count - 1];

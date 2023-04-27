@@ -9,7 +9,6 @@ namespace TwinspireCS.Engine.GUI
     public enum ElementType
     {
         Text,
-        Image,
         
     }
 }
