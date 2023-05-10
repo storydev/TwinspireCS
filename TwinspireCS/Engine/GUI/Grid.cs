@@ -181,7 +181,40 @@ namespace TwinspireCS.Engine.GUI
             return this;
         }
 
+        public Grid SetOffsetCell(int column, int row, Vector2 offset)
+        {
+            int cell = row * Columns.Length + column;
+            Offsets[cell] = offset;
+            return this;
+        }
 
+        public Grid SetOffset(Vector2 offset)
+        {
+            Offsets[selectedCell] = offset;
+            return this;
+        }
+
+        public Grid SetBorderColorsCell(int column, int row, Color color)
+        {
+            int cell = (row * Columns.Length + column) * 4;
+            BorderColors[cell] = color;
+            BorderColors[cell + 1] = color;
+            BorderColors[cell + 2] = color;
+            BorderColors[cell + 3] = color;
+            return this;
+        }
+
+        public Grid SetBorderColors(Color color)
+        {
+            int actualCell = selectedCell * 4;
+            BorderColors[actualCell] = color;
+            BorderColors[actualCell + 1] = color;
+            BorderColors[actualCell + 2] = color;
+            BorderColors[actualCell + 3] = color;
+            return this;
+        }
+
+        
 
     }
 }
