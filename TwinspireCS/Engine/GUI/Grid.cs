@@ -197,24 +197,38 @@ namespace TwinspireCS.Engine.GUI
         public Grid SetBorderColorsCell(int column, int row, Color color)
         {
             int cell = (row * Columns.Length + column) * 4;
-            BorderColors[cell] = color;
-            BorderColors[cell + 1] = color;
-            BorderColors[cell + 2] = color;
-            BorderColors[cell + 3] = color;
+            BorderColors[cell] = color; // left
+            BorderColors[cell + 1] = color; // top
+            BorderColors[cell + 2] = color; // right
+            BorderColors[cell + 3] = color; // bottom
             return this;
         }
 
         public Grid SetBorderColors(Color color)
         {
             int actualCell = selectedCell * 4;
-            BorderColors[actualCell] = color;
-            BorderColors[actualCell + 1] = color;
-            BorderColors[actualCell + 2] = color;
-            BorderColors[actualCell + 3] = color;
+            BorderColors[actualCell] = color; // left
+            BorderColors[actualCell + 1] = color; // top
+            BorderColors[actualCell + 2] = color; // right
+            BorderColors[actualCell + 3] = color; // bottom
             return this;
         }
 
-        
+        public Grid SetBorderTopColorsCell(int column, int row, Color color)
+        {
+            int cell = (row * Columns.Length + column) * 4;
+            BorderColors[cell + 1] = color; // top
+            return this;
+        }
+
+        public Grid SetBorderTopColors(Color color)
+        {
+            int actualCell = selectedCell * 4;
+            BorderColors[actualCell + 1] = color; // top
+            return this;
+        }
+
+
 
     }
 }
