@@ -57,6 +57,8 @@ namespace TwinspireCS.Engine.GUI
             RadiusCorners = Array.Empty<float>();
             Margin = Array.Empty<float>();
             Padding = Array.Empty<float>();
+
+            selectedCells = Array.Empty<int>();
         }
 
         public Grid Next()
@@ -77,6 +79,28 @@ namespace TwinspireCS.Engine.GUI
             selectedColumn = column;
             selectedRow = row;
             return this;
+        }
+
+        public Grid SelectRange(params Vector2[] cells)
+        {
+
+
+            return this;
+        }
+
+        public int GetCellIndex(int column, int row)
+        {
+            return row * Columns.Length + column;
+        }
+
+        public int GetCurrentRow()
+        {
+            return selectedRow;
+        }
+
+        public int GetCurrentColumn()
+        {
+            return selectedColumn;
         }
 
         public Grid SetColumnWidth(int column, float percentageWidth)
@@ -225,6 +249,154 @@ namespace TwinspireCS.Engine.GUI
         {
             int actualCell = selectedCell * 4;
             BorderColors[actualCell + 1] = color; // top
+            return this;
+        }
+
+        public Grid SetBorderLeftColorsCell(int column, int row, Color color)
+        {
+            int cell = (row * Columns.Length + column) * 4;
+            BorderColors[cell] = color; // left
+            return this;
+        }
+
+        public Grid SetBorderLeftColors(Color color)
+        {
+            int actualCell = selectedCell * 4;
+            BorderColors[actualCell] = color; // left
+            return this;
+        }
+
+        public Grid SetBorderRightColorsCell(int column, int row, Color color)
+        {
+            int cell = (row * Columns.Length + column) * 4;
+            BorderColors[cell + 2] = color; // right
+            return this;
+        }
+
+        public Grid SetBorderRightColors(Color color)
+        {
+            int actualCell = selectedCell * 4;
+            BorderColors[actualCell + 2] = color; // right
+            return this;
+        }
+
+        public Grid SetBorderBottomColorsCell(int column, int row, Color color)
+        {
+            int cell = (row * Columns.Length + column) * 4;
+            BorderColors[cell + 3] = color; // bottom
+            return this;
+        }
+
+        public Grid SetBorderBottomColors(Color color)
+        {
+            int actualCell = selectedCell * 4;
+            BorderColors[actualCell + 3] = color; // bottom
+            return this;
+        }
+
+        public Grid SetBorderThicknessCell(int column, int row, int lineThickness)
+        {
+            int cell = (row * Columns.Length + column) * 4;
+            BorderThicknesses[cell] = lineThickness;
+            BorderThicknesses[cell + 1] = lineThickness;
+            BorderThicknesses[cell + 2] = lineThickness;
+            BorderThicknesses[cell + 3] = lineThickness;
+            return this;
+        }
+
+        public Grid SetBorderThickness(int lineThickness)
+        {
+            int actualCell = selectedCell * 4;
+            BorderThicknesses[actualCell] = lineThickness;
+            BorderThicknesses[actualCell + 1] = lineThickness;
+            BorderThicknesses[actualCell + 2] = lineThickness;
+            BorderThicknesses[actualCell + 3] = lineThickness;
+            return this;
+        }
+
+        public Grid SetBorderTopThicknessCell(int column, int row, int lineThickness)
+        {
+            int cell = (row * Columns.Length + column) * 4;
+            BorderThicknesses[cell + 1] = lineThickness;
+            return this;
+        }
+
+        public Grid SetBorderTopThickness(int lineThickness)
+        {
+            int actualCell = selectedCell * 4;
+            BorderThicknesses[actualCell + 1] = lineThickness;
+            return this;
+        }
+
+        public Grid SetBorderLeftThicknessCell(int column, int row, int lineThickness)
+        {
+            int cell = (row * Columns.Length + column) * 4;
+            BorderThicknesses[cell] = lineThickness;
+            return this;
+        }
+
+        public Grid SetBorderleftThickness(int lineThickness)
+        {
+            int actualCell = selectedCell * 4;
+            BorderThicknesses[actualCell] = lineThickness;
+            return this;
+        }
+
+        public Grid SetBorderRightThicknessCell(int column, int row, int lineThickness)
+        {
+            int cell = (row * Columns.Length + column) * 4;
+            BorderThicknesses[cell + 2] = lineThickness;
+            return this;
+        }
+
+        public Grid SetBorderRightThickness(int lineThickness)
+        {
+            int actualCell = selectedCell * 4;
+            BorderThicknesses[actualCell + 2] = lineThickness;
+            return this;
+        }
+
+        public Grid SetBorderBottomThicknessCell(int column, int row, int lineThickness)
+        {
+            int cell = (row * Columns.Length + column) * 4;
+            BorderThicknesses[cell + 3] = lineThickness;
+            return this;
+        }
+
+        public Grid SetBorderBottomThickness(int lineThickness)
+        {
+            int actualCell = selectedCell * 4;
+            BorderThicknesses[actualCell + 3] = lineThickness;
+            return this;
+        }
+
+        public Grid ApplyBordersCell(int column, int row, bool yes)
+        {
+            int cell = (row * Columns.Length + column) * 4;
+            Borders[cell] = yes;
+            Borders[cell + 1] = yes;
+            Borders[cell + 2] = yes;
+            Borders[cell + 3] = yes;
+            return this;
+        }
+
+        public Grid ApplyBorders(bool yes)
+        {
+            int actualCell = selectedCell * 4;
+            Borders[actualCell] = yes;
+            Borders[actualCell + 1] = yes;
+            Borders[actualCell + 2] = yes;
+            Borders[actualCell + 3] = yes;
+            return this;
+        }
+
+        public Grid SetRadiusCornersCell(int column, int row, float radius)
+        {
+            int cell = (row * Columns.Length + column) * 4;
+            RadiusCorners[cell] = radius;
+            RadiusCorners[cell + 1] = radius;
+            RadiusCorners[cell + 2] = radius;
+            RadiusCorners[cell + 3] = radius;
             return this;
         }
 

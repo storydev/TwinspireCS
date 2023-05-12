@@ -35,13 +35,14 @@ namespace TwinspireCS.Engine.GUI
             int totalCells = columns * rows;
             grid.Columns = new float[columns];
             grid.Rows = new float[rows];
-            grid.Margin = new float[totalCells];
-            grid.Padding = new float[totalCells];
+            
             grid.BackgroundColors = new Extras.ColorMethod[totalCells];
             grid.BackgroundImages = new string[totalCells];
             grid.Offsets = new Vector2[totalCells];
 
             int cornerTotals = totalCells * 4;
+            grid.Margin = new float[cornerTotals];
+            grid.Padding = new float[cornerTotals];
             grid.BorderColors = new Color[cornerTotals];
             grid.Borders = new bool[cornerTotals];
             grid.BorderThicknesses = new int[cornerTotals];
