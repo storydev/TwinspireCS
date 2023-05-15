@@ -16,6 +16,7 @@ namespace TwinspireCS
         private Dictionary<string, Image> imageCache;
         private Dictionary<string, Wave> waveCache;
         private Dictionary<string, Music> musicCache;
+        private Dictionary<string, Texture2D> textureCache;
 
         private List<DataPackage> packages;
         /// <summary>
@@ -35,6 +36,7 @@ namespace TwinspireCS
             imageCache = new Dictionary<string, Image>();
             waveCache = new Dictionary<string, Wave>();
             musicCache = new Dictionary<string, Music>();
+            textureCache = new Dictionary<string, Texture2D>();
             AssetDirectory = string.Empty;
         }
 
@@ -342,6 +344,29 @@ namespace TwinspireCS
             }
 
             return new Image();
+        }
+
+        /// <summary>
+        /// Gets a texture from an image with the given identifier. The respective image must be loaded before it is retrieved.
+        /// </summary>
+        /// <param name="identifier">The identifier of the image to get.</param>
+        /// <returns>The image as a texture, if found. Returns an empty texture if not found.</returns>
+        public Texture2D GetTexture(string identifier)
+        {
+            if (textureCache.ContainsKey(identifier))
+            {
+                return textureCache[identifier];
+            }
+
+            var image = GetImage(identifier);
+            if (!Equals(image, new Image()))
+            {
+                var texture = Raylib.LoadTextureFromImage(image);
+                textureCache.Add(identifier, texture);
+                return texture;
+            }
+
+            return new Texture2D();
         }
 
         /// <summary>

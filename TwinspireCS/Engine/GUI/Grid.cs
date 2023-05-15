@@ -27,12 +27,12 @@ namespace TwinspireCS.Engine.GUI
         public string[] BackgroundImages;
 
         public Vector2[] Offsets;
+        public float[] RadiusCorners;
 
         // multiply by 4 for these ones
         public Color[] BorderColors;
         public int[] BorderThicknesses;
         public bool[] Borders;
-        public float[] RadiusCorners;
         public float[] Margin;
         public float[] Padding;
 
@@ -93,6 +93,80 @@ namespace TwinspireCS.Engine.GUI
             return row * Columns.Length + column;
         }
 
+        public int GetRow(int index)
+        {
+            return (int)Math.Floor((float)(index / Columns.Length));
+        }
+
+        public int GetColumn(int index)
+        {
+            return (int)Math.Floor((float)(index % Columns.Length));
+        }
+
+        public Vector4 GetCellDimension(int cell)
+        {
+            int cellItemIndex = cell * 4;
+            int column = GetColumn(cell);
+            int row = GetRow(cell);
+            
+            float x = Dimension.X;
+            if (column > 0)
+            {
+                float xOffset = 0.0f;
+                for (int c = 0; c < column; c++)
+                {
+                    xOffset += Columns[c];
+                }
+                x += xOffset;
+            }
+            x += Margin[cellItemIndex + 1];
+
+            float y = Dimension.Y;
+            if (row > 0)
+            {
+                float yOffset = 0.0f;
+                for (int r = 0; r < row; r++)
+                {
+                    yOffset += Rows[r];
+                }
+                y += yOffset;
+            }
+            y += Margin[cellItemIndex];
+
+            float cellWidth = Columns[column];
+            float cellHeight = Rows[row];
+
+            if (cellWidth > 0)
+            {
+                cellWidth -= Margin[cellItemIndex + 1];
+                cellWidth -= Margin[cellItemIndex + 2];
+            }
+
+            if (cellHeight > 0)
+            {
+                cellHeight -= Margin[cellItemIndex];
+                cellHeight -= Margin[cellItemIndex + 3];
+            }
+
+            return new Vector4(x, y, cellWidth, cellHeight);
+        }
+
+        public Vector4 GetContentDimension(int cell)
+        {
+            int cellItemIndex = cell * 4;
+            int column = GetColumn(cell);
+            int row = GetRow(cell);
+
+            var cellDim = GetCellDimension(cell);
+            var x = cellDim.X;
+            var y = cellDim.Y;
+            var width = cellDim.Z;
+            var height = cellDim.W;
+
+            return new Vector4(x + Padding[cellItemIndex + 1], y + Padding[cellItemIndex], 
+                width - Padding[cellItemIndex + 2] - Padding[cellItemIndex + 1], height - Padding[cellItemIndex + 3] - Padding[cellItemIndex]);
+        }
+
         public int GetCurrentRow()
         {
             return selectedRow;
@@ -101,6 +175,11 @@ namespace TwinspireCS.Engine.GUI
         public int GetCurrentColumn()
         {
             return selectedColumn;
+        }
+
+        public int GetSelectedCell()
+        {
+            return selectedCell;
         }
 
         public Grid SetColumnWidth(int column, float percentageWidth)
@@ -390,17 +469,226 @@ namespace TwinspireCS.Engine.GUI
             return this;
         }
 
-        public Grid SetRadiusCornersCell(int column, int row, float radius)
+        public Grid ApplyBordersTopCell(int column, int row, bool yes)
         {
             int cell = (row * Columns.Length + column) * 4;
-            RadiusCorners[cell] = radius;
-            RadiusCorners[cell + 1] = radius;
-            RadiusCorners[cell + 2] = radius;
-            RadiusCorners[cell + 3] = radius;
+            Borders[cell] = yes;
             return this;
         }
 
+        public Grid ApplyBordersTop(bool yes)
+        {
+            int actualCell = selectedCell * 4;
+            Borders[actualCell] = yes;
+            return this;
+        }
 
+        public Grid ApplyBordersLeftCell(int column, int row, bool yes)
+        {
+            int cell = (row * Columns.Length + column) * 4;
+            Borders[cell + 1] = yes;
+            return this;
+        }
+
+        public Grid ApplyBordersLeft(bool yes)
+        {
+            int actualCell = selectedCell * 4;
+            Borders[actualCell + 1] = yes;
+            return this;
+        }
+
+        public Grid ApplyBordersRightCell(int column, int row, bool yes)
+        {
+            int cell = (row * Columns.Length + column) * 4;
+            Borders[cell + 2] = yes;
+            return this;
+        }
+
+        public Grid ApplyBordersRight(bool yes)
+        {
+            int actualCell = selectedCell * 4;
+            Borders[actualCell + 2] = yes;
+            return this;
+        }
+
+        public Grid ApplyBordersBottomCell(int column, int row, bool yes)
+        {
+            int cell = (row * Columns.Length + column) * 4;
+            Borders[cell + 3] = yes;
+            return this;
+        }
+
+        public Grid ApplyBordersBottom(bool yes)
+        {
+            int actualCell = selectedCell * 4;
+            Borders[actualCell + 3] = yes;
+            return this;
+        }
+
+        public Grid SetRadiusCornersCell(int column, int row, float radius)
+        {
+            int cell = row * Columns.Length + column;
+            RadiusCorners[cell] = radius;
+            return this;
+        }
+
+        public Grid SetRadiusCorners(float radius)
+        {
+            RadiusCorners[selectedCell] = radius;
+            return this;
+        }
+
+        public Grid SetMarginCell(int column, int row, float margin)
+        {
+            int cell = (row * Columns.Length + column) * 4;
+            Margin[cell] = margin; // top
+            Margin[cell + 1] = margin; // left
+            Margin[cell + 2] = margin; // right
+            Margin[cell + 3] = margin; // bottom
+            return this;
+        }
+
+        public Grid SetMargin(float margin)
+        {
+            int actualCell = selectedCell * 4;
+            Margin[actualCell] = margin; // top
+            Margin[actualCell + 1] = margin; // left
+            Margin[actualCell + 2] = margin; // right
+            Margin[actualCell + 3] = margin; // bottom
+            return this;
+        }
+
+        public Grid SetMarginTopCell(int column, int row, float margin)
+        {
+            int cell = (row * Columns.Length + column) * 4;
+            Margin[cell] = margin; // top
+            return this;
+        }
+
+        public Grid SetMarginTop(float margin)
+        {
+            int actualCell = selectedCell * 4;
+            Margin[actualCell] = margin; // top
+            return this;
+        }
+
+        public Grid SetMarginLeftCell(int column, int row, float margin)
+        {
+            int cell = (row * Columns.Length + column) * 4;
+            Margin[cell + 1] = margin; // left
+            return this;
+        }
+
+        public Grid SetMarginLeft(float margin)
+        {
+            int actualCell = selectedCell * 4;
+            Margin[actualCell + 1] = margin; // left
+            return this;
+        }
+
+        public Grid SetMarginRightCell(int column, int row, float margin)
+        {
+            int cell = (row * Columns.Length + column) * 4;
+            Margin[cell + 2] = margin; // right
+            return this;
+        }
+
+        public Grid SetMarginRight(float margin)
+        {
+            int actualCell = selectedCell * 4;
+            Margin[actualCell + 2] = margin; // right
+            return this;
+        }
+
+        public Grid SetMarginBottomCell(int column, int row, float margin)
+        {
+            int cell = (row * Columns.Length + column) * 4;
+            Margin[cell + 3] = margin; // bottom
+            return this;
+        }
+
+        public Grid SetMarginBottom(float margin)
+        {
+            int actualCell = selectedCell * 4;
+            Margin[actualCell + 3] = margin; // bottom
+            return this;
+        }
+
+        public Grid SetPaddingCell(int column, int row, float padding)
+        {
+            int cell = (row * Columns.Length + column) * 4;
+            Padding[cell] = padding; // top
+            Padding[cell + 1] = padding; // left
+            Padding[cell + 2] = padding; // right
+            Padding[cell + 3] = padding; // bottom
+            return this;
+        }
+
+        public Grid SetPadding(float padding)
+        {
+            int actualCell = selectedCell * 4;
+            Padding[actualCell] = padding; // top
+            Padding[actualCell + 1] = padding; // left
+            Padding[actualCell + 2] = padding; // right
+            Padding[actualCell + 3] = padding; // bottom
+            return this;
+        }
+
+        public Grid SetPaddingTopCell(int column, int row, float padding)
+        {
+            int cell = (row * Columns.Length + column) * 4;
+            Padding[cell] = padding; // top
+            return this;
+        }
+
+        public Grid SetPaddingTop(float padding)
+        {
+            int actualCell = selectedCell * 4;
+            Padding[actualCell] = padding; // top
+            return this;
+        }
+
+        public Grid SetPaddingLeftCell(int column, int row, float padding)
+        {
+            int cell = (row * Columns.Length + column) * 4;
+            Padding[cell + 1] = padding; // left
+            return this;
+        }
+
+        public Grid SetLeftPadding(float padding)
+        {
+            int actualCell = selectedCell * 4;
+            Padding[actualCell + 1] = padding; // left
+            return this;
+        }
+
+        public Grid SetPaddingRightCell(int column, int row, float padding)
+        {
+            int cell = (row * Columns.Length + column) * 4;
+            Padding[cell + 2] = padding; // right
+            return this;
+        }
+
+        public Grid SetPaddingRight(float padding)
+        {
+            int actualCell = selectedCell * 4;
+            Padding[actualCell + 2] = padding; // right
+            return this;
+        }
+
+        public Grid SetPaddingBottomCell(int column, int row, float padding)
+        {
+            int cell = (row * Columns.Length + column) * 4;
+            Padding[cell + 3] = padding; // right
+            return this;
+        }
+
+        public Grid SetPaddingBottom(float padding)
+        {
+            int actualCell = selectedCell * 4;
+            Padding[actualCell + 3] = padding; // right
+            return this;
+        }
 
     }
 }

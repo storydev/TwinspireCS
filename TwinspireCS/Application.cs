@@ -160,7 +160,25 @@ namespace TwinspireCS
             return !Raylib.WindowShouldClose();
         }
 
+        private static Application? instance;
+        public static Application Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    instance = new Application();
+                }
 
+                return instance;
+            }
+        }
+
+        public static Application CreateApp(string title, int width, int height)
+        {
+            Application app = new Application(title, width, height);
+            return app;
+        }
 
     }
 }
