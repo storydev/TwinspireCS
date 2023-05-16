@@ -27,6 +27,7 @@ namespace TwinspireCS.Engine.GUI
         public string[] BackgroundImages;
 
         public Vector2[] Offsets;
+        public Vector2[] Scrolling;
         public float[] RadiusCorners;
 
         // multiply by 4 for these ones
@@ -50,6 +51,7 @@ namespace TwinspireCS.Engine.GUI
             BackgroundImages = Array.Empty<string>();
 
             Offsets = Array.Empty<Vector2>();
+            Scrolling = Array.Empty<Vector2>();
 
             BorderColors = Array.Empty<Color>();
             BorderThicknesses = Array.Empty<int>();
@@ -162,6 +164,28 @@ namespace TwinspireCS.Engine.GUI
             var y = cellDim.Y;
             var width = cellDim.Z;
             var height = cellDim.W;
+
+            if (Borders[cellItemIndex])
+            {
+                y += BorderThicknesses[cellItemIndex];
+                height -= BorderThicknesses[cellItemIndex];
+            }
+            
+            if (Borders[cellItemIndex + 1])
+            {
+                x += BorderThicknesses[cellItemIndex + 1];
+                width -= BorderThicknesses[cellItemIndex + 1];
+            }
+
+            if (Borders[cellItemIndex + 2])
+            {
+                width -= BorderThicknesses[cellItemIndex + 2];
+            }
+
+            if (Borders[cellItemIndex + 3])
+            {
+                height -= BorderThicknesses[cellItemIndex + 3];
+            }
 
             return new Vector4(x + Padding[cellItemIndex + 1], y + Padding[cellItemIndex], 
                 width - Padding[cellItemIndex + 2] - Padding[cellItemIndex + 1], height - Padding[cellItemIndex + 3] - Padding[cellItemIndex]);

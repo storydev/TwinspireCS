@@ -53,6 +53,7 @@ namespace TwinspireCS.Engine.GUI
             grid.BackgroundColors = new Extras.ColorMethod[totalCells];
             grid.BackgroundImages = new string[totalCells];
             grid.Offsets = new Vector2[totalCells];
+            grid.RadiusCorners = new float[totalCells];
 
             int cornerTotals = totalCells * 4;
             grid.Margin = new float[cornerTotals];
@@ -60,7 +61,6 @@ namespace TwinspireCS.Engine.GUI
             grid.BorderColors = new Color[cornerTotals];
             grid.Borders = new bool[cornerTotals];
             grid.BorderThicknesses = new int[cornerTotals];
-            grid.RadiusCorners = new float[cornerTotals];
 
             layouts.Add(grid);
             elementCellGroups.Add(layouts.Count - 1, new int[2] { elements.Count - 1, 0 });
@@ -86,12 +86,10 @@ namespace TwinspireCS.Engine.GUI
 
         public void Render()
         {
-            
             foreach (var layout in layouts)
             {
                 RenderLayout(layout);
             }
-
         }
 
         public void RenderLayout(Grid grid)
@@ -101,7 +99,8 @@ namespace TwinspireCS.Engine.GUI
             for (int i = 0; i < cells; i++)
             {
                 var cellDim = grid.GetCellDimension(i);
-                var contentDim = grid.GetContentDimension(i);
+
+                
                 
                 if (!string.IsNullOrEmpty(grid.BackgroundImages[i]))
                 {
@@ -147,7 +146,20 @@ namespace TwinspireCS.Engine.GUI
                             Raylib.DrawLineEx(new Vector2(cellDim.X, cellDim.Y), new Vector2(cellDim.X + cellDim.Z, cellDim.Y), grid.BorderThicknesses[cellItemIndex], grid.BorderColors[cellItemIndex]);
                         }
 
+                        if (grid.Borders[cellItemIndex + 1]) // left
+                        {
+                            Raylib.DrawLineEx(new Vector2(cellDim.X, cellDim.Y), new Vector2(cellDim.X + cellDim.Z, cellDim.Y), grid.BorderThicknesses[cellItemIndex + 1], grid.BorderColors[cellItemIndex + 1]);
+                        }
 
+                        if (grid.Borders[cellItemIndex + 2]) // right
+                        {
+                            Raylib.DrawLineEx(new Vector2(cellDim.X, cellDim.Y), new Vector2(cellDim.X + cellDim.Z, cellDim.Y), grid.BorderThicknesses[cellItemIndex + 2], grid.BorderColors[cellItemIndex + 2]);
+                        }
+
+                        if (grid.Borders[cellItemIndex + 3]) // bottom
+                        {
+                            Raylib.DrawLineEx(new Vector2(cellDim.X, cellDim.Y), new Vector2(cellDim.X + cellDim.Z, cellDim.Y), grid.BorderThicknesses[cellItemIndex + 3], grid.BorderColors[cellItemIndex + 3]);
+                        }
                     }
                 }
             }
