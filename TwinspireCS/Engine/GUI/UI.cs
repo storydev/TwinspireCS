@@ -29,19 +29,7 @@ namespace TwinspireCS.Engine.GUI
             if (currentCanvasIndex == -1)
                 return;
 
-            var canvas = canvases[currentCanvasIndex];
-            for (int i = 0; i < canvas.Layouts.Count(); i++)
-            {
-                RenderLayout(canvas.Layouts.ElementAt(i));
-            }
-        }
-
-        static void RenderLayout(Grid grid)
-        {
-            var startX = 0.0f;
-            var startY = 0.0f;
-
-
+            
         }
 
     }
