@@ -176,8 +176,8 @@ namespace TwinspireCS
 
         public static Application CreateApp(string title, int width, int height)
         {
-            Application app = new Application(title, width, height);
-            return app;
+            instance = new Application(title, width, height);
+            return instance;
         }
 
     }

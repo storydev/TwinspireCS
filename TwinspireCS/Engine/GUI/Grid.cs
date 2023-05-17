@@ -16,6 +16,7 @@ namespace TwinspireCS.Engine.GUI
         private int selectedRow;
         private int selectedColumn;
         private int[] selectedCells;
+        private bool selectedEverything;
 
         public Vector4 Dimension;
         public float[] Columns;
@@ -87,6 +88,19 @@ namespace TwinspireCS.Engine.GUI
         {
 
 
+            return this;
+        }
+
+        public Grid SelectAll()
+        {
+            selectedEverything = true;
+            return this;
+        }
+
+        public Grid Deselect()
+        {
+            selectedEverything = false;
+            selectedCells = Array.Empty<int>();
             return this;
         }
 
@@ -229,6 +243,28 @@ namespace TwinspireCS.Engine.GUI
             return this;
         }
 
+        public Grid SetRowHeightsAuto()
+        {
+            float rowHeight = (float)Math.Floor((double)(Dimension.W / Rows.Length));
+            for (int i = 0; i < Rows.Length; i++)
+            {
+                Rows[i] = rowHeight;
+            }
+
+            return this;
+        }
+
+        public Grid SetColumnHeightsAuto()
+        {
+            float columnWidth = (float)Math.Floor((double)(Dimension.Z / Columns.Length));
+            for (int i = 0; i < Columns.Length; i++)
+            {
+                Columns[i] = columnWidth;
+            }
+
+            return this;
+        }
+
         public Grid SetAutoSize(bool autoSizeRows, bool autoSizeColumns)
         {
             AutoSizeRows = autoSizeRows;
@@ -298,12 +334,32 @@ namespace TwinspireCS.Engine.GUI
 
         public Grid SetBackground(ColorMethod color)
         {
+            if (selectedEverything)
+            {
+                int cells = Columns.Length * Rows.Length;
+                for (int i = 0; i < cells; i++)
+                {
+                    BackgroundColors[i] = color;
+                }
+                return this;
+            }
+
             BackgroundColors[selectedCell] = color;
             return this;
         }
 
         public Grid SetBackground(string imageName)
         {
+            if (selectedEverything)
+            {
+                int cells = Columns.Length * Rows.Length;
+                for (int i = 0; i < cells; i++)
+                {
+                    BackgroundImages[i] = imageName;
+                }
+                return this;
+            }
+
             BackgroundImages[selectedCell] = imageName;
             return this;
         }
@@ -317,6 +373,16 @@ namespace TwinspireCS.Engine.GUI
 
         public Grid SetOffset(Vector2 offset)
         {
+            if (selectedEverything)
+            {
+                int cells = Columns.Length * Rows.Length;
+                for (int i = 0; i < cells; i++)
+                {
+                    Offsets[i] = offset;
+                }
+                return this;
+            }
+
             Offsets[selectedCell] = offset;
             return this;
         }
@@ -324,8 +390,8 @@ namespace TwinspireCS.Engine.GUI
         public Grid SetBorderColorsCell(int column, int row, Color color)
         {
             int cell = (row * Columns.Length + column) * 4;
-            BorderColors[cell] = color; // left
-            BorderColors[cell + 1] = color; // top
+            BorderColors[cell] = color; // top
+            BorderColors[cell + 1] = color; // left
             BorderColors[cell + 2] = color; // right
             BorderColors[cell + 3] = color; // bottom
             return this;
@@ -333,9 +399,23 @@ namespace TwinspireCS.Engine.GUI
 
         public Grid SetBorderColors(Color color)
         {
+            if (selectedEverything)
+            {
+                int cells = Columns.Length * Rows.Length;
+                for (int i = 0; i < cells; i++)
+                {
+                    int actualCellIndex = i * 4;
+                    BorderColors[actualCellIndex] = color; // top
+                    BorderColors[actualCellIndex + 1] = color; // left
+                    BorderColors[actualCellIndex + 2] = color; // right
+                    BorderColors[actualCellIndex + 3] = color; // bottom
+                }
+                return this;
+            }
+
             int actualCell = selectedCell * 4;
-            BorderColors[actualCell] = color; // left
-            BorderColors[actualCell + 1] = color; // top
+            BorderColors[actualCell] = color; // top
+            BorderColors[actualCell + 1] = color; // left
             BorderColors[actualCell + 2] = color; // right
             BorderColors[actualCell + 3] = color; // bottom
             return this;
@@ -344,28 +424,50 @@ namespace TwinspireCS.Engine.GUI
         public Grid SetBorderTopColorsCell(int column, int row, Color color)
         {
             int cell = (row * Columns.Length + column) * 4;
-            BorderColors[cell + 1] = color; // top
+            BorderColors[cell] = color; // top
             return this;
         }
 
         public Grid SetBorderTopColors(Color color)
         {
+            if (selectedEverything)
+            {
+                int cells = Columns.Length * Rows.Length;
+                for (int i = 0; i < cells; i++)
+                {
+                    int actualCellIndex = i * 4;
+                    BorderColors[actualCellIndex] = color; // top
+                }
+                return this;
+            }
+
             int actualCell = selectedCell * 4;
-            BorderColors[actualCell + 1] = color; // top
+            BorderColors[actualCell] = color; // top
             return this;
         }
 
         public Grid SetBorderLeftColorsCell(int column, int row, Color color)
         {
             int cell = (row * Columns.Length + column) * 4;
-            BorderColors[cell] = color; // left
+            BorderColors[cell + 1] = color; // left
             return this;
         }
 
         public Grid SetBorderLeftColors(Color color)
         {
+            if (selectedEverything)
+            {
+                int cells = Columns.Length * Rows.Length;
+                for (int i = 0; i < cells; i++)
+                {
+                    int actualCellIndex = i * 4;
+                    BorderColors[actualCellIndex + 1] = color; // left
+                }
+                return this;
+            }
+
             int actualCell = selectedCell * 4;
-            BorderColors[actualCell] = color; // left
+            BorderColors[actualCell + 1] = color; // left
             return this;
         }
 
@@ -378,6 +480,17 @@ namespace TwinspireCS.Engine.GUI
 
         public Grid SetBorderRightColors(Color color)
         {
+            if (selectedEverything)
+            {
+                int cells = Columns.Length * Rows.Length;
+                for (int i = 0; i < cells; i++)
+                {
+                    int actualCellIndex = i * 4;
+                    BorderColors[actualCellIndex + 2] = color; // right
+                }
+                return this;
+            }
+
             int actualCell = selectedCell * 4;
             BorderColors[actualCell + 2] = color; // right
             return this;
@@ -392,6 +505,17 @@ namespace TwinspireCS.Engine.GUI
 
         public Grid SetBorderBottomColors(Color color)
         {
+            if (selectedEverything)
+            {
+                int cells = Columns.Length * Rows.Length;
+                for (int i = 0; i < cells; i++)
+                {
+                    int actualCellIndex = i * 4;
+                    BorderColors[actualCellIndex + 3] = color; // bottom
+                }
+                return this;
+            }
+
             int actualCell = selectedCell * 4;
             BorderColors[actualCell + 3] = color; // bottom
             return this;
@@ -409,6 +533,20 @@ namespace TwinspireCS.Engine.GUI
 
         public Grid SetBorderThickness(int lineThickness)
         {
+            if (selectedEverything)
+            {
+                int cells = Columns.Length * Rows.Length;
+                for (int i = 0; i < cells; i++)
+                {
+                    int actualCellIndex = i * 4;
+                    BorderThicknesses[actualCellIndex] = lineThickness;
+                    BorderThicknesses[actualCellIndex + 1] = lineThickness;
+                    BorderThicknesses[actualCellIndex + 2] = lineThickness;
+                    BorderThicknesses[actualCellIndex + 3] = lineThickness;
+                }
+                return this;
+            }
+
             int actualCell = selectedCell * 4;
             BorderThicknesses[actualCell] = lineThickness;
             BorderThicknesses[actualCell + 1] = lineThickness;
@@ -426,8 +564,19 @@ namespace TwinspireCS.Engine.GUI
 
         public Grid SetBorderTopThickness(int lineThickness)
         {
+            if (selectedEverything)
+            {
+                int cells = Columns.Length * Rows.Length;
+                for (int i = 0; i < cells; i++)
+                {
+                    int actualCellIndex = i * 4;
+                    BorderThicknesses[actualCellIndex] = lineThickness;
+                }
+                return this;
+            }
+
             int actualCell = selectedCell * 4;
-            BorderThicknesses[actualCell + 1] = lineThickness;
+            BorderThicknesses[actualCell] = lineThickness;
             return this;
         }
 
@@ -438,10 +587,21 @@ namespace TwinspireCS.Engine.GUI
             return this;
         }
 
-        public Grid SetBorderleftThickness(int lineThickness)
+        public Grid SetBorderLeftThickness(int lineThickness)
         {
+            if (selectedEverything)
+            {
+                int cells = Columns.Length * Rows.Length;
+                for (int i = 0; i < cells; i++)
+                {
+                    int actualCellIndex = i * 4;
+                    BorderThicknesses[actualCellIndex + 1] = lineThickness;
+                }
+                return this;
+            }
+
             int actualCell = selectedCell * 4;
-            BorderThicknesses[actualCell] = lineThickness;
+            BorderThicknesses[actualCell + 1] = lineThickness;
             return this;
         }
 
@@ -454,6 +614,17 @@ namespace TwinspireCS.Engine.GUI
 
         public Grid SetBorderRightThickness(int lineThickness)
         {
+            if (selectedEverything)
+            {
+                int cells = Columns.Length * Rows.Length;
+                for (int i = 0; i < cells; i++)
+                {
+                    int actualCellIndex = i * 4;
+                    BorderThicknesses[actualCellIndex + 2] = lineThickness;
+                }
+                return this;
+            }
+
             int actualCell = selectedCell * 4;
             BorderThicknesses[actualCell + 2] = lineThickness;
             return this;
@@ -468,6 +639,17 @@ namespace TwinspireCS.Engine.GUI
 
         public Grid SetBorderBottomThickness(int lineThickness)
         {
+            if (selectedEverything)
+            {
+                int cells = Columns.Length * Rows.Length;
+                for (int i = 0; i < cells; i++)
+                {
+                    int actualCellIndex = i * 4;
+                    BorderThicknesses[actualCellIndex + 3] = lineThickness;
+                }
+                return this;
+            }
+
             int actualCell = selectedCell * 4;
             BorderThicknesses[actualCell + 3] = lineThickness;
             return this;
@@ -485,6 +667,20 @@ namespace TwinspireCS.Engine.GUI
 
         public Grid ApplyBorders(bool yes)
         {
+            if (selectedEverything)
+            {
+                int cells = Columns.Length * Rows.Length;
+                for (int i = 0; i < cells; i++)
+                {
+                    int actualCellIndex = i * 4;
+                    Borders[actualCellIndex] = yes;
+                    Borders[actualCellIndex + 1] = yes;
+                    Borders[actualCellIndex + 2] = yes;
+                    Borders[actualCellIndex + 3] = yes;
+                }
+                return this;
+            }
+
             int actualCell = selectedCell * 4;
             Borders[actualCell] = yes;
             Borders[actualCell + 1] = yes;
@@ -502,6 +698,17 @@ namespace TwinspireCS.Engine.GUI
 
         public Grid ApplyBordersTop(bool yes)
         {
+            if (selectedEverything)
+            {
+                int cells = Columns.Length * Rows.Length;
+                for (int i = 0; i < cells; i++)
+                {
+                    int actualCellIndex = i * 4;
+                    Borders[actualCellIndex] = yes;
+                }
+                return this;
+            }
+
             int actualCell = selectedCell * 4;
             Borders[actualCell] = yes;
             return this;
@@ -516,6 +723,17 @@ namespace TwinspireCS.Engine.GUI
 
         public Grid ApplyBordersLeft(bool yes)
         {
+            if (selectedEverything)
+            {
+                int cells = Columns.Length * Rows.Length;
+                for (int i = 0; i < cells; i++)
+                {
+                    int actualCellIndex = i * 4;
+                    Borders[actualCellIndex + 1] = yes;
+                }
+                return this;
+            }
+
             int actualCell = selectedCell * 4;
             Borders[actualCell + 1] = yes;
             return this;
@@ -530,6 +748,17 @@ namespace TwinspireCS.Engine.GUI
 
         public Grid ApplyBordersRight(bool yes)
         {
+            if (selectedEverything)
+            {
+                int cells = Columns.Length * Rows.Length;
+                for (int i = 0; i < cells; i++)
+                {
+                    int actualCellIndex = i * 4;
+                    Borders[actualCellIndex + 2] = yes;
+                }
+                return this;
+            }
+
             int actualCell = selectedCell * 4;
             Borders[actualCell + 2] = yes;
             return this;
@@ -544,6 +773,17 @@ namespace TwinspireCS.Engine.GUI
 
         public Grid ApplyBordersBottom(bool yes)
         {
+            if (selectedEverything)
+            {
+                int cells = Columns.Length * Rows.Length;
+                for (int i = 0; i < cells; i++)
+                {
+                    int actualCellIndex = i * 4;
+                    Borders[actualCellIndex + 3] = yes;
+                }
+                return this;
+            }
+
             int actualCell = selectedCell * 4;
             Borders[actualCell + 3] = yes;
             return this;
@@ -558,6 +798,16 @@ namespace TwinspireCS.Engine.GUI
 
         public Grid SetRadiusCorners(float radius)
         {
+            if (selectedEverything)
+            {
+                int cells = Columns.Length * Rows.Length;
+                for (int i = 0; i < cells; i++)
+                {
+                    RadiusCorners[i] = radius;
+                }
+                return this;
+            }
+
             RadiusCorners[selectedCell] = radius;
             return this;
         }
@@ -574,6 +824,20 @@ namespace TwinspireCS.Engine.GUI
 
         public Grid SetMargin(float margin)
         {
+            if (selectedEverything)
+            {
+                int cells = Columns.Length * Rows.Length;
+                for (int i = 0; i < cells; i++)
+                {
+                    int actualCellIndex = i * 4;
+                    Margin[actualCellIndex] = margin; // top
+                    Margin[actualCellIndex + 1] = margin; // left
+                    Margin[actualCellIndex + 2] = margin; // right
+                    Margin[actualCellIndex + 3] = margin; // bottom
+                }
+                return this;
+            }
+
             int actualCell = selectedCell * 4;
             Margin[actualCell] = margin; // top
             Margin[actualCell + 1] = margin; // left
@@ -591,6 +855,17 @@ namespace TwinspireCS.Engine.GUI
 
         public Grid SetMarginTop(float margin)
         {
+            if (selectedEverything)
+            {
+                int cells = Columns.Length * Rows.Length;
+                for (int i = 0; i < cells; i++)
+                {
+                    int actualCellIndex = i * 4;
+                    Margin[actualCellIndex] = margin; // top
+                }
+                return this;
+            }
+
             int actualCell = selectedCell * 4;
             Margin[actualCell] = margin; // top
             return this;
@@ -605,6 +880,17 @@ namespace TwinspireCS.Engine.GUI
 
         public Grid SetMarginLeft(float margin)
         {
+            if (selectedEverything)
+            {
+                int cells = Columns.Length * Rows.Length;
+                for (int i = 0; i < cells; i++)
+                {
+                    int actualCellIndex = i * 4;
+                    Margin[actualCellIndex + 1] = margin; // left
+                }
+                return this;
+            }
+
             int actualCell = selectedCell * 4;
             Margin[actualCell + 1] = margin; // left
             return this;
@@ -619,6 +905,17 @@ namespace TwinspireCS.Engine.GUI
 
         public Grid SetMarginRight(float margin)
         {
+            if (selectedEverything)
+            {
+                int cells = Columns.Length * Rows.Length;
+                for (int i = 0; i < cells; i++)
+                {
+                    int actualCellIndex = i * 4;
+                    Margin[actualCellIndex + 2] = margin; // right
+                }
+                return this;
+            }
+
             int actualCell = selectedCell * 4;
             Margin[actualCell + 2] = margin; // right
             return this;
@@ -633,6 +930,17 @@ namespace TwinspireCS.Engine.GUI
 
         public Grid SetMarginBottom(float margin)
         {
+            if (selectedEverything)
+            {
+                int cells = Columns.Length * Rows.Length;
+                for (int i = 0; i < cells; i++)
+                {
+                    int actualCellIndex = i * 4;
+                    Margin[actualCellIndex + 3] = margin; // bottom
+                }
+                return this;
+            }
+
             int actualCell = selectedCell * 4;
             Margin[actualCell + 3] = margin; // bottom
             return this;
@@ -650,6 +958,20 @@ namespace TwinspireCS.Engine.GUI
 
         public Grid SetPadding(float padding)
         {
+            if (selectedEverything)
+            {
+                int cells = Columns.Length * Rows.Length;
+                for (int i = 0; i < cells; i++)
+                {
+                    int actualCellIndex = i * 4;
+                    Padding[actualCellIndex] = padding; // top
+                    Padding[actualCellIndex + 1] = padding; // left
+                    Padding[actualCellIndex + 2] = padding; // right
+                    Padding[actualCellIndex + 3] = padding; // bottom
+                }
+                return this;
+            }
+
             int actualCell = selectedCell * 4;
             Padding[actualCell] = padding; // top
             Padding[actualCell + 1] = padding; // left
@@ -667,6 +989,17 @@ namespace TwinspireCS.Engine.GUI
 
         public Grid SetPaddingTop(float padding)
         {
+            if (selectedEverything)
+            {
+                int cells = Columns.Length * Rows.Length;
+                for (int i = 0; i < cells; i++)
+                {
+                    int actualCellIndex = i * 4;
+                    Padding[actualCellIndex] = padding; // top
+                }
+                return this;
+            }
+
             int actualCell = selectedCell * 4;
             Padding[actualCell] = padding; // top
             return this;
@@ -681,6 +1014,17 @@ namespace TwinspireCS.Engine.GUI
 
         public Grid SetLeftPadding(float padding)
         {
+            if (selectedEverything)
+            {
+                int cells = Columns.Length * Rows.Length;
+                for (int i = 0; i < cells; i++)
+                {
+                    int actualCellIndex = i * 4;
+                    Padding[actualCellIndex + 1] = padding; // left
+                }
+                return this;
+            }
+
             int actualCell = selectedCell * 4;
             Padding[actualCell + 1] = padding; // left
             return this;
@@ -695,6 +1039,17 @@ namespace TwinspireCS.Engine.GUI
 
         public Grid SetPaddingRight(float padding)
         {
+            if (selectedEverything)
+            {
+                int cells = Columns.Length * Rows.Length;
+                for (int i = 0; i < cells; i++)
+                {
+                    int actualCellIndex = i * 4;
+                    Padding[actualCellIndex + 2] = padding; // right
+                }
+                return this;
+            }
+
             int actualCell = selectedCell * 4;
             Padding[actualCell + 2] = padding; // right
             return this;
@@ -709,6 +1064,17 @@ namespace TwinspireCS.Engine.GUI
 
         public Grid SetPaddingBottom(float padding)
         {
+            if (selectedEverything)
+            {
+                int cells = Columns.Length * Rows.Length;
+                for (int i = 0; i < cells; i++)
+                {
+                    int actualCellIndex = i * 4;
+                    Padding[actualCellIndex + 3] = padding; // bottom
+                }
+                return this;
+            }
+
             int actualCell = selectedCell * 4;
             Padding[actualCell + 3] = padding; // right
             return this;

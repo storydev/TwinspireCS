@@ -12,34 +12,23 @@ namespace TwinspireCS.Engine.GUI
     {
 
         private List<Grid> layouts;
+        private List<Element> elements;
+        private IDictionary<string, int> elementIdCache;
+        private int activeElement;
 
         private bool preloadedAll;
-        private List<ElementType> elements;
-        private List<object> elementContent;
-        private List<Vector4> elementDim;
-        private List<Vector2> gridCellPosition;
-        private List<string> elementFontName;
-        private IDictionary<int, int[]> elementCellGroups;
-        private int startingGrid;
-        private List<int> gridsToChange;
+        private bool requestRebuild;
+        
 
         public IEnumerable<Grid> Layouts => layouts;
-        public IEnumerable<ElementType> Elements => elements;
-        public IEnumerable<object> ElementContent => elementContent;
-
-        public bool TextWrapping { get; set; } = true;
-
-        public bool AutoCrop { get; set; } = true;
-
-        public bool UseBackBuffer { get; set; }
 
         public Canvas()
         {
             layouts = new List<Grid>();
-            elements = new List<ElementType>();
-            elementContent = new List<object>();
-            elementCellGroups = new Dictionary<int, int[]>();
-            elementFontName = new List<string>();
+            elements = new List<Element>();
+            elementIdCache = new Dictionary<string, int>();
+            activeElement = 0;
+            requestRebuild = true;
         }
 
         public int CreateLayout(Vector4 dimension, int columns, int rows)
@@ -63,7 +52,6 @@ namespace TwinspireCS.Engine.GUI
             grid.BorderThicknesses = new int[cornerTotals];
 
             layouts.Add(grid);
-            elementCellGroups.Add(layouts.Count - 1, new int[2] { elements.Count - 1, 0 });
             return layouts.Count - 1;
         }
 
@@ -84,6 +72,20 @@ namespace TwinspireCS.Engine.GUI
             preloadedAll = true;
         }
 
+        public ElementState Button(string id, string text, TextAlignment alignment = TextAlignment.Center)
+        {
+            if (elementIdCache.ContainsKey(id))
+            {
+                var index = elementIdCache[id];
+                if (elements[index].Type != ElementType.Button)
+                {
+                    requestRebuild = true;
+                }
+
+
+            }
+        }
+
         public void Render()
         {
             foreach (var layout in layouts)
@@ -99,8 +101,6 @@ namespace TwinspireCS.Engine.GUI
             for (int i = 0; i < cells; i++)
             {
                 var cellDim = grid.GetCellDimension(i);
-
-                
                 
                 if (!string.IsNullOrEmpty(grid.BackgroundImages[i]))
                 {
@@ -148,17 +148,17 @@ namespace TwinspireCS.Engine.GUI
 
                         if (grid.Borders[cellItemIndex + 1]) // left
                         {
-                            Raylib.DrawLineEx(new Vector2(cellDim.X, cellDim.Y), new Vector2(cellDim.X + cellDim.Z, cellDim.Y), grid.BorderThicknesses[cellItemIndex + 1], grid.BorderColors[cellItemIndex + 1]);
+                            Raylib.DrawLineEx(new Vector2(cellDim.X, cellDim.Y), new Vector2(cellDim.X, cellDim.Y + cellDim.W), grid.BorderThicknesses[cellItemIndex + 1], grid.BorderColors[cellItemIndex + 1]);
                         }
 
                         if (grid.Borders[cellItemIndex + 2]) // right
                         {
-                            Raylib.DrawLineEx(new Vector2(cellDim.X, cellDim.Y), new Vector2(cellDim.X + cellDim.Z, cellDim.Y), grid.BorderThicknesses[cellItemIndex + 2], grid.BorderColors[cellItemIndex + 2]);
+                            Raylib.DrawLineEx(new Vector2(cellDim.X + cellDim.Z, cellDim.Y), new Vector2(cellDim.X + cellDim.Z, cellDim.Y + cellDim.W), grid.BorderThicknesses[cellItemIndex + 2], grid.BorderColors[cellItemIndex + 2]);
                         }
 
                         if (grid.Borders[cellItemIndex + 3]) // bottom
                         {
-                            Raylib.DrawLineEx(new Vector2(cellDim.X, cellDim.Y), new Vector2(cellDim.X + cellDim.Z, cellDim.Y), grid.BorderThicknesses[cellItemIndex + 3], grid.BorderColors[cellItemIndex + 3]);
+                            Raylib.DrawLineEx(new Vector2(cellDim.X, cellDim.Y + cellDim.W), new Vector2(cellDim.X + cellDim.Z, cellDim.Y + cellDim.W), grid.BorderThicknesses[cellItemIndex + 3], grid.BorderColors[cellItemIndex + 3]);
                         }
                     }
                 }

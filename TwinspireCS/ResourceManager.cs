@@ -156,7 +156,7 @@ namespace TwinspireCS
                         foreach (var kv in package.FileMapping)
                         {
                             var data = kv.Value;
-                            if (data.Data == null)
+                            if (data.Data == null || data.Data.Length == 0)
                             {
                                 var bytes = File.ReadAllBytes(data.OriginalSourceFile);
                                 writer.Write(bytes);
@@ -484,6 +484,7 @@ namespace TwinspireCS
             sbyte* fileType = null;
             int size = 0;
             int* fontCharPtr = null;
+
             var data = GetBytesFromMemory(identifier, ref fileType, ref size);
 
             fixed (int* tempPtr = fontChars)
@@ -499,7 +500,7 @@ namespace TwinspireCS
                 try
                 {
                     var result = Raylib.LoadFontFromMemory(fileType, ptrData, size, fontSize, fontCharPtr, glyphs);
-                    fontCache.Add(identifier, result);
+                    fontCache.Add(identifier + ":" + fontSize, result);
                 }
                 catch
                 {
