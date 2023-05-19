@@ -14,11 +14,23 @@ namespace TwinspireCS.Engine.GUI
         private List<Grid> layouts;
         private List<Element> elements;
         private IDictionary<string, int> elementIdCache;
+        private IDictionary<int, TextDim> elementTexts;
         private int activeElement;
+
+        private int currentGridIndex;
+        private int currentCellIndex;
+        private LayoutFlags currentLayoutFlags;
+        private float fixedRowHeight;
+        private float fixedColumnWidth;
 
         private bool preloadedAll;
         private bool requestRebuild;
-        
+
+        private string currentFontName;
+        private int currentFontSize;
+        private int currentFontSpacing;
+
+        private int childInnerPadding;
 
         public IEnumerable<Grid> Layouts => layouts;
 
@@ -27,8 +39,13 @@ namespace TwinspireCS.Engine.GUI
             layouts = new List<Grid>();
             elements = new List<Element>();
             elementIdCache = new Dictionary<string, int>();
+            elementTexts = new Dictionary<int, TextDim>();
             activeElement = 0;
             requestRebuild = true;
+            currentGridIndex = 0;
+            currentCellIndex = 0;
+
+            childInnerPadding = 4;
         }
 
         public int CreateLayout(Vector4 dimension, int columns, int rows)
@@ -38,7 +55,7 @@ namespace TwinspireCS.Engine.GUI
             int totalCells = columns * rows;
             grid.Columns = new float[columns];
             grid.Rows = new float[rows];
-            
+
             grid.BackgroundColors = new Extras.ColorMethod[totalCells];
             grid.BackgroundImages = new string[totalCells];
             grid.Offsets = new Vector2[totalCells];
@@ -53,6 +70,23 @@ namespace TwinspireCS.Engine.GUI
 
             layouts.Add(grid);
             return layouts.Count - 1;
+        }
+
+        public void DrawTo(int gridIndex, int cellIndex, LayoutFlags flags = LayoutFlags.DynamicRows | LayoutFlags.DynamicColumns)
+        {
+            currentGridIndex = gridIndex;
+            currentCellIndex = cellIndex;
+            currentLayoutFlags = flags;
+        }
+
+        public void SetFixedRowHeight(float height)
+        {
+            fixedRowHeight = height;
+        }
+
+        public void SetFixedColumnWidth(float width)
+        {
+            fixedColumnWidth = width;
         }
 
         public void PreloadAll()
@@ -72,18 +106,104 @@ namespace TwinspireCS.Engine.GUI
             preloadedAll = true;
         }
 
+        #region Styling
+
+        public void SetFont(string fontName, int fontSize, int spacing)
+        {
+            currentFontName = fontName;
+            currentFontSize = fontSize;
+            currentFontSpacing = spacing;
+        }
+
+        #endregion
+
+        #region UI Drawing
+
         public ElementState Button(string id, string text, TextAlignment alignment = TextAlignment.Center)
         {
-            if (elementIdCache.ContainsKey(id))
+            if (elementIdCache.ContainsKey(id) && !requestRebuild)
             {
                 var index = elementIdCache[id];
                 if (elements[index].Type != ElementType.Button)
                 {
-                    requestRebuild = true;
+                    
                 }
 
 
             }
+            else
+            {
+                var element = new Element();
+                element.Type = ElementType.Button;
+                element.GridIndex = currentGridIndex;
+                element.CellIndex = currentCellIndex;
+                element.Position = new Vector2(0, 0);
+                element.Size = new Vector2(0, 0);
+                
+
+                elements.Add(element);
+                elementIdCache.Add(id, elements.Count - 1);
+            }
+
+            return ElementState.Idle;
+        }
+
+        #endregion
+
+        private Vector4 CalculateNextDimension(int elementIndex, string text = "")
+        {
+            var currentRowElements = elements.Where((e) => e.GridIndex == currentGridIndex && e.CellIndex == currentCellIndex);
+            var current = elements[elementIndex];
+
+            var gridContentDim = layouts[currentGridIndex].GetContentDimension(currentCellIndex);
+            var remainingWidth = gridContentDim.Z;
+            foreach (var element in currentRowElements)
+            {
+                remainingWidth -= element.Size.X;
+            }
+
+            var widthToBecome = 0.0f;
+            var heightToBecome = 0.0f;
+            var xToBecome = remainingWidth;
+            var yToBecome = 0.0f;
+            var lastPosition = new Vector2(0, 0);
+            var lastSize = new Vector2(0, 0);
+
+            if (currentLayoutFlags.HasFlag(LayoutFlags.StaticRows) && currentLayoutFlags.HasFlag(LayoutFlags.FixedComponentHeights))
+            {
+                heightToBecome = fixedRowHeight;
+            }
+
+            if (currentLayoutFlags.HasFlag(LayoutFlags.StaticColumns) && currentLayoutFlags.HasFlag(LayoutFlags.FixedComponentWidths))
+            {
+                widthToBecome = fixedColumnWidth;
+            }
+
+            if (currentRowElements.Count() > 0)
+            {
+                var lastElement = currentRowElements.Last();
+                lastPosition = new Vector2(lastElement.Position.X, lastElement.Position.Y);
+                lastSize = new Vector2(lastElement.Size.X, lastElement.Size.Y);
+            }
+
+            if (currentLayoutFlags.HasFlag(LayoutFlags.FillRowsAlways) && !currentLayoutFlags.HasFlag(LayoutFlags.FixedComponentWidths))
+            {
+                if (widthToBecome >= remainingWidth)
+                {
+                    widthToBecome = remainingWidth;
+                }
+            }
+
+            TextDim textDim = null;
+
+            if (!string.IsNullOrEmpty(text))
+            {
+                textDim = Utils.MeasureTextWrapping(Application.Instance.ResourceManager.GetFont(currentFontName), currentFontSize, currentFontSpacing, (int)widthToBecome, text);
+                heightToBecome = textDim.ContentSize.Y + (childInnerPadding * 2);
+                elementTexts.Add(elementIndex, textDim);
+            }
+
+
         }
 
         public void Render()
