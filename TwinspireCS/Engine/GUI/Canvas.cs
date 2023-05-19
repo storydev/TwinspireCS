@@ -15,7 +15,8 @@ namespace TwinspireCS.Engine.GUI
         private List<Element> elements;
         private IDictionary<string, int> elementIdCache;
         private IDictionary<int, TextDim> elementTexts;
-        private int activeElement;
+
+        private int activeElement = -1;
 
         private int currentGridIndex;
         private int currentCellIndex;
@@ -124,10 +125,7 @@ namespace TwinspireCS.Engine.GUI
             if (elementIdCache.ContainsKey(id) && !requestRebuild)
             {
                 var index = elementIdCache[id];
-                if (elements[index].Type != ElementType.Button)
-                {
-                    
-                }
+                var isActive = elements[index].State == ElementState.Active;
 
 
             }
@@ -137,11 +135,11 @@ namespace TwinspireCS.Engine.GUI
                 element.Type = ElementType.Button;
                 element.GridIndex = currentGridIndex;
                 element.CellIndex = currentCellIndex;
-                element.Position = new Vector2(0, 0);
-                element.Size = new Vector2(0, 0);
-                
 
                 elements.Add(element);
+                var elementDim = CalculateNextDimension(elements.Count - 1, text);
+                elements[elements.Count - 1].Dimension = new Rectangle(elementDim.X, elementDim.Y, elementDim.Z, elementDim.W);
+
                 elementIdCache.Add(id, elements.Count - 1);
             }
 
@@ -150,22 +148,53 @@ namespace TwinspireCS.Engine.GUI
 
         #endregion
 
-        private Vector4 CalculateNextDimension(int elementIndex, string text = "")
+        private Vector4 CalculateNextDimension(int elementIndex, string textOrImageName = "")
         {
             var currentRowElements = elements.Where((e) => e.GridIndex == currentGridIndex && e.CellIndex == currentCellIndex);
             var current = elements[elementIndex];
+            Image imageToUse = new Image();
+            bool usingImage = false;
+
+            if (textOrImageName.StartsWith("image:"))
+            {
+                var imageName = textOrImageName.Substring("image:".Length);
+                imageToUse = Application.Instance.ResourceManager.GetImage(imageName);
+                usingImage = true;
+            }
 
             var gridContentDim = layouts[currentGridIndex].GetContentDimension(currentCellIndex);
             var remainingWidth = gridContentDim.Z;
-            foreach (var element in currentRowElements)
+            var xToBecome = 0.0f;
+            var yToBecome = 0.0f;
+            var lastRowHeight = 0.0f;
+            for (int i = 0; i < currentRowElements.Count(); i++)
             {
-                remainingWidth -= element.Size.X;
+                var element = currentRowElements.ElementAt(i);
+                xToBecome += element.Dimension.x;
+
+                if (element.Dimension.y > lastRowHeight && currentLayoutFlags.HasFlag(LayoutFlags.DynamicRows))
+                {
+                    lastRowHeight = element.Dimension.y;
+                }
+
+                if (xToBecome > gridContentDim.Z)
+                {
+                    if (currentLayoutFlags.HasFlag(LayoutFlags.DynamicRows))
+                        yToBecome += lastRowHeight;
+                    else if (currentLayoutFlags.HasFlag(LayoutFlags.StaticRows))
+                        yToBecome += fixedRowHeight;
+
+                    xToBecome = 0.0f;
+                    lastRowHeight = 0;
+                }
             }
+
+            xToBecome += gridContentDim.X;
+            yToBecome += gridContentDim.Y;
 
             var widthToBecome = 0.0f;
             var heightToBecome = 0.0f;
-            var xToBecome = remainingWidth;
-            var yToBecome = 0.0f;
+            
             var lastPosition = new Vector2(0, 0);
             var lastSize = new Vector2(0, 0);
 
@@ -173,17 +202,39 @@ namespace TwinspireCS.Engine.GUI
             {
                 heightToBecome = fixedRowHeight;
             }
+            else
+            {
+                heightToBecome += childInnerPadding * 2;
+            }
 
             if (currentLayoutFlags.HasFlag(LayoutFlags.StaticColumns) && currentLayoutFlags.HasFlag(LayoutFlags.FixedComponentWidths))
             {
                 widthToBecome = fixedColumnWidth;
             }
+            else
+            {
+                heightToBecome += childInnerPadding * 2;
+            }
 
             if (currentRowElements.Count() > 0)
             {
                 var lastElement = currentRowElements.Last();
-                lastPosition = new Vector2(lastElement.Position.X, lastElement.Position.Y);
-                lastSize = new Vector2(lastElement.Size.X, lastElement.Size.Y);
+                lastPosition = new Vector2(lastElement.Dimension.x, lastElement.Dimension.y);
+                lastSize = new Vector2(lastElement.Dimension.width, lastElement.Dimension.height);
+            }
+
+            TextDim textDim = null;
+
+            if (!string.IsNullOrEmpty(textOrImageName))
+            {
+                textDim = Utils.MeasureTextWrapping(Application.Instance.ResourceManager.GetFont(currentFontName), currentFontSize, currentFontSpacing, (int)widthToBecome, textOrImageName);
+                heightToBecome = textDim.ContentSize.Y + (childInnerPadding * 2);
+                elementTexts.Add(elementIndex, textDim);
+            }
+
+            if (textDim != null)
+            {
+                widthToBecome += childInnerPadding * 2;
             }
 
             if (currentLayoutFlags.HasFlag(LayoutFlags.FillRowsAlways) && !currentLayoutFlags.HasFlag(LayoutFlags.FixedComponentWidths))
@@ -193,17 +244,49 @@ namespace TwinspireCS.Engine.GUI
                     widthToBecome = remainingWidth;
                 }
             }
-
-            TextDim textDim = null;
-
-            if (!string.IsNullOrEmpty(text))
+            else if (currentLayoutFlags.HasFlag(LayoutFlags.DynamicColumns) && !currentLayoutFlags.HasFlag(LayoutFlags.FillRowsAlways))
             {
-                textDim = Utils.MeasureTextWrapping(Application.Instance.ResourceManager.GetFont(currentFontName), currentFontSize, currentFontSpacing, (int)widthToBecome, text);
-                heightToBecome = textDim.ContentSize.Y + (childInnerPadding * 2);
-                elementTexts.Add(elementIndex, textDim);
+                if (currentLayoutFlags.HasFlag(LayoutFlags.DynamicRows) && widthToBecome >= remainingWidth)
+                {
+                    yToBecome += lastRowHeight;
+                    xToBecome = gridContentDim.X;
+                }
+                else if (currentLayoutFlags.HasFlag(LayoutFlags.StaticRows) && widthToBecome >= remainingWidth)
+                {
+                    yToBecome += fixedRowHeight;
+                    xToBecome = gridContentDim.X;
+                }
             }
 
+            if (usingImage)
+            {
+                widthToBecome += imageToUse.width;
+                heightToBecome += imageToUse.height;
+            }
 
+            return new Vector4(xToBecome, yToBecome, widthToBecome, heightToBecome);
+        }
+
+        public void SimulateEvents()
+        {
+            var possibleActiveElements = new List<int>();
+            var possibleActiveGrids = new List<int>();
+            for (int i = 0; i < elements.Count; i++)
+            {
+                var element = elements[i];
+                if (Raylib.CheckCollisionPointRec(Raylib.GetMousePosition(), element.Dimension))
+                {
+                    possibleActiveElements.Add(i);
+                }
+            }
+
+            for (int i = 0; i < layouts.Count; i++)
+            {
+
+            }
+
+            var active = elements[possibleActiveElements[possibleActiveElements.Count - 1]];
+            
         }
 
         public void Render()

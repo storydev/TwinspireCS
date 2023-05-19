@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Raylib_cs;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -14,8 +15,8 @@ namespace TwinspireCS.Engine.GUI
         public int GridIndex;
         public int CellIndex;
         public int StyleIndex;
-        public Vector2 Position;
-        public Vector2 Size;
+        public Rectangle Dimension;
+        public ElementState State;
 
         public Element()
         {
