@@ -38,5 +38,13 @@ namespace TwinspireCS.Engine.GUI
         /// The contents of the component will be clipped.
         /// </summary>
         FillRowsAlways = 0x40,
+        /// <summary>
+        /// Each individual element will span the full width of the row within its container.
+        /// </summary>
+        SpanRow = 0x80,
+        /// <summary>
+        /// Each individual element will span the full height of the column within its container. Unaffected by the maximum content height of the container.
+        /// </summary>
+        SpanColumn = 0x100,
     }
 }

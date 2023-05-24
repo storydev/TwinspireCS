@@ -25,6 +25,7 @@ namespace TwinspireCS.Engine.GUI
         private float fixedRowHeight;
         private float fixedColumnWidth;
 
+
         private bool preloadedAll;
         private bool requestRebuild;
         private bool firstBuild;
@@ -303,6 +304,10 @@ namespace TwinspireCS.Engine.GUI
             {
                 heightToBecome = fixedRowHeight;
             }
+            else if (currentLayoutFlags.HasFlag(LayoutFlags.SpanColumn))
+            {
+                heightToBecome = gridContentDim.W;
+            }
             else
             {
                 heightToBecome += childInnerPadding * 2;
@@ -311,6 +316,10 @@ namespace TwinspireCS.Engine.GUI
             if (currentLayoutFlags.HasFlag(LayoutFlags.StaticColumns) && currentLayoutFlags.HasFlag(LayoutFlags.FixedComponentWidths))
             {
                 widthToBecome = fixedColumnWidth;
+            }
+            else if (currentLayoutFlags.HasFlag(LayoutFlags.SpanRow))
+            {
+                widthToBecome = gridContentDim.Z;
             }
             else
             {
@@ -328,22 +337,24 @@ namespace TwinspireCS.Engine.GUI
 
             if (!string.IsNullOrEmpty(textOrImageName))
             {
-                if (currentLayoutFlags.HasFlag(LayoutFlags.DynamicColumns))
+                if (currentLayoutFlags.HasFlag(LayoutFlags.DynamicColumns) && !currentLayoutFlags.HasFlag(LayoutFlags.SpanRow))
                 {
                     widthToBecome += remainingWidth - (childInnerPadding * 4);
                 }
 
                 textDim = Utils.MeasureTextWrapping(Application.Instance.ResourceManager.GetFont(currentFontName), currentFontSize, currentFontSpacing, (int)widthToBecome, textOrImageName);
-                heightToBecome = textDim.ContentSize.Y + (childInnerPadding * 2);
+                if (!currentLayoutFlags.HasFlag(LayoutFlags.SpanColumn))
+                    heightToBecome = textDim.ContentSize.Y + (childInnerPadding * 2);
+
                 elementTexts.Add(elementIndex, textDim);
             }
 
-            if (textDim != null)
+            if (textDim != null && !currentLayoutFlags.HasFlag(LayoutFlags.SpanRow))
             {
                 widthToBecome += childInnerPadding * 2;
             }
 
-            if (currentLayoutFlags.HasFlag(LayoutFlags.FillRowsAlways) && !currentLayoutFlags.HasFlag(LayoutFlags.FixedComponentWidths))
+            if (currentLayoutFlags.HasFlag(LayoutFlags.FillRowsAlways) && !currentLayoutFlags.HasFlag(LayoutFlags.FixedComponentWidths) && !currentLayoutFlags.HasFlag(LayoutFlags.SpanRow))
             {
                 if (widthToBecome >= remainingWidth)
                 {
@@ -362,9 +373,15 @@ namespace TwinspireCS.Engine.GUI
                     yToBecome += fixedRowHeight;
                     xToBecome = gridContentDim.X;
                 }
+                else if (currentLayoutFlags.HasFlag(LayoutFlags.SpanRow))
+                {
+                    yToBecome += gridContentDim.W;
+                    xToBecome = gridContentDim.X;
+                }
             }
 
-            if (usingImage)
+            if (usingImage && !currentLayoutFlags.HasFlag(LayoutFlags.SpanRow) && !currentLayoutFlags.HasFlag(LayoutFlags.SpanColumn)
+                && !currentLayoutFlags.HasFlag(LayoutFlags.FixedComponentHeights) && !currentLayoutFlags.HasFlag(LayoutFlags.FixedComponentWidths))
             {
                 widthToBecome += imageToUse.width;
                 heightToBecome += imageToUse.height;

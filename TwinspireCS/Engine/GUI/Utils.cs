@@ -108,7 +108,18 @@ namespace TwinspireCS.Engine.GUI
             else
             {
                 var text = textDim.Characters.GetCharsAsString(0, textDim.Characters.Length);
-                Raylib.DrawTextEx(font, text, new Vector2(pos.X, startY), fontSize, spacing, color);
+                var textSize = Raylib.MeasureTextEx(font, text, fontSize, spacing);
+                var x = pos.X;
+                if (alignment == TextAlignment.Bottom || alignment == TextAlignment.Center || alignment == TextAlignment.Top)
+                {
+                    x = ((textDim.ContentSize.X - textSize.X) / 2) + pos.X;
+                }
+                else if (alignment == TextAlignment.BottomRight || alignment == TextAlignment.Right || alignment == TextAlignment.TopRight)
+                {
+                    x = (textDim.ContentSize.X - textSize.X) + pos.X;
+                }
+
+                Raylib.DrawTextEx(font, text, new Vector2(x, startY), fontSize, spacing, color);
             }
         }
 
