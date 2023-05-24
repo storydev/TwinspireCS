@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Raylib_cs;
@@ -26,12 +27,17 @@ namespace TwinspireCS.Engine.GUI
 
         private bool preloadedAll;
         private bool requestRebuild;
+        private bool firstBuild;
 
         private string currentFontName;
         private int currentFontSize;
         private int currentFontSpacing;
 
         private int childInnerPadding;
+
+        private bool firstClick;
+        private const float firstClickDelay = 0.25f;
+        private float firstClickTime;
 
         public IEnumerable<Grid> Layouts => layouts;
 
@@ -42,14 +48,17 @@ namespace TwinspireCS.Engine.GUI
             elementIdCache = new Dictionary<string, int>();
             elementTexts = new Dictionary<int, TextDim>();
             activeElement = 0;
-            requestRebuild = true;
+            
             currentGridIndex = 0;
             currentCellIndex = 0;
 
             childInnerPadding = 4;
+
+            firstBuild = true;
+            requestRebuild = true;
         }
 
-        public int CreateLayout(Vector4 dimension, int columns, int rows)
+        public int CreateLayout(Rectangle dimension, int columns, int rows)
         {
             var grid = new Grid();
             grid.Dimension = dimension;
@@ -71,6 +80,25 @@ namespace TwinspireCS.Engine.GUI
 
             layouts.Add(grid);
             return layouts.Count - 1;
+        }
+
+        public void Begin()
+        {
+            if (requestRebuild)
+            {
+                elements.Clear();
+                elementTexts.Clear();
+                elementIdCache.Clear();
+            }
+        }
+
+        public void End()
+        {
+            if (firstBuild)
+            {
+                requestRebuild = false;
+                firstBuild = false;
+            }
         }
 
         public void DrawTo(int gridIndex, int cellIndex, LayoutFlags flags = LayoutFlags.DynamicRows | LayoutFlags.DynamicColumns)
@@ -125,33 +153,101 @@ namespace TwinspireCS.Engine.GUI
             if (elementIdCache.ContainsKey(id) && !requestRebuild)
             {
                 var index = elementIdCache[id];
-                var isActive = elements[index].State == ElementState.Active;
+                var element = elements[index];
 
 
+
+                TextDim textDim;
+                if (elementTexts.ContainsKey(index))
+                {
+                    textDim = elementTexts[index];
+                    DrawText(index, textDim, Color.BLACK, alignment);
+                }
+
+                return element.State;
             }
-            else
+            else if (requestRebuild)
             {
                 var element = new Element();
                 element.Type = ElementType.Button;
                 element.GridIndex = currentGridIndex;
                 element.CellIndex = currentCellIndex;
+                var elementDim = CalculateNextDimension(elements.Count, text);
+                element.Dimension = new Rectangle(elementDim.X, elementDim.Y, elementDim.Z, elementDim.W);
 
                 elements.Add(element);
-                var elementDim = CalculateNextDimension(elements.Count - 1, text);
-                elements[elements.Count - 1].Dimension = new Rectangle(elementDim.X, elementDim.Y, elementDim.Z, elementDim.W);
-
                 elementIdCache.Add(id, elements.Count - 1);
             }
 
             return ElementState.Idle;
         }
 
+
+        #region Drawing Utilities
+
+        private void DrawText(int index, TextDim textDim, Color color, TextAlignment alignment)
+        {
+            var textX = 0.0f;
+            var textY = 0.0f;
+            if (alignment == TextAlignment.Left)
+            {
+                textX = elements[index].Dimension.x + childInnerPadding;
+                textY = ((elements[index].Dimension.height - textDim.ContentSize.Y) / 2) + elements[index].Dimension.y;
+            }
+            else if (alignment == TextAlignment.Center)
+            {
+                textX = ((elements[index].Dimension.width - textDim.ContentSize.X) / 2) + elements[index].Dimension.x;
+                textY = ((elements[index].Dimension.height - textDim.ContentSize.Y) / 2) + elements[index].Dimension.y;
+            }
+            else if (alignment == TextAlignment.Right)
+            {
+                textX = (elements[index].Dimension.x + elements[index].Dimension.width) - textDim.ContentSize.X - childInnerPadding;
+                textY = ((elements[index].Dimension.height - textDim.ContentSize.Y) / 2) + elements[index].Dimension.y;
+            }
+            else if (alignment == TextAlignment.TopLeft)
+            {
+                textX = elements[index].Dimension.x + childInnerPadding;
+                textY = elements[index].Dimension.y + childInnerPadding;
+            }
+            else if (alignment == TextAlignment.Top)
+            {
+                textX = ((elements[index].Dimension.width - textDim.ContentSize.X) / 2) + elements[index].Dimension.x;
+                textY = elements[index].Dimension.y + childInnerPadding;
+            }
+            else if (alignment == TextAlignment.TopRight)
+            {
+                textX = (elements[index].Dimension.x + elements[index].Dimension.width) - textDim.ContentSize.X - childInnerPadding;
+                textY = elements[index].Dimension.y + childInnerPadding;
+            }
+            else if (alignment == TextAlignment.BottomLeft)
+            {
+                textX = elements[index].Dimension.x + childInnerPadding;
+                textY = elements[index].Dimension.y + elements[index].Dimension.height - textDim.ContentSize.Y - childInnerPadding;
+            }
+            else if (alignment == TextAlignment.Bottom)
+            {
+                textX = ((elements[index].Dimension.width - textDim.ContentSize.X) / 2) + elements[index].Dimension.x;
+                textY = elements[index].Dimension.y + elements[index].Dimension.height - textDim.ContentSize.Y - childInnerPadding;
+            }
+            else if (alignment == TextAlignment.BottomRight)
+            {
+                textX = (elements[index].Dimension.x + elements[index].Dimension.width) - textDim.ContentSize.X - childInnerPadding;
+                textY = elements[index].Dimension.y + elements[index].Dimension.height - textDim.ContentSize.Y - childInnerPadding;
+            }
+
+            Raylib.BeginScissorMode((int)textX, (int)textY, (int)textDim.ContentSize.X, (int)textDim.ContentSize.Y);
+            Utils.RenderMultilineText(Application.Instance.ResourceManager.GetFont(currentFontName), currentFontSize, new Vector2(textX, textY), currentFontSpacing, textDim, Color.BLACK);
+            Raylib.EndScissorMode();
+        }
+
+        #endregion
+
         #endregion
 
         private Vector4 CalculateNextDimension(int elementIndex, string textOrImageName = "")
         {
             var currentRowElements = elements.Where((e) => e.GridIndex == currentGridIndex && e.CellIndex == currentCellIndex);
-            var current = elements[elementIndex];
+
             Image imageToUse = new Image();
             bool usingImage = false;
 
@@ -167,25 +263,30 @@ namespace TwinspireCS.Engine.GUI
             var xToBecome = 0.0f;
             var yToBecome = 0.0f;
             var lastRowHeight = 0.0f;
-            for (int i = 0; i < currentRowElements.Count(); i++)
+            if (elementIndex > 0)
             {
-                var element = currentRowElements.ElementAt(i);
-                xToBecome += element.Dimension.x;
-
-                if (element.Dimension.y > lastRowHeight && currentLayoutFlags.HasFlag(LayoutFlags.DynamicRows))
+                for (int i = 0; i < currentRowElements.Count(); i++)
                 {
-                    lastRowHeight = element.Dimension.y;
-                }
+                    var element = currentRowElements.ElementAt(i);
+                    xToBecome += element.Dimension.x;
+                    remainingWidth -= element.Dimension.width;
 
-                if (xToBecome > gridContentDim.Z)
-                {
-                    if (currentLayoutFlags.HasFlag(LayoutFlags.DynamicRows))
-                        yToBecome += lastRowHeight;
-                    else if (currentLayoutFlags.HasFlag(LayoutFlags.StaticRows))
-                        yToBecome += fixedRowHeight;
+                    if (element.Dimension.y > lastRowHeight && currentLayoutFlags.HasFlag(LayoutFlags.DynamicRows))
+                    {
+                        lastRowHeight = element.Dimension.y;
+                    }
 
-                    xToBecome = 0.0f;
-                    lastRowHeight = 0;
+                    if (xToBecome > gridContentDim.Z)
+                    {
+                        if (currentLayoutFlags.HasFlag(LayoutFlags.DynamicRows))
+                            yToBecome += lastRowHeight;
+                        else if (currentLayoutFlags.HasFlag(LayoutFlags.StaticRows))
+                            yToBecome += fixedRowHeight;
+
+                        xToBecome = 0.0f;
+                        lastRowHeight = 0;
+                        remainingWidth = gridContentDim.Z;
+                    }
                 }
             }
 
@@ -213,7 +314,7 @@ namespace TwinspireCS.Engine.GUI
             }
             else
             {
-                heightToBecome += childInnerPadding * 2;
+                widthToBecome += childInnerPadding * 2;
             }
 
             if (currentRowElements.Count() > 0)
@@ -227,6 +328,11 @@ namespace TwinspireCS.Engine.GUI
 
             if (!string.IsNullOrEmpty(textOrImageName))
             {
+                if (currentLayoutFlags.HasFlag(LayoutFlags.DynamicColumns))
+                {
+                    widthToBecome += remainingWidth - (childInnerPadding * 4);
+                }
+
                 textDim = Utils.MeasureTextWrapping(Application.Instance.ResourceManager.GetFont(currentFontName), currentFontSize, currentFontSpacing, (int)widthToBecome, textOrImageName);
                 heightToBecome = textDim.ContentSize.Y + (childInnerPadding * 2);
                 elementTexts.Add(elementIndex, textDim);
@@ -269,6 +375,37 @@ namespace TwinspireCS.Engine.GUI
 
         public void SimulateEvents()
         {
+            var doubleClick = false;
+            var tempClick = false; // to prevent firstClick always being true.
+            if (firstClick)
+            {
+                firstClickTime += Raylib.GetFrameTime();
+                if (firstClickTime < firstClickDelay)
+                {
+                    doubleClick = Raylib.IsMouseButtonReleased(MouseButton.MOUSE_BUTTON_LEFT);
+                    if (doubleClick)
+                    {
+                        firstClick = false;
+                        firstClickTime = 0.0f;
+                        tempClick = true;
+                    }
+                }
+                else if (firstClickTime >= firstClickDelay)
+                {
+                    firstClick = false;
+                    firstClickTime = 0.0f;
+                    tempClick = true;
+                }
+            }
+
+            foreach (var element in elements)
+            {
+                if ((element.State == ElementState.Active || element.State == ElementState.Clicked || element.State == ElementState.DoubleClicked) && Raylib.IsMouseButtonUp(MouseButton.MOUSE_BUTTON_LEFT))
+                {
+                    element.State = ElementState.Focused;
+                }
+            }
+
             var possibleActiveElements = new List<int>();
             var possibleActiveGrids = new List<int>();
             for (int i = 0; i < elements.Count; i++)
@@ -278,15 +415,57 @@ namespace TwinspireCS.Engine.GUI
                 {
                     possibleActiveElements.Add(i);
                 }
+                else
+                {
+                    if (element.State != ElementState.Idle || element.State != ElementState.Inactive)
+                    {
+                        element.State = ElementState.Idle;
+                    }
+                }
             }
 
             for (int i = 0; i < layouts.Count; i++)
             {
-
+                var grid = layouts[i];
+                if (Raylib.CheckCollisionPointRec(Raylib.GetMousePosition(), grid.Dimension))
+                {
+                    possibleActiveGrids.Add(i);
+                }
             }
 
-            var active = elements[possibleActiveElements[possibleActiveElements.Count - 1]];
-            
+            if (possibleActiveElements.Count > 0 && elements.Count > 0)
+            {
+                int last = possibleActiveElements.Count - 1;
+                int index = last;
+                while (index > -1)
+                {
+                    var active = elements[possibleActiveElements[index]];
+                    var firstClickTimePassed = !firstClick && firstClickTime == 0.0f && tempClick;
+                    var mouseReleased = Raylib.IsMouseButtonReleased(MouseButton.MOUSE_BUTTON_LEFT);
+
+                    if (Raylib.IsMouseButtonDown(MouseButton.MOUSE_BUTTON_LEFT) && index == last)
+                    {
+                        active.State = ElementState.Active;
+                    }
+                    else if ((mouseReleased && index == last && firstClickTimePassed) || (firstClickTimePassed && index == last))
+                    {
+                        if (Raylib.IsMouseButtonReleased(MouseButton.MOUSE_BUTTON_RIGHT) && !doubleClick)
+                            active.State = ElementState.ContextMenu;
+                        else if (doubleClick)
+                            active.State = ElementState.DoubleClicked;
+                        else
+                            active.State = ElementState.Clicked;
+                    }
+
+                    index -= 1;
+                }
+                
+            }
+
+            if (Raylib.IsMouseButtonReleased(MouseButton.MOUSE_BUTTON_LEFT) && !tempClick)
+            {
+                firstClick = true;
+            }
         }
 
         public void Render()

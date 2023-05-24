@@ -14,6 +14,7 @@ namespace TwinspireCS.Engine.GUI
         Focused,
         Clicked,
         DoubleClicked,
+        ContextMenu,
         TextEntering,
         TextEntered,
     }

@@ -160,6 +160,14 @@ namespace TwinspireCS
             return !Raylib.WindowShouldClose();
         }
 
+        /// <summary>
+        /// Free any native Raylib resources before closing.
+        /// </summary>
+        public void Free()
+        {
+            Raylib.CloseWindow();
+        }
+
         private static Application? instance;
         public static Application Instance
         {

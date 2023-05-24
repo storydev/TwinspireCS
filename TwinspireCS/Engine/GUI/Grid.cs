@@ -18,7 +18,7 @@ namespace TwinspireCS.Engine.GUI
         private int[] selectedCells;
         private bool selectedEverything;
 
-        public Vector4 Dimension;
+        public Rectangle Dimension;
         public float[] Columns;
         public float[] Rows;
         public bool AutoSizeRows;
@@ -44,7 +44,7 @@ namespace TwinspireCS.Engine.GUI
             selectedColumn = 0;
             selectedRow = 0;
 
-            Dimension = new Vector4();
+            Dimension = new Rectangle();
             Columns = Array.Empty<float>();
             Rows = Array.Empty<float>();
 
@@ -125,7 +125,7 @@ namespace TwinspireCS.Engine.GUI
             int column = GetColumn(cell);
             int row = GetRow(cell);
             
-            float x = Dimension.X;
+            float x = Dimension.x;
             if (column > 0)
             {
                 float xOffset = 0.0f;
@@ -137,7 +137,7 @@ namespace TwinspireCS.Engine.GUI
             }
             x += Margin[cellItemIndex + 1];
 
-            float y = Dimension.Y;
+            float y = Dimension.y;
             if (row > 0)
             {
                 float yOffset = 0.0f;
@@ -222,7 +222,7 @@ namespace TwinspireCS.Engine.GUI
 
         public Grid SetColumnWidth(int column, float percentageWidth)
         {
-            Columns[column] = Dimension.Z * percentageWidth;
+            Columns[column] = Dimension.width * percentageWidth;
             return this;
         }
         public Grid SetColumnWidth(int column, int width)
@@ -233,7 +233,7 @@ namespace TwinspireCS.Engine.GUI
 
         public Grid SetRowHeight(int row, float percentageHeight)
         {
-            Rows[row] = Dimension.W * percentageHeight;
+            Rows[row] = Dimension.height * percentageHeight;
             return this;
         }
 
@@ -245,7 +245,7 @@ namespace TwinspireCS.Engine.GUI
 
         public Grid SetRowHeightsAuto()
         {
-            float rowHeight = (float)Math.Floor((double)(Dimension.W / Rows.Length));
+            float rowHeight = (float)Math.Floor((double)(Dimension.height / Rows.Length));
             for (int i = 0; i < Rows.Length; i++)
             {
                 Rows[i] = rowHeight;
@@ -254,9 +254,9 @@ namespace TwinspireCS.Engine.GUI
             return this;
         }
 
-        public Grid SetColumnHeightsAuto()
+        public Grid SetColumnWidthsAuto()
         {
-            float columnWidth = (float)Math.Floor((double)(Dimension.Z / Columns.Length));
+            float columnWidth = (float)Math.Floor((double)(Dimension.width / Columns.Length));
             for (int i = 0; i < Columns.Length; i++)
             {
                 Columns[i] = columnWidth;
