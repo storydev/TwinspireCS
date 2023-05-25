@@ -5,6 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using ImGuiNET;
+using TwinspireCS.Engine.GUI;
+using TwinspireCS.Engine.Extras;
 
 namespace TwinspireCS
 {
@@ -126,9 +128,34 @@ namespace TwinspireCS
         /// </summary>
         public void InitAll()
         {
+            InitDefaultUI();
+
             Raylib.InitWindow(startingWidth, startingHeight, windowTitle);
             Raylib.SetConfigFlags(ConfigFlags.FLAG_VSYNC_HINT | ConfigFlags.FLAG_MSAA_4X_HINT);
             Raylib.SetTargetFPS(TargetFPS);
+        }
+
+        private void InitDefaultUI()
+        {
+            Theme.Default.Styles.Add(Theme.BUTTON, new Style()
+                .SetBackground(new ColorMethod(ColorType.GradientVertical, new Color[] { new Color(220, 220, 220, 255), new Color(185, 185, 185, 255) }))
+                .SetBorderBottomColors(new Color(155, 155, 155, 255))
+                .SetBorderBottomThickness(1)
+                .ApplyBordersBottom(true));
+
+            Theme.Default.Styles.Add(Theme.BUTTON_HOVER, new Style()
+                .SetBackground(new ColorMethod(ColorType.GradientVertical, new Color[] { new Color(240, 240, 240, 255), new Color(205, 205, 205, 255) }))
+                .SetBorderBottomColors(new Color(190, 190, 190, 255))
+                .SetBorderBottomThickness(1)
+                .ApplyBordersBottom(true));
+
+            Theme.Default.Styles.Add(Theme.BUTTON_DOWN, new Style()
+                .SetBackground(new ColorMethod(ColorType.GradientVertical, new Color[] { new Color(155, 155, 155, 255), new Color(170, 170, 170, 255) }))
+                .SetBorderBottomColors(new Color(140, 140, 140, 255))
+                .SetBorderBottomThickness(1)
+                .ApplyBordersBottom(true));
+
+
         }
 
         /// <summary>

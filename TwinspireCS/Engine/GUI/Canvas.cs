@@ -157,7 +157,18 @@ namespace TwinspireCS.Engine.GUI
                 var index = elementIdCache[id];
                 var element = elements[index];
 
-
+                if (element.State == ElementState.Active)
+                {
+                    DrawRectStyle(element.Dimension, Theme.Default.Styles[Theme.BUTTON_DOWN]);
+                }
+                else if (element.State == ElementState.Hovered || element.State == ElementState.Clicked || element.State == ElementState.DoubleClicked)
+                {
+                    DrawRectStyle(element.Dimension, Theme.Default.Styles[Theme.BUTTON_HOVER]);
+                }
+                else
+                {
+                    DrawRectStyle(element.Dimension, Theme.Default.Styles[Theme.BUTTON]);
+                }
 
                 TextDim textDim;
                 if (elementTexts.ContainsKey(index))
@@ -186,6 +197,68 @@ namespace TwinspireCS.Engine.GUI
 
 
         #region Drawing Utilities
+
+        private void DrawRectStyle(Rectangle rect, Style style)
+        {
+            if (!string.IsNullOrEmpty(style.BackgroundImage))
+            {
+                Application.Instance.ResourceManager.LoadImage(style.BackgroundImage);
+
+                var bgImageTexture = Application.Instance.ResourceManager.GetTexture(style.BackgroundImage);
+                Raylib.DrawTexturePro(bgImageTexture,
+                    new Rectangle(0, 0, bgImageTexture.width, bgImageTexture.height),
+                    rect,
+                    new Vector2(0, 0), 0, Color.WHITE);
+            }
+            else
+            {
+                var hasRadiusCorners = style.RadiusCorners > 0.0f;
+                if (hasRadiusCorners)
+                {
+                    // cannot use gradient colours with background rectangles using radius corners.
+                    // defaults to using first solid colour input
+                    var backgroundColor = style.BackgroundColor.Colors[0];
+                    Raylib.DrawRectangleRounded(rect,
+                        style.RadiusCorners, (int)(style.RadiusCorners * Math.PI), backgroundColor);
+                }
+                else
+                {
+                    if (style.BackgroundColor.Type == Extras.ColorType.Solid)
+                    {
+                        Raylib.DrawRectangle((int)rect.x, (int)rect.y, (int)rect.width, (int)rect.height, style.BackgroundColor.Colors[0]);
+                    }
+                    else if (style.BackgroundColor.Type == Extras.ColorType.GradientHorizontal)
+                    {
+                        Raylib.DrawRectangleGradientH((int)rect.x, (int)rect.y, (int)rect.width, (int)rect.height, style.BackgroundColor.Colors[0], style.BackgroundColor.Colors[1]);
+                    }
+                    else if (style.BackgroundColor.Type == Extras.ColorType.GradientVertical)
+                    {
+                        Raylib.DrawRectangleGradientV((int)rect.x, (int)rect.y, (int)rect.width, (int)rect.height, style.BackgroundColor.Colors[0], style.BackgroundColor.Colors[1]);
+                    }
+
+                    // draw borders
+                    if (style.Borders[0]) // top
+                    {
+                        Raylib.DrawLineEx(new Vector2(rect.x, rect.y), new Vector2(rect.x + rect.width, rect.y), style.BorderThicknesses[0], style.BorderColors[0]);
+                    }
+
+                    if (style.Borders[1]) // left
+                    {
+                        Raylib.DrawLineEx(new Vector2(rect.x, rect.y), new Vector2(rect.x, rect.y + rect.height), style.BorderThicknesses[1], style.BorderColors[1]);
+                    }
+
+                    if (style.Borders[2]) // right
+                    {
+                        Raylib.DrawLineEx(new Vector2(rect.x + rect.width, rect.y), new Vector2(rect.x + rect.width, rect.y + rect.height), style.BorderThicknesses[2], style.BorderColors[2]);
+                    }
+
+                    if (style.Borders[3]) // bottom
+                    {
+                        Raylib.DrawLineEx(new Vector2(rect.x, rect.y + rect.height), new Vector2(rect.x + rect.width, rect.y + rect.height), style.BorderThicknesses[3], style.BorderColors[3]);
+                    }
+                }
+            }
+        }
 
         private void DrawText(int index, TextDim textDim, Color color, TextAlignment alignment)
         {
@@ -473,6 +546,10 @@ namespace TwinspireCS.Engine.GUI
                             active.State = ElementState.DoubleClicked;
                         else
                             active.State = ElementState.Clicked;
+                    }
+                    else
+                    {
+                        active.State = ElementState.Hovered;
                     }
 
                     index -= 1;

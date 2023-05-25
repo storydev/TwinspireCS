@@ -9,6 +9,11 @@ namespace TwinspireCS.Engine.GUI
     public class Theme
     {
 
+        public static readonly string BUTTON = "Button";
+        public static readonly string BUTTON_HOVER = "ButtonHover";
+        public static readonly string BUTTON_DOWN = "ButtonDown";
+
+
         public Dictionary<string, Style> Styles;
 
         public Theme()

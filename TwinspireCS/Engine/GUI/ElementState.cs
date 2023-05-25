@@ -10,6 +10,7 @@ namespace TwinspireCS.Engine.GUI
     {
         Idle,
         Active,
+        Hovered,
         Inactive,
         Focused,
         Clicked,
