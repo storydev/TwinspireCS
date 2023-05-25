@@ -54,6 +54,9 @@ namespace TwinspireCS.Engine.GUI
                     lastBreak = lastChance + 1;
                     i = lastBreak;
                     lastChance = -1;
+                    currentLineWidth = 0f;
+                    byteCounter = 0;
+                    tempLineWidth = 0.0f;
                 }
 
                 if (text[i] == ' ')
@@ -82,13 +85,14 @@ namespace TwinspireCS.Engine.GUI
         public static void RenderMultilineText(Font font, float fontSize, Vector2 pos, int spacing, TextDim textDim, Color color, TextAlignment alignment = TextAlignment.Center)
         {
             var startY = pos.Y;
+            Raylib.SetTextureFilter(font.texture, TextureFilter.TEXTURE_FILTER_BILINEAR);
             if (textDim.Breaks.Length > 0)
             {
-                for (int i = 0; i < textDim.Breaks.Length; i++)
+                for (int i = 0; i < textDim.Breaks.Length + 1; i++)
                 {
                     var x = pos.X;
-                    var start = i == 0 ? 0 : textDim.Breaks[i];
-                    var end = i == textDim.Breaks.Length - 1 ? textDim.Characters.Length : textDim.Breaks[i + 1];
+                    var start = i == 0 ? 0 : textDim.Breaks[i - 1];
+                    var end = i == textDim.Breaks.Length ? textDim.Characters.Length - 1 : textDim.Breaks[i];
                     string lineText = textDim.Characters.GetCharsAsString(start, end);
                     var lineSize = Raylib.MeasureTextEx(font, lineText, fontSize, spacing);
 

@@ -127,7 +127,7 @@ namespace TwinspireCS
         public void InitAll()
         {
             Raylib.InitWindow(startingWidth, startingHeight, windowTitle);
-            Raylib.SetConfigFlags(ConfigFlags.FLAG_VSYNC_HINT);
+            Raylib.SetConfigFlags(ConfigFlags.FLAG_VSYNC_HINT | ConfigFlags.FLAG_MSAA_4X_HINT);
             Raylib.SetTargetFPS(TargetFPS);
         }
 

@@ -29,13 +29,5 @@ namespace TwinspireCS
             }
         }
 
-        public static void ImageBlurGaussian(ref Image image, int blurSize)
-        {
-            fixed (Image* p = &image)
-            {
-                Raylib.ImageBlurGaussian(p, blurSize);
-            }
-        }
-
     }
 }
