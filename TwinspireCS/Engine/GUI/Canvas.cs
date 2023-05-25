@@ -71,6 +71,7 @@ namespace TwinspireCS.Engine.GUI
             grid.BackgroundImages = new string[totalCells];
             grid.Offsets = new Vector2[totalCells];
             grid.RadiusCorners = new float[totalCells];
+            grid.Shadows = new Shadow[totalCells];
 
             int cornerTotals = totalCells * 4;
             grid.Margin = new float[cornerTotals];
@@ -487,19 +488,38 @@ namespace TwinspireCS.Engine.GUI
 
         public void Render()
         {
-            foreach (var layout in layouts)
+            for (int i = 0; i < layouts.Count; i++)
             {
-                RenderLayout(layout);
+                RenderLayout(i);
             }
         }
 
-        public void RenderLayout(Grid grid)
+        public unsafe void RenderLayout(int gridIndex)
         {
+            var grid = layouts[gridIndex];
             int cells = grid.Columns.Length * grid.Rows.Length;
 
             for (int i = 0; i < cells; i++)
             {
                 var cellDim = grid.GetCellDimension(i);
+
+                if (!Equals(grid.Shadows[i], Shadow.Empty))
+                {
+                    var name = "Grid_" + gridIndex + "_Cell_" + i + "_Shadow";
+                    if (!Application.Instance.ResourceManager.DoesIdentifierExist(name))
+                    {
+                        var shadowImage = Raylib.GenImageColor((int)cellDim.Z + (grid.Shadows[i].BlurRadius * 2), (int)cellDim.W + (grid.Shadows[i].BlurRadius * 2), Color.WHITE);
+                        Raylib.ImageDrawRectangle(ref shadowImage, grid.Shadows[i].BlurRadius, grid.Shadows[i].BlurRadius,
+                            (int)(cellDim.Z - grid.Shadows[i].BlurRadius), (int)(cellDim.W - grid.Shadows[i].BlurRadius), grid.Shadows[i].Color);
+                        Raylib.ImageBlurGaussian(&shadowImage, grid.Shadows[i].BlurRadius);
+                        Application.Instance.ResourceManager.AddResourceImage(name, shadowImage);
+                    }
+                    else
+                    {
+                        var shadowTexture = Application.Instance.ResourceManager.GetTexture(name);
+                        Raylib.DrawTexture(shadowTexture, (int)grid.Shadows[i].OffsetX + (int)cellDim.X, (int)grid.Shadows[i].OffsetY + (int)cellDim.Y, Color.WHITE);
+                    }
+                }
                 
                 if (!string.IsNullOrEmpty(grid.BackgroundImages[i]))
                 {

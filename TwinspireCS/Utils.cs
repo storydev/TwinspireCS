@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Raylib_cs;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -25,6 +26,14 @@ namespace TwinspireCS
             fixed (byte* ptr = array)
             {
                 return ptr;
+            }
+        }
+
+        public static void ImageBlurGaussian(ref Image image, int blurSize)
+        {
+            fixed (Image* p = &image)
+            {
+                Raylib.ImageBlurGaussian(p, blurSize);
             }
         }
 

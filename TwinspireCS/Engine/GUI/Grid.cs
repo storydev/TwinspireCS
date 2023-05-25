@@ -27,6 +27,8 @@ namespace TwinspireCS.Engine.GUI
         public ColorMethod[] BackgroundColors;
         public string[] BackgroundImages;
 
+        public Shadow[] Shadows;
+
         public Vector2[] Offsets;
         public Vector2[] Scrolling;
         public float[] RadiusCorners;
@@ -50,6 +52,7 @@ namespace TwinspireCS.Engine.GUI
 
             BackgroundColors = Array.Empty<ColorMethod>();
             BackgroundImages = Array.Empty<string>();
+            Shadows = Array.Empty<Shadow>();
 
             Offsets = Array.Empty<Vector2>();
             Scrolling = Array.Empty<Vector2>();
@@ -361,6 +364,29 @@ namespace TwinspireCS.Engine.GUI
             }
 
             BackgroundImages[selectedCell] = imageName;
+            return this;
+        }
+
+        public Grid SetShadowCell(int column, int row, Shadow shadow)
+        {
+            int cell = row * Columns.Length + column;
+            Shadows[cell] = shadow;
+            return this;
+        }
+
+        public Grid SetShadow(Shadow shadow)
+        {
+            if (selectedEverything)
+            {
+                int cells = Columns.Length * Rows.Length;
+                for (int i = 0; i < cells; i++)
+                {
+                    Shadows[i] = shadow;
+                }
+                return this;
+            }
+
+            Shadows[selectedCell] = shadow;
             return this;
         }
 

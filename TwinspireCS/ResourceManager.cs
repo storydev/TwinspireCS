@@ -105,6 +105,21 @@ namespace TwinspireCS
         }
 
         /// <summary>
+        /// Add an image to memory. Will be lost when the application exits.
+        /// </summary>
+        /// <param name="identifier">The name of the image. Must be unique.</param>
+        /// <param name="image">The image resource to add.</param>
+        public void AddResourceImage(string identifier, Image image)
+        {
+            if (imageCache.ContainsKey(identifier))
+            {
+                throw new Exception("Identifier with the name '" + identifier + "' already exists.");
+            }
+
+            imageCache.Add(identifier , image);
+        }
+
+        /// <summary>
         /// Write all the data for the given package.
         /// </summary>
         /// <param name="packageIndex">The package to write out to its source file.</param>
@@ -540,6 +555,37 @@ namespace TwinspireCS
                 if (result)
                     break;
             }
+            return result;
+        }
+
+        /// <summary>
+        /// Checks the internal cache for the given identifier, returning <c>true</c> if one exists.
+        /// </summary>
+        /// <param name="identifier">The name of the identifier.</param>
+        /// <returns></returns>
+        public bool DoesIdentifierExist(string identifier)
+        {
+            var result = false;
+            result = imageCache.ContainsKey(identifier);
+            if (result)
+                return result;
+
+            result = musicCache.ContainsKey(identifier);
+            if (result)
+                return result;
+
+            result = waveCache.ContainsKey(identifier);
+            if (result)
+                return result;
+
+            result = fontCache.ContainsKey(identifier);
+            if (result)
+                return result;
+
+            result = textureCache.ContainsKey(identifier);
+            if (result)
+                return result;
+
             return result;
         }
 
