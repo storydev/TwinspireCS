@@ -16,6 +16,7 @@ namespace TwinspireCS.Engine.GUI
         private List<Element> elements;
         private IDictionary<string, int> elementIdCache;
         private IDictionary<int, TextDim> elementTexts;
+        private List<int> animationIndices;
 
         private int activeElement = -1;
 
@@ -48,6 +49,7 @@ namespace TwinspireCS.Engine.GUI
             elements = new List<Element>();
             elementIdCache = new Dictionary<string, int>();
             elementTexts = new Dictionary<int, TextDim>();
+            animationIndices = new List<int>();
             activeElement = 0;
             
             currentGridIndex = 0;
