@@ -78,7 +78,11 @@ namespace TwinspireCS.Engine.GUI
             }
 
             result.Breaks = breaks.ToArray();
-            result.ContentSize = new Vector2(maxWidth, (result.Breaks.Length + 1) * (textHeight * scaleFactor));
+            var actualWidth = maxWidth;
+            if (currentLineWidth < maxWidth && breaks.Count == 0)
+                actualWidth = (int)currentLineWidth;
+
+            result.ContentSize = new Vector2(actualWidth, (result.Breaks.Length + 1) * (textHeight * scaleFactor));
             return result;
         }
 
@@ -92,7 +96,7 @@ namespace TwinspireCS.Engine.GUI
                 {
                     var x = pos.X;
                     var start = i == 0 ? 0 : textDim.Breaks[i - 1];
-                    var end = i == textDim.Breaks.Length ? textDim.Characters.Length - 1 : textDim.Breaks[i];
+                    var end = i == textDim.Breaks.Length ? textDim.Characters.Length : textDim.Breaks[i];
                     string lineText = textDim.Characters.GetCharsAsString(start, end);
                     var lineSize = Raylib.MeasureTextEx(font, lineText, fontSize, spacing);
 

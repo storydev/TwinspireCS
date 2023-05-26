@@ -14,6 +14,8 @@ namespace TwinspireCS.Engine.GUI
         private static int currentCanvasIndex;
         private static int nextCanvasIndex;
 
+        public static int CurrentCanvas => currentCanvasIndex;
+
         public static int CreateCanvas()
         {
             if (canvases == null)

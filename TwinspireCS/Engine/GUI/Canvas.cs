@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading.Tasks;
 using Raylib_cs;
@@ -103,6 +104,14 @@ namespace TwinspireCS.Engine.GUI
                 requestRebuild = false;
                 firstBuild = false;
             }
+
+            if (requestRebuild)
+            {
+                foreach (var id in animationIndices)
+                {
+                    Animate.Reset(id);
+                }
+            }
         }
 
         public void DrawTo(int gridIndex, int cellIndex, LayoutFlags flags = LayoutFlags.DynamicRows | LayoutFlags.DynamicColumns)
@@ -190,6 +199,8 @@ namespace TwinspireCS.Engine.GUI
                 var elementDim = CalculateNextDimension(elements.Count, text);
                 element.Dimension = new Rectangle(elementDim.X, elementDim.Y, elementDim.Z, elementDim.W);
 
+
+
                 elements.Add(element);
                 elementIdCache.Add(id, elements.Count - 1);
             }
@@ -225,6 +236,9 @@ namespace TwinspireCS.Engine.GUI
                 }
                 else
                 {
+                    if (style.BackgroundColor.Colors == null)
+                        goto SKIP_TO_BORDERS;
+
                     if (style.BackgroundColor.Type == Extras.ColorType.Solid)
                     {
                         Raylib.DrawRectangle((int)rect.x, (int)rect.y, (int)rect.width, (int)rect.height, style.BackgroundColor.Colors[0]);
@@ -237,6 +251,8 @@ namespace TwinspireCS.Engine.GUI
                     {
                         Raylib.DrawRectangleGradientV((int)rect.x, (int)rect.y, (int)rect.width, (int)rect.height, style.BackgroundColor.Colors[0], style.BackgroundColor.Colors[1]);
                     }
+
+                    SKIP_TO_BORDERS:
 
                     // draw borders
                     if (style.Borders[0]) // top
@@ -421,6 +437,9 @@ namespace TwinspireCS.Engine.GUI
                 textDim = Utils.MeasureTextWrapping(Application.Instance.ResourceManager.GetFont(currentFontName), currentFontSize, currentFontSpacing, (int)widthToBecome, textOrImageName);
                 if (!currentLayoutFlags.HasFlag(LayoutFlags.SpanColumn))
                     heightToBecome = textDim.ContentSize.Y + (childInnerPadding * 2);
+
+                if (currentLayoutFlags.HasFlag(LayoutFlags.DynamicColumns))
+                    widthToBecome = textDim.ContentSize.X;
 
                 elementTexts.Add(elementIndex, textDim);
             }
@@ -625,6 +644,9 @@ namespace TwinspireCS.Engine.GUI
                     }
                     else
                     {
+                        if (grid.BackgroundColors[i].Colors == null)
+                            goto DRAW_BORDERS;
+
                         if (grid.BackgroundColors[i].Type == Extras.ColorType.Solid)
                         {
                             Raylib.DrawRectangle((int)cellDim.X, (int)cellDim.Y, (int)cellDim.Z, (int)cellDim.W, grid.BackgroundColors[i].Colors[0]);
@@ -637,6 +659,8 @@ namespace TwinspireCS.Engine.GUI
                         {
                             Raylib.DrawRectangleGradientV((int)cellDim.X, (int)cellDim.Y, (int)cellDim.Z, (int)cellDim.W, grid.BackgroundColors[i].Colors[0], grid.BackgroundColors[i].Colors[1]);
                         }
+
+                        DRAW_BORDERS:
 
                         // draw borders
                         if (grid.Borders[cellItemIndex]) // top
