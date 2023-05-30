@@ -99,6 +99,8 @@ namespace TwinspireCS.Engine.GUI
         {
             if (requestRebuild)
             {
+
+
                 elements.Clear();
                 elementTexts.Clear();
                 elementIdCache.Clear();
@@ -283,8 +285,6 @@ namespace TwinspireCS.Engine.GUI
                 element.CellIndex = currentCellIndex;
                 var elementDim = CalculateNextDimension(elements.Count, text);
                 element.Dimension = new Rectangle(elementDim.X, elementDim.Y, elementDim.Z, elementDim.W);
-
-
 
                 elements.Add(element);
                 elementIdCache.Add(id, elements.Count - 1);
