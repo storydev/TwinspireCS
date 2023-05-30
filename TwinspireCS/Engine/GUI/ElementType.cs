@@ -8,7 +8,9 @@ namespace TwinspireCS.Engine.GUI
 {
     public enum ElementType
     {
-        Text,
-        Button,
+        NonInteractive,
+        Interactive,
+        Hotkey,
+        Input
     }
 }

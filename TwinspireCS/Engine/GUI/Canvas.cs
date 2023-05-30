@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading.Tasks;
+using System.Diagnostics;
 using Raylib_cs;
 
 namespace TwinspireCS.Engine.GUI
@@ -27,6 +28,12 @@ namespace TwinspireCS.Engine.GUI
         private float fixedRowHeight;
         private float fixedColumnWidth;
 
+        // styles
+        private Style basicStyle;
+        private Style hoveredStyle;
+        private Style downStyle;
+        private List<Style> styleStack;
+        private bool usingCustomStyle;
 
         private bool preloadedAll;
         private bool requestRebuild;
@@ -51,6 +58,7 @@ namespace TwinspireCS.Engine.GUI
             elementIdCache = new Dictionary<string, int>();
             elementTexts = new Dictionary<int, TextDim>();
             animationIndices = new List<int>();
+            styleStack = new List<Style>();
             activeElement = 0;
             
             currentGridIndex = 0;
@@ -157,6 +165,78 @@ namespace TwinspireCS.Engine.GUI
             currentFontSpacing = spacing;
         }
 
+        public void SetNextStyle(Style style)
+        {
+            basicStyle = style;
+            hoveredStyle = style;
+            downStyle = style;
+            usingCustomStyle = true;
+        }
+
+        public void SetNextStyle(Style basicState, Style hoverState, Style downState)
+        {
+            basicStyle = basicState;
+            hoveredStyle = hoverState;
+            downStyle = downState;
+            usingCustomStyle = true;
+        }
+
+        public void PushStyle(Style nextStyle)
+        {
+            styleStack.Add(nextStyle);
+        }
+
+        public void PopStyle()
+        {
+            try
+            {
+                styleStack.RemoveAt(styleStack.Count - 1);
+            }
+            catch (Exception)
+            {
+#if DEBUG
+                var callstack = new StackTrace(true);
+                var frames = callstack.GetFrames();
+                var fileName = frames[1].GetFileName();
+                var lineNumber = frames[1].GetFileLineNumber();
+
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.Write("WARNING: ");
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.Write(string.Format("{0}, {1}: ", fileName, lineNumber));
+                Console.WriteLine("Style stack has already been emptied.");
+#endif
+            }
+        }
+
+        private Style? GetLocalStyle(ElementState state)
+        {
+            if (usingCustomStyle)
+            {
+                usingCustomStyle = false;
+                if (state == ElementState.Hovered || state == ElementState.Clicked || state == ElementState.DoubleClicked)
+                {
+                    return hoveredStyle;
+                }
+                else if (state == ElementState.Active)
+                {
+                    return downStyle;
+                }
+                else
+                {
+                    return basicStyle;
+                }
+            }
+
+            if (styleStack.Count > 0)
+            {
+                var style = styleStack[styleStack.Count-1];
+                return style;
+            }
+
+            return null;
+        }
+
         #endregion
 
         #region UI Drawing
@@ -168,7 +248,12 @@ namespace TwinspireCS.Engine.GUI
                 var index = elementIdCache[id];
                 var element = elements[index];
 
-                if (element.State == ElementState.Active)
+                var style = GetLocalStyle(element.State);
+                if (style != null)
+                {
+                    DrawRectStyle(element.Dimension, style);
+                }
+                else if (element.State == ElementState.Active)
                 {
                     DrawRectStyle(element.Dimension, Theme.Default.Styles[Theme.BUTTON_DOWN]);
                 }
@@ -193,7 +278,7 @@ namespace TwinspireCS.Engine.GUI
             else if (requestRebuild)
             {
                 var element = new Element();
-                element.Type = ElementType.Button;
+                element.Type = ElementType.Interactive;
                 element.GridIndex = currentGridIndex;
                 element.CellIndex = currentCellIndex;
                 var elementDim = CalculateNextDimension(elements.Count, text);
@@ -554,6 +639,11 @@ namespace TwinspireCS.Engine.GUI
                     var active = elements[possibleActiveElements[index]];
                     var firstClickTimePassed = !firstClick && firstClickTime == 0.0f && tempClick;
                     var mouseReleased = Raylib.IsMouseButtonReleased(MouseButton.MOUSE_BUTTON_LEFT);
+                    if (active.Type != ElementType.Interactive && active.Type != ElementType.Input)
+                    {
+                        index -= 1;
+                        continue;
+                    }
 
                     if (Raylib.IsMouseButtonDown(MouseButton.MOUSE_BUTTON_LEFT) && index == last)
                     {
