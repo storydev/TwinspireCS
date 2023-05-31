@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using Raylib_cs;
+using System.Xml.Linq;
 
 namespace TwinspireCS.Engine.GUI
 {
@@ -18,7 +19,12 @@ namespace TwinspireCS.Engine.GUI
         private List<Element> elements;
         private IDictionary<string, int> elementIdCache;
         private IDictionary<int, TextDim> elementTexts;
+
         private List<int> animationIndices;
+        private List<Tween> tweens;
+        private List<bool> tweensRunning;
+        private IDictionary<string, int[]> elementTweens;
+        private List<Tween> tweenStack;
 
         private int activeElement = -1;
 
@@ -59,6 +65,10 @@ namespace TwinspireCS.Engine.GUI
             elementTexts = new Dictionary<int, TextDim>();
             animationIndices = new List<int>();
             styleStack = new List<Style>();
+            tweens = new List<Tween>();
+            tweenStack = new List<Tween>();
+            elementTweens = new Dictionary<string, int[]>();
+            tweensRunning = new List<bool>();
             activeElement = 0;
             
             currentGridIndex = 0;
@@ -99,11 +109,10 @@ namespace TwinspireCS.Engine.GUI
         {
             if (requestRebuild)
             {
-
-
                 elements.Clear();
                 elementTexts.Clear();
                 elementIdCache.Clear();
+                elementTweens.Clear();
             }
         }
 
@@ -122,6 +131,8 @@ namespace TwinspireCS.Engine.GUI
                     Animate.Reset(id);
                 }
             }
+
+            Animate.ResetTicks();
         }
 
         public void DrawTo(int gridIndex, int cellIndex, LayoutFlags flags = LayoutFlags.DynamicRows | LayoutFlags.DynamicColumns)
@@ -197,16 +208,7 @@ namespace TwinspireCS.Engine.GUI
             catch (Exception)
             {
 #if DEBUG
-                var callstack = new StackTrace(true);
-                var frames = callstack.GetFrames();
-                var fileName = frames[1].GetFileName();
-                var lineNumber = frames[1].GetFileLineNumber();
-
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.Write("WARNING: ");
-                Console.ForegroundColor = ConsoleColor.White;
-                Console.Write(string.Format("{0}, {1}: ", fileName, lineNumber));
-                Console.WriteLine("Style stack has already been emptied.");
+                TwinspireCS.Utils.Warn("Style stack has already been emptied.", 1);
 #endif
             }
         }
@@ -239,6 +241,210 @@ namespace TwinspireCS.Engine.GUI
             return null;
         }
 
+        public void PushTween(Tween tween)
+        {
+            tweenStack.Add(tween);
+        }
+
+        public void PopTween()
+        {
+            try
+            {
+                tweenStack.RemoveAt(tweenStack.Count - 1);
+            }
+            catch (Exception)
+            {
+#if DEBUG
+                TwinspireCS.Utils.Warn("Tween stack has already been emptied.", 1);
+#endif
+            }
+        }
+
+        public int AddTween(string id, Tween tween)
+        {
+            tweens.Add(tween);
+            tweensRunning.Add(false);
+            var index = tweens.Count - 1;
+            var animateIndex = Animate.Create();
+            elementTweens.Add(id, new int[] { index, animateIndex });
+            return index;
+        }
+
+        public void StartTween(string id)
+        {
+            if (elementTweens.ContainsKey(id))
+            {
+                var tweenIndices = elementTweens[id];
+                tweensRunning[tweenIndices[0]] = true;
+            }
+        }
+
+        public void ResetTween(string id)
+        {
+            if (elementTweens.ContainsKey(id))
+            {
+                var tweenIndices = elementTweens[id];
+                Animate.Reset(tweenIndices[1]);
+            }
+        }
+
+        public void ReverseTween(string id, bool reverse = true)
+        {
+            if (elementTweens.ContainsKey(id))
+            {
+                var tweenIndices = elementTweens[id];
+                Animate.ReverseIndex(tweenIndices[1], reverse);
+            }
+        }
+
+        public float RunTween(string id, float duration, float delay = 0.0f)
+        {
+            float result;
+            if (elementTweens.ContainsKey(id))
+            {
+                var tweenIndices = elementTweens[id];
+                var isRunning = tweensRunning[tweenIndices[0]];
+                if (isRunning)
+                {
+                    var animationIndex = tweenIndices[1];
+                    if (Animate.Tick(animationIndex, duration, delay))
+                    {
+                        result = Animate.GetReverse(animationIndex) ? 0.0f : 1.0f;
+                    }
+                    else
+                    {
+                        result = Animate.GetRatio(animationIndex);
+                    }
+                    return result;
+                }
+                else
+                {
+                    return float.NaN;
+                }
+            }
+
+            return float.NaN;
+        }
+
+        private Style? GetTweenState(string id, float ratio)
+        {
+            if (elementTweens.ContainsKey(id))
+            {
+                var tweenIndices = elementTweens[id];
+                var actualTween = tweens[tweenIndices[0]];
+                var style = new Style();
+
+                // border check
+                {
+                    // change from false to true,
+                    // when this happens, default to animate in via opacity
+                    if (actualTween.From.Borders[0] != actualTween.To.Borders[0] && actualTween.To.Borders[0])
+                    {
+                        style.Opacity = ratio;
+                        style.BorderColors[0] = Utils.ChangeColour(actualTween.From.BorderColors[0], actualTween.To.BorderColors[0], ratio);
+                        style.BorderThicknesses[0] = actualTween.To.BorderThicknesses[0];
+                    }
+                    else if (actualTween.From.Borders[0]) // if already true, expand via thickness
+                    {
+                        style.BorderThicknesses[0] = (int)(((actualTween.To.BorderThicknesses[0] - actualTween.From.BorderThicknesses[0]) * ratio) + actualTween.From.BorderThicknesses[0]);
+                        style.BorderColors[0] = Utils.ChangeColour(actualTween.From.BorderColors[0], actualTween.To.BorderColors[0], ratio);
+                    }
+
+                    style.Borders[0] = actualTween.To.Borders[0];
+
+                    // change from false to true,
+                    // when this happens, default to animate in via opacity
+                    if (actualTween.From.Borders[1] != actualTween.To.Borders[1] && actualTween.To.Borders[1])
+                    {
+                        style.Opacity = ratio;
+                        style.BorderColors[1] = Utils.ChangeColour(actualTween.From.BorderColors[1], actualTween.To.BorderColors[1], ratio);
+                        style.BorderThicknesses[1] = actualTween.To.BorderThicknesses[1];
+                    }
+                    else if (actualTween.From.Borders[1]) // if already true, expand via thickness
+                    {
+                        style.BorderThicknesses[1] = (int)(((actualTween.To.BorderThicknesses[1] - actualTween.From.BorderThicknesses[1]) * ratio) + actualTween.From.BorderThicknesses[1]);
+                        style.BorderColors[1] = Utils.ChangeColour(actualTween.From.BorderColors[1], actualTween.To.BorderColors[1], ratio);
+                    }
+
+                    style.Borders[1] = actualTween.To.Borders[1];
+
+                    // change from false to true,
+                    // when this happens, default to animate in via opacity
+                    if (actualTween.From.Borders[2] != actualTween.To.Borders[2] && actualTween.To.Borders[2])
+                    {
+                        style.Opacity = ratio;
+                        style.BorderColors[2] = Utils.ChangeColour(actualTween.From.BorderColors[2], actualTween.To.BorderColors[2], ratio);
+                        style.BorderThicknesses[2] = actualTween.To.BorderThicknesses[2];
+                    }
+                    else if (actualTween.From.Borders[2]) // if already true, expand via thickness
+                    {
+                        style.BorderThicknesses[2] = (int)(((actualTween.To.BorderThicknesses[2] - actualTween.From.BorderThicknesses[2]) * ratio) + actualTween.From.BorderThicknesses[2]);
+                        style.BorderColors[2] = Utils.ChangeColour(actualTween.From.BorderColors[2], actualTween.To.BorderColors[2], ratio);
+                    }
+
+                    style.Borders[2] = actualTween.To.Borders[2];
+
+                    // change from false to true,
+                    // when this happens, default to animate in via opacity
+                    if (actualTween.From.Borders[3] != actualTween.To.Borders[3] && actualTween.To.Borders[3])
+                    {
+                        style.Opacity = ratio;
+                        style.BorderColors[3] = Utils.ChangeColour(actualTween.From.BorderColors[3], actualTween.To.BorderColors[3], ratio);
+                        style.BorderThicknesses[3] = actualTween.To.BorderThicknesses[3];
+                    }
+                    else if (actualTween.From.Borders[3]) // if already true, expand via thickness
+                    {
+                        style.BorderThicknesses[3] = (int)(((actualTween.To.BorderThicknesses[3] - actualTween.From.BorderThicknesses[3]) * ratio) + actualTween.From.BorderThicknesses[3]);
+                        style.BorderColors[3] = Utils.ChangeColour(actualTween.From.BorderColors[3], actualTween.To.BorderColors[3], ratio);
+                    }
+
+                    style.Borders[3] = actualTween.To.Borders[3];
+                }
+
+                // background color
+
+                style.BackgroundColor.Type = actualTween.To.BackgroundColor.Type;
+
+                if (actualTween.From.BackgroundColor.Type == actualTween.To.BackgroundColor.Type) // do literal conversion regardless of type here
+                {
+                    if (actualTween.From.BackgroundColor.Colors.Length != actualTween.To.BackgroundColor.Colors.Length)
+                    {
+                        // if the length of the two types are different, it was probably setup incorrectly!
+                        TwinspireCS.Utils.Warn("The length of the tween background colours for this call does not match. Exiting animation.", 2);
+                        return null;
+                    }
+
+                    style.BackgroundColor.Colors = new Color[actualTween.From.BackgroundColor.Colors.Length];
+                    for (int i = 0; i < actualTween.From.BackgroundColor.Colors.Length; i++)
+                    {
+                        style.BackgroundColor.Colors[i] = Utils.ChangeColour(actualTween.From.BackgroundColor.Colors[i], actualTween.To.BackgroundColor.Colors[i], ratio);
+                    }
+                }
+                else if (actualTween.From.BackgroundColor.Type != actualTween.To.BackgroundColor.Type)
+                {
+                    // if types are not the same, check if changing from solid -> gradient or gradient -> solid
+                    if (actualTween.From.BackgroundColor.Type == Extras.ColorType.Solid) // changing to gradient
+                    {
+                        // use solid colour for first colour in gradient
+                        style.BackgroundColor.Colors[0] = Utils.ChangeColour(actualTween.From.BackgroundColor.Colors[0], actualTween.To.BackgroundColor.Colors[0], ratio);
+                        style.BackgroundColor.Colors[1] = Utils.ChangeColour(actualTween.From.BackgroundColor.Colors[0], actualTween.To.BackgroundColor.Colors[1], ratio);
+                    }
+                    else if (actualTween.To.BackgroundColor.Type == Extras.ColorType.Solid) // changing from gradient
+                    {
+                        style.BackgroundColor.Colors[0] = Utils.ChangeColour(actualTween.From.BackgroundColor.Colors[0], actualTween.To.BackgroundColor.Colors[0], ratio);
+                        style.BackgroundColor.Colors[0] = Utils.ChangeColour(actualTween.From.BackgroundColor.Colors[1], actualTween.To.BackgroundColor.Colors[0], ratio);
+                    }
+                }
+
+                // radius corners
+                style.RadiusCorners = ((actualTween.To.RadiusCorners - actualTween.From.RadiusCorners) * ratio) + actualTween.From.RadiusCorners;
+
+                return style;
+            }
+
+            return null;
+        }
+
         #endregion
 
         #region UI Drawing
@@ -250,22 +456,59 @@ namespace TwinspireCS.Engine.GUI
                 var index = elementIdCache[id];
                 var element = elements[index];
 
-                var style = GetLocalStyle(element.State);
-                if (style != null)
+                var hoverTween = id + ":hover";
+
+                if (elementTweens.ContainsKey(hoverTween))
                 {
-                    DrawRectStyle(element.Dimension, style);
-                }
-                else if (element.State == ElementState.Active)
-                {
-                    DrawRectStyle(element.Dimension, Theme.Default.Styles[Theme.BUTTON_DOWN]);
-                }
-                else if (element.State == ElementState.Hovered || element.State == ElementState.Clicked || element.State == ElementState.DoubleClicked)
-                {
-                    DrawRectStyle(element.Dimension, Theme.Default.Styles[Theme.BUTTON_HOVER]);
+                    var tween = tweens[elementTweens[hoverTween][0]];
+                    if (element.State == ElementState.Hovered || element.State == ElementState.Idle)
+                    {
+                        ReverseTween(hoverTween, element.State == ElementState.Idle);
+                        var tweenRatio = RunTween(hoverTween, tween.Duration, tween.Delay);
+                        var tweenStyle = GetTweenState(hoverTween, tweenRatio != float.NaN ? tweenRatio : 0);
+                        if (tweenStyle != null)
+                            DrawRectStyle(element.Dimension, tweenStyle);
+                    }
+                    else
+                    {
+                        var style = GetLocalStyle(element.State);
+                        if (style != null)
+                        {
+                            DrawRectStyle(element.Dimension, style);
+                        }
+                        else if (element.State == ElementState.Active)
+                        {
+                            DrawRectStyle(element.Dimension, Theme.Default.Styles[Theme.BUTTON_DOWN]);
+                        }
+                        else if (element.State == ElementState.Hovered || element.State == ElementState.Clicked || element.State == ElementState.DoubleClicked)
+                        {
+                            DrawRectStyle(element.Dimension, Theme.Default.Styles[Theme.BUTTON_HOVER]);
+                        }
+                        else
+                        {
+                            DrawRectStyle(element.Dimension, Theme.Default.Styles[Theme.BUTTON]);
+                        }
+                    }
                 }
                 else
                 {
-                    DrawRectStyle(element.Dimension, Theme.Default.Styles[Theme.BUTTON]);
+                    var style = GetLocalStyle(element.State);
+                    if (style != null)
+                    {
+                        DrawRectStyle(element.Dimension, style);
+                    }
+                    else if (element.State == ElementState.Active)
+                    {
+                        DrawRectStyle(element.Dimension, Theme.Default.Styles[Theme.BUTTON_DOWN]);
+                    }
+                    else if (element.State == ElementState.Hovered || element.State == ElementState.Clicked || element.State == ElementState.DoubleClicked)
+                    {
+                        DrawRectStyle(element.Dimension, Theme.Default.Styles[Theme.BUTTON_HOVER]);
+                    }
+                    else
+                    {
+                        DrawRectStyle(element.Dimension, Theme.Default.Styles[Theme.BUTTON]);
+                    }
                 }
 
                 TextDim textDim;
@@ -288,6 +531,13 @@ namespace TwinspireCS.Engine.GUI
 
                 elements.Add(element);
                 elementIdCache.Add(id, elements.Count - 1);
+
+                var tween = new Tween();
+                tween.Duration = 0.25f;
+                tween.From = Theme.Default.Styles[Theme.BUTTON];
+                tween.To = Theme.Default.Styles[Theme.BUTTON_HOVER];
+                AddTween(id + ":hover", tween);
+                StartTween(id + ":hover");
             }
 
             return ElementState.Idle;
@@ -303,10 +553,12 @@ namespace TwinspireCS.Engine.GUI
                 Application.Instance.ResourceManager.LoadImage(style.BackgroundImage);
 
                 var bgImageTexture = Application.Instance.ResourceManager.GetTexture(style.BackgroundImage);
+                var color = new Color(255, 255, 255, (int)(style.Opacity * 255));
+
                 Raylib.DrawTexturePro(bgImageTexture,
                     new Rectangle(0, 0, bgImageTexture.width, bgImageTexture.height),
                     rect,
-                    new Vector2(0, 0), 0, Color.WHITE);
+                    new Vector2(0, 0), 0, color);
             }
             else
             {
@@ -316,6 +568,7 @@ namespace TwinspireCS.Engine.GUI
                     // cannot use gradient colours with background rectangles using radius corners.
                     // defaults to using first solid colour input
                     var backgroundColor = style.BackgroundColor.Colors[0];
+                    backgroundColor.a = (byte)(style.Opacity * 255);
                     Raylib.DrawRectangleRounded(rect,
                         style.RadiusCorners, (int)(style.RadiusCorners * Math.PI), backgroundColor);
                 }
@@ -326,15 +579,27 @@ namespace TwinspireCS.Engine.GUI
 
                     if (style.BackgroundColor.Type == Extras.ColorType.Solid)
                     {
-                        Raylib.DrawRectangle((int)rect.x, (int)rect.y, (int)rect.width, (int)rect.height, style.BackgroundColor.Colors[0]);
+                        var color = style.BackgroundColor.Colors[0];
+                        color.a = (byte)(style.Opacity * 255);
+                        Raylib.DrawRectangle((int)rect.x, (int)rect.y, (int)rect.width, (int)rect.height, color);
                     }
                     else if (style.BackgroundColor.Type == Extras.ColorType.GradientHorizontal)
                     {
-                        Raylib.DrawRectangleGradientH((int)rect.x, (int)rect.y, (int)rect.width, (int)rect.height, style.BackgroundColor.Colors[0], style.BackgroundColor.Colors[1]);
+                        var color1 = style.BackgroundColor.Colors[0];
+                        var color2 = style.BackgroundColor.Colors[1];
+                        color1.a = (byte)(style.Opacity * 255);
+                        color2.a = (byte)(style.Opacity * 255);
+
+                        Raylib.DrawRectangleGradientH((int)rect.x, (int)rect.y, (int)rect.width, (int)rect.height, color1, color2);
                     }
                     else if (style.BackgroundColor.Type == Extras.ColorType.GradientVertical)
                     {
-                        Raylib.DrawRectangleGradientV((int)rect.x, (int)rect.y, (int)rect.width, (int)rect.height, style.BackgroundColor.Colors[0], style.BackgroundColor.Colors[1]);
+                        var color1 = style.BackgroundColor.Colors[0];
+                        var color2 = style.BackgroundColor.Colors[1];
+                        color1.a = (byte)(style.Opacity * 255);
+                        color2.a = (byte)(style.Opacity * 255);
+
+                        Raylib.DrawRectangleGradientV((int)rect.x, (int)rect.y, (int)rect.width, (int)rect.height, color1, color2);
                     }
 
                     SKIP_TO_BORDERS:
@@ -342,22 +607,30 @@ namespace TwinspireCS.Engine.GUI
                     // draw borders
                     if (style.Borders[0]) // top
                     {
-                        Raylib.DrawLineEx(new Vector2(rect.x, rect.y), new Vector2(rect.x + rect.width, rect.y), style.BorderThicknesses[0], style.BorderColors[0]);
+                        var color = style.BorderColors[0];
+                        color.a = (byte)(style.Opacity * 255);
+                        Raylib.DrawLineEx(new Vector2(rect.x, rect.y), new Vector2(rect.x + rect.width, rect.y), style.BorderThicknesses[0], color);
                     }
 
                     if (style.Borders[1]) // left
                     {
-                        Raylib.DrawLineEx(new Vector2(rect.x, rect.y), new Vector2(rect.x, rect.y + rect.height), style.BorderThicknesses[1], style.BorderColors[1]);
+                        var color = style.BorderColors[1];
+                        color.a = (byte)(style.Opacity * 255);
+                        Raylib.DrawLineEx(new Vector2(rect.x, rect.y), new Vector2(rect.x, rect.y + rect.height), style.BorderThicknesses[1], color);
                     }
 
                     if (style.Borders[2]) // right
                     {
-                        Raylib.DrawLineEx(new Vector2(rect.x + rect.width, rect.y), new Vector2(rect.x + rect.width, rect.y + rect.height), style.BorderThicknesses[2], style.BorderColors[2]);
+                        var color = style.BorderColors[2];
+                        color.a = (byte)(style.Opacity * 255);
+                        Raylib.DrawLineEx(new Vector2(rect.x + rect.width, rect.y), new Vector2(rect.x + rect.width, rect.y + rect.height), style.BorderThicknesses[2], color);
                     }
 
                     if (style.Borders[3]) // bottom
                     {
-                        Raylib.DrawLineEx(new Vector2(rect.x, rect.y + rect.height), new Vector2(rect.x + rect.width, rect.y + rect.height), style.BorderThicknesses[3], style.BorderColors[3]);
+                        var color = style.BorderColors[3];
+                        color.a = (byte)(style.Opacity * 255);
+                        Raylib.DrawLineEx(new Vector2(rect.x, rect.y + rect.height), new Vector2(rect.x + rect.width, rect.y + rect.height), style.BorderThicknesses[3], color);
                     }
                 }
             }

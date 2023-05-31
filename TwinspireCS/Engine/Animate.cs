@@ -14,6 +14,7 @@ namespace TwinspireCS.Engine
         private static float[]? animateTicks;
         private static float[]? animateTicksDelays;
         private static bool[]? animateTickReset;
+        private static bool[]? animateReversing;
         private static int[]? animateTickLoopDir;
         private static int animateIndex;
         private static float lastAnimateSecondsValue;
@@ -24,12 +25,23 @@ namespace TwinspireCS.Engine
             Clear();
         }
 
+        public static void ReverseIndex(int index, bool yes = true)
+        {
+            animateReversing[index] = yes;
+        }
+
+        public static bool GetReverse(int index)
+        {
+            return animateReversing[index];
+        }
+
         public static void Clear()
         {
             animateTicks = new float[Max];
             animateTicksDelays = new float[Max];
             animateTickReset = new bool[Max];
             animateTickLoopDir = new int[Max];
+            animateReversing = new bool[Max];
         }
 
         public static int Create()
@@ -56,7 +68,7 @@ namespace TwinspireCS.Engine
 
             if (delay > 0.0f)
             {
-                if (animateTicks[index] + Raylib.GetFrameTime() > seconds)
+                if ((!animateReversing[index] && animateTicks[index] + Raylib.GetFrameTime() > seconds) || (animateReversing[index] && animateTicks[index] - Raylib.GetFrameTime() < 0))
                 {
                     result = true;
                     if (animateTicksDelays[index] + Raylib.GetFrameTime() > delay)
@@ -72,18 +84,18 @@ namespace TwinspireCS.Engine
                 }
                 else
                 {
-                    animateTicks[index] += Raylib.GetFrameTime();
+                    animateTicks[index] += animateReversing[index] ? -Raylib.GetFrameTime() : Raylib.GetFrameTime();
                 }
             }
             else
             {
-                if (animateTicks[index] + Raylib.GetFrameTime() > seconds)
+                if ((!animateReversing[index] && animateTicks[index] + Raylib.GetFrameTime() > seconds) || (animateReversing[index] && animateTicks[index] - Raylib.GetFrameTime() < 0))
                 {
                     result = true;
                 }
                 else
                 {
-                    animateTicks[index] += Raylib.GetFrameTime();
+                    animateTicks[index] += animateReversing[index] ? -Raylib.GetFrameTime() : Raylib.GetFrameTime();
                 }
             }
 
@@ -146,7 +158,8 @@ namespace TwinspireCS.Engine
 
         public static float GetRatio(int index)
         {
-            return animateTicks[index] / lastAnimateSecondsValue;
+            var ratio = animateTicks[index] / lastAnimateSecondsValue;
+            return ratio;
         }
 
         public static void Reset(int index)

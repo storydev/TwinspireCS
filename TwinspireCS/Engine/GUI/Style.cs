@@ -16,11 +16,13 @@ namespace TwinspireCS.Engine.GUI
         public ColorMethod BackgroundColor;
         public string BackgroundImage;
         public float RadiusCorners;
+        public float Opacity;
 
         // multiply by 4 for these ones
         public Color[] BorderColors;
         public int[] BorderThicknesses;
         public bool[] Borders;
+
 
         public Style()
         {
@@ -31,6 +33,7 @@ namespace TwinspireCS.Engine.GUI
             BorderColors = new Color[4];
             BorderThicknesses = new int[4];
             Borders = new bool[4];
+            Opacity = 1f;
             Method = StyleMethod.Replace;
         }
 

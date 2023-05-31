@@ -131,5 +131,13 @@ namespace TwinspireCS.Engine.GUI
             }
         }
 
+        public static Color ChangeColour(Color from, Color to, float ratio)
+        {
+            var fromHSV = Raylib.ColorToHSV(from);
+            var toHSV = Raylib.ColorToHSV(to);
+            var newHSV = new Vector3(((toHSV.X - fromHSV.X) * ratio) + fromHSV.X, ((toHSV.Y - fromHSV.Y) * ratio) + fromHSV.Y, ((toHSV.Z - fromHSV.Z) * ratio) + fromHSV.Z);
+            return Raylib.ColorFromHSV(newHSV.X, newHSV.Y, newHSV.Z);
+        }
+
     }
 }
