@@ -522,6 +522,8 @@ namespace TwinspireCS.Engine.GUI
             }
             else if (requestRebuild)
             {
+
+
                 var element = new Element();
                 element.Type = ElementType.Interactive;
                 element.GridIndex = currentGridIndex;

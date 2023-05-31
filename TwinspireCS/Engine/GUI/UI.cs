@@ -16,6 +16,13 @@ namespace TwinspireCS.Engine.GUI
 
         public static int CurrentCanvas => currentCanvasIndex;
 
+        public static InterfaceBuilder InterfaceBuilder { get; private set; }
+
+        public static void Init()
+        {
+            InterfaceBuilder = new InterfaceBuilder();
+        }
+
         public static int CreateCanvas()
         {
             if (canvases == null)
@@ -24,6 +31,11 @@ namespace TwinspireCS.Engine.GUI
             Canvas canvas = new Canvas();
             canvases.Add(canvas);
             return canvases.Count - 1;
+        }
+
+        public static Element[] CreateElementsFromComponent(string componentName, Rectangle dimension)
+        {
+            
         }
 
         public static Canvas GetCanvas(int canvasIndex)

@@ -137,6 +137,31 @@ namespace TwinspireCS
 
         private void InitDefaultUI()
         {
+            UI.Init();
+
+            UI.InterfaceBuilder.AddComponent("Button", new Component(2)
+            {
+                Elements = new ComponentElement[]
+                {
+                    new ComponentElement()
+                    {
+                        Type = ElementType.Interactive
+                    },
+                    new ComponentElement()
+                    {
+                        HorizontalMeasureType = MeasureType.Pixels,
+                        VerticalMeasureType = MeasureType.Pixels                        
+                    }
+                },
+                ElementInterpetedTypes = new InterpretedType[]
+                {
+                    InterpretedType.Shape,
+                    InterpretedType.Text
+                }
+            });
+
+
+
             Theme.Default.Styles.Add(Theme.BUTTON, new Style()
                 .SetBackground(new ColorMethod(ColorType.GradientVertical, new Color[] { new Color(220, 220, 220, 255), new Color(185, 185, 185, 255) }))
                 .SetBorderBottomColors(new Color(155, 155, 155, 255))
