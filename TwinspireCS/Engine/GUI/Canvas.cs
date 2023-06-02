@@ -837,7 +837,7 @@ namespace TwinspireCS.Engine.GUI
 
             if (textOrImageName.StartsWith("image:"))
             {
-                var imageName = textOrImageName.Substring("image:".Length);
+                var imageName = textOrImageName["image:".Length..];
                 imageToUse = Application.Instance.ResourceManager.GetImage(imageName);
                 usingImage = true;
             }
@@ -849,7 +849,8 @@ namespace TwinspireCS.Engine.GUI
             var lastRowHeight = 0.0f;
             if (elementIndex > 0)
             {
-                for (int i = 0; i < currentRowElements.Count(); i++)
+                var count = currentRowElements.Count();
+                for (int i = 0; i < count; i++)
                 {
                     var element = currentRowElements.ElementAt(i);
                     xToBecome += element.Dimension.x;
@@ -909,7 +910,7 @@ namespace TwinspireCS.Engine.GUI
                 widthToBecome += childInnerPadding * 2;
             }
 
-            if (currentRowElements.Count() > 0)
+            if (currentRowElements.Any())
             {
                 var lastElement = currentRowElements.Last();
                 lastPosition = new Vector2(lastElement.Dimension.x, lastElement.Dimension.y);
