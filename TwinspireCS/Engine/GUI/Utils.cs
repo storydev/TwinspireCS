@@ -86,7 +86,7 @@ namespace TwinspireCS.Engine.GUI
             return result;
         }
 
-        public static void RenderMultilineText(Font font, float fontSize, Vector2 pos, int spacing, TextDim textDim, Color color, TextAlignment alignment = TextAlignment.Center)
+        public static void RenderMultilineText(Font font, float fontSize, Vector2 pos, int spacing, TextDim textDim, Color color, ContentAlignment alignment = ContentAlignment.Center)
         {
             var startY = pos.Y;
             Raylib.SetTextureFilter(font.texture, TextureFilter.TEXTURE_FILTER_BILINEAR);
@@ -100,11 +100,11 @@ namespace TwinspireCS.Engine.GUI
                     string lineText = textDim.Characters.GetCharsAsString(start, end);
                     var lineSize = Raylib.MeasureTextEx(font, lineText, fontSize, spacing);
 
-                    if (alignment == TextAlignment.Bottom || alignment == TextAlignment.Center || alignment == TextAlignment.Top)
+                    if (alignment == ContentAlignment.Bottom || alignment == ContentAlignment.Center || alignment == ContentAlignment.Top)
                     {
                         x = ((textDim.ContentSize.X - lineSize.X) / 2) + pos.X;
                     }
-                    else if (alignment == TextAlignment.BottomRight || alignment == TextAlignment.Right || alignment == TextAlignment.TopRight)
+                    else if (alignment == ContentAlignment.BottomRight || alignment == ContentAlignment.Right || alignment == ContentAlignment.TopRight)
                     {
                         x = (textDim.ContentSize.X - lineSize.Y) + pos.X;
                     }
@@ -118,11 +118,11 @@ namespace TwinspireCS.Engine.GUI
                 var text = textDim.Characters.GetCharsAsString(0, textDim.Characters.Length);
                 var textSize = Raylib.MeasureTextEx(font, text, fontSize, spacing);
                 var x = pos.X;
-                if (alignment == TextAlignment.Bottom || alignment == TextAlignment.Center || alignment == TextAlignment.Top)
+                if (alignment == ContentAlignment.Bottom || alignment == ContentAlignment.Center || alignment == ContentAlignment.Top)
                 {
                     x = ((textDim.ContentSize.X - textSize.X) / 2) + pos.X;
                 }
-                else if (alignment == TextAlignment.BottomRight || alignment == TextAlignment.Right || alignment == TextAlignment.TopRight)
+                else if (alignment == ContentAlignment.BottomRight || alignment == ContentAlignment.Right || alignment == ContentAlignment.TopRight)
                 {
                     x = (textDim.ContentSize.X - textSize.X) + pos.X;
                 }

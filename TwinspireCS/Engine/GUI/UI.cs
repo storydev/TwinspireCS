@@ -33,11 +33,6 @@ namespace TwinspireCS.Engine.GUI
             return canvases.Count - 1;
         }
 
-        public static Element[] CreateElementsFromComponent(string componentName, Rectangle dimension)
-        {
-            
-        }
-
         public static Canvas GetCanvas(int canvasIndex)
         {
             return canvases[canvasIndex];

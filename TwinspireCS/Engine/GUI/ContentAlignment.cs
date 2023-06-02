@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace TwinspireCS.Engine.GUI
 {
-    public enum TextAlignment
+    public enum ContentAlignment
     {
         Left,
         Center,

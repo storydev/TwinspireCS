@@ -449,7 +449,7 @@ namespace TwinspireCS.Engine.GUI
 
         #region UI Drawing
 
-        public ElementState Button(string id, string text, TextAlignment alignment = TextAlignment.Center)
+        public ElementState Button(string id, string text, ContentAlignment alignment = ContentAlignment.Center)
         {
             if (elementIdCache.ContainsKey(id) && !requestRebuild)
             {
@@ -548,6 +548,137 @@ namespace TwinspireCS.Engine.GUI
 
         #region Drawing Utilities
 
+        /// <summary>
+        /// Elements are built by using the given dimension as the maximum size, as determined by the 
+        /// flow of the container in which the subject elements will be rendered.
+        /// </summary>
+        /// <param name="componentName"></param>
+        /// <param name="dimension"></param>
+        /// <returns></returns>
+        private Element[]? BuildElementsFromComponent(string componentName, Rectangle dimension)
+        {
+            if (!UI.InterfaceBuilder.Components.ContainsKey(componentName))
+            {
+                TwinspireCS.Utils.Warn("[INTERNAL-DEBUG]: The component name, '" + componentName + "' does not exist.", 1);
+                return null;
+            }
+
+            var component = UI.InterfaceBuilder.Components[componentName];
+            var elements = new Element[component.Elements.Length];
+            for (int i = 0; i < component.Elements.Length; i++)
+            {
+                elements[i] = new Element();
+                var compElement = component.Elements[i];
+                elements[i].Type = compElement.Type;
+                elements[i].State = ElementState.Idle;
+
+
+                Vector2 offset = new Vector2();
+                offset.X = compElement.HorizontalMeasureType == MeasureType.Percentage ? compElement.Offset.X * dimension.width : compElement.Offset.X;
+                offset.Y = compElement.VerticalMeasureType == MeasureType.Percentage ? compElement.Offset.Y * dimension.height : compElement.Offset.Y;
+
+                Vector2 measure = new Vector2();
+                measure.X = compElement.HorizontalMeasureType == MeasureType.Percentage ? compElement.Measure.X * dimension.width : compElement.Measure.X;
+                measure.Y = compElement.HorizontalMeasureType == MeasureType.Percentage ? compElement.Measure.Y * dimension.height : compElement.Measure.Y;
+
+                if (compElement.AlignAgainstIndex == -1)
+                {
+                    elements[i].Dimension = CalculateDimension(dimension, offset, measure, compElement.Alignment);
+                }
+                else
+                {
+                    var againstElementDim = elements[compElement.AlignAgainstIndex].Dimension;
+                    elements[i].Dimension = CalculateDimension(offset, measure, compElement.Alignment, againstElementDim, compElement.AlignmentAgainstOnOutside);
+                }
+            }
+
+            return elements;
+        }
+
+        private Rectangle CalculateDimension(Rectangle constraints, Vector2 offset, Vector2 measure, ContentAlignment alignment)
+        {
+            Rectangle result = new Rectangle();
+            var fullWidth = measure.X > constraints.width;
+            var fullHeight = measure.Y > constraints.height;
+
+            if (fullWidth) // ignore any horizontal alignment + offset
+            {
+                result.width = constraints.width;
+                result.x = 0;
+            }
+
+            if (fullHeight) // ignore any vertical alignment + offset
+            {
+                result.height = constraints.height;
+                result.y = 0;
+            }
+
+            if (!fullWidth)
+            {
+                if (alignment == ContentAlignment.Left || alignment == ContentAlignment.BottomLeft || alignment == ContentAlignment.TopLeft)
+                {
+                    result.x = offset.X + constraints.x;
+                }
+                else if (alignment == ContentAlignment.Center || alignment == ContentAlignment.Bottom || alignment == ContentAlignment.Top)
+                {
+                    result.x = ((constraints.width - measure.X) / 2) + constraints.x;
+                }
+                else if (alignment == ContentAlignment.Right || alignment == ContentAlignment.BottomRight || alignment == ContentAlignment.TopRight)
+                {
+                    result.x = constraints.width - measure.X - offset.X + constraints.x;
+                }
+
+                result.width = measure.X;
+            }
+
+            if (!fullHeight)
+            {
+                if (alignment == ContentAlignment.Top || alignment == ContentAlignment.TopLeft || alignment == ContentAlignment.TopRight)
+                {
+                    result.y = offset.Y;
+                }
+                else if (alignment == ContentAlignment.Center || alignment == ContentAlignment.Left || alignment == ContentAlignment.Right)
+                {
+                    result.y = ((constraints.height - measure.Y) / 2) + constraints.y;
+                }
+                else if (alignment == ContentAlignment.Bottom || alignment == ContentAlignment.BottomLeft || alignment == ContentAlignment.BottomRight)
+                {
+                    result.y = constraints.height - measure.Y - offset.Y + constraints.y;
+                }
+
+                result.height = measure.Y;
+            }
+
+            return result;
+        }
+
+        private Rectangle CalculateDimension(Vector2 offset, Vector2 measure, ContentAlignment alignment, Rectangle against, bool outside = false)
+        {
+            Rectangle result = new Rectangle();
+            result.width = measure.X;
+            result.height = measure.Y;
+
+            if (!outside)
+            {
+                result = CalculateDimension(against, offset, measure, alignment);
+            }
+            else
+            {
+                if (alignment == ContentAlignment.Bottom)
+                {
+                    result.y = against.height + against.y + offset.Y;
+                    result.x = ((against.width - measure.X) / 2) + against.x;
+                }
+                else if (alignment == ContentAlignment.BottomLeft)
+                {
+                    result.y = against.height + against.y + offset.Y;
+                    result.x = against.x;
+                }
+
+            }
+            return result;
+        }
+
         private void DrawRectStyle(Rectangle rect, Style style)
         {
             if (!string.IsNullOrEmpty(style.BackgroundImage))
@@ -638,51 +769,51 @@ namespace TwinspireCS.Engine.GUI
             }
         }
 
-        private void DrawText(int index, TextDim textDim, Color color, TextAlignment alignment)
+        private void DrawText(int index, TextDim textDim, Color color, ContentAlignment alignment)
         {
             var textX = 0.0f;
             var textY = 0.0f;
-            if (alignment == TextAlignment.Left)
+            if (alignment == ContentAlignment.Left)
             {
                 textX = elements[index].Dimension.x + childInnerPadding;
                 textY = ((elements[index].Dimension.height - textDim.ContentSize.Y) / 2) + elements[index].Dimension.y;
             }
-            else if (alignment == TextAlignment.Center)
+            else if (alignment == ContentAlignment.Center)
             {
                 textX = ((elements[index].Dimension.width - textDim.ContentSize.X) / 2) + elements[index].Dimension.x;
                 textY = ((elements[index].Dimension.height - textDim.ContentSize.Y) / 2) + elements[index].Dimension.y;
             }
-            else if (alignment == TextAlignment.Right)
+            else if (alignment == ContentAlignment.Right)
             {
                 textX = (elements[index].Dimension.x + elements[index].Dimension.width) - textDim.ContentSize.X - childInnerPadding;
                 textY = ((elements[index].Dimension.height - textDim.ContentSize.Y) / 2) + elements[index].Dimension.y;
             }
-            else if (alignment == TextAlignment.TopLeft)
+            else if (alignment == ContentAlignment.TopLeft)
             {
                 textX = elements[index].Dimension.x + childInnerPadding;
                 textY = elements[index].Dimension.y + childInnerPadding;
             }
-            else if (alignment == TextAlignment.Top)
+            else if (alignment == ContentAlignment.Top)
             {
                 textX = ((elements[index].Dimension.width - textDim.ContentSize.X) / 2) + elements[index].Dimension.x;
                 textY = elements[index].Dimension.y + childInnerPadding;
             }
-            else if (alignment == TextAlignment.TopRight)
+            else if (alignment == ContentAlignment.TopRight)
             {
                 textX = (elements[index].Dimension.x + elements[index].Dimension.width) - textDim.ContentSize.X - childInnerPadding;
                 textY = elements[index].Dimension.y + childInnerPadding;
             }
-            else if (alignment == TextAlignment.BottomLeft)
+            else if (alignment == ContentAlignment.BottomLeft)
             {
                 textX = elements[index].Dimension.x + childInnerPadding;
                 textY = elements[index].Dimension.y + elements[index].Dimension.height - textDim.ContentSize.Y - childInnerPadding;
             }
-            else if (alignment == TextAlignment.Bottom)
+            else if (alignment == ContentAlignment.Bottom)
             {
                 textX = ((elements[index].Dimension.width - textDim.ContentSize.X) / 2) + elements[index].Dimension.x;
                 textY = elements[index].Dimension.y + elements[index].Dimension.height - textDim.ContentSize.Y - childInnerPadding;
             }
-            else if (alignment == TextAlignment.BottomRight)
+            else if (alignment == ContentAlignment.BottomRight)
             {
                 textX = (elements[index].Dimension.x + elements[index].Dimension.width) - textDim.ContentSize.X - childInnerPadding;
                 textY = elements[index].Dimension.y + elements[index].Dimension.height - textDim.ContentSize.Y - childInnerPadding;

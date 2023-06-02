@@ -13,6 +13,9 @@ namespace TwinspireCS.Engine.GUI
         public ComponentShape Shape;
         public Vector2 Measure;
         public Vector2 Offset;
+        public ContentAlignment Alignment;
+        public int AlignAgainstIndex;
+        public bool AlignmentAgainstOnOutside;
         public ElementType Type;
         public MeasureType HorizontalMeasureType;
         public MeasureType VerticalMeasureType;
@@ -26,6 +29,9 @@ namespace TwinspireCS.Engine.GUI
             Type = ElementType.NonInteractive;
             HorizontalMeasureType = MeasureType.Percentage;
             VerticalMeasureType = MeasureType.Percentage;
+            Alignment = ContentAlignment.TopLeft;
+            AlignAgainstIndex = -1;
+            AlignmentAgainstOnOutside = false;
         }
 
     }
