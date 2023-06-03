@@ -17,7 +17,7 @@ namespace TwinspireCS.Engine.GUI
 
         public Shadow()
         {
-            Color = Color.BLACK;
+            Color = new Color(0, 0, 0, 0);
             BlurRadius = 0;
             OffsetX = 0f;
             OffsetY = 0f;

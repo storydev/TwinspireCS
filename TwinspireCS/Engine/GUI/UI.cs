@@ -23,12 +23,13 @@ namespace TwinspireCS.Engine.GUI
             InterfaceBuilder = new InterfaceBuilder();
         }
 
-        public static int CreateCanvas()
+        public static int CreateCanvas(string name)
         {
             if (canvases == null)
                 canvases = new List<Canvas>();
 
             Canvas canvas = new Canvas();
+            canvas.Name = name;
             canvases.Add(canvas);
             return canvases.Count - 1;
         }

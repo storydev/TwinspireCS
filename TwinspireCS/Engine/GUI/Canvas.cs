@@ -26,7 +26,15 @@ namespace TwinspireCS.Engine.GUI
         private IDictionary<string, int[]> elementTweens;
         private List<Tween> tweenStack;
 
+        private List<string> backgroundImages;
+
         private int activeElement = -1;
+
+        private int actualMouseX;
+        private int actualMouseY;
+        private int backBufferWidth;
+        private int backBufferHeight;
+
 
         private int currentGridIndex;
         private int currentCellIndex;
@@ -57,6 +65,8 @@ namespace TwinspireCS.Engine.GUI
 
         public IEnumerable<Grid> Layouts => layouts;
 
+        public string Name { get; set; }
+
         public Canvas()
         {
             layouts = new List<Grid>();
@@ -70,6 +80,8 @@ namespace TwinspireCS.Engine.GUI
             elementTweens = new Dictionary<string, int[]>();
             tweensRunning = new List<bool>();
             activeElement = 0;
+
+            backgroundImages = new List<string>();
             
             currentGridIndex = 0;
             currentCellIndex = 0;
@@ -105,6 +117,71 @@ namespace TwinspireCS.Engine.GUI
             return layouts.Count - 1;
         }
 
+        public int CreateLayoutFromImage(string imageName, Vector2 position)
+        {
+            var image = Application.Instance.ResourceManager.GetImage(imageName);
+
+            var grid = new Grid();
+            grid.Dimension = new Rectangle(position.X, position.Y, image.width, image.height);
+            grid.Columns = new float[1];
+            grid.Columns[0] = image.width;
+            grid.Rows = new float[1];
+            grid.Rows[0] = image.height;
+
+            grid.BackgroundColors = new Extras.ColorMethod[1];
+            grid.BackgroundImages = new string[1];
+            grid.BackgroundImages[0] = imageName;
+
+            grid.Offsets = new Vector2[1];
+            grid.RadiusCorners = new float[1];
+            grid.Shadows = new Shadow[1];
+
+            int cornerTotals = 4;
+            grid.Margin = new float[cornerTotals];
+            grid.Padding = new float[cornerTotals];
+            grid.BorderColors = new Color[cornerTotals];
+            grid.Borders = new bool[cornerTotals];
+            grid.BorderThicknesses = new int[cornerTotals];
+
+            layouts.Add(grid);
+            return layouts.Count - 1;
+        }
+
+        public int CreateLayoutFromImage(string imageName, ContentAlignment alignment, Rectangle alignTo, bool outside = false)
+        {
+            var image = Application.Instance.ResourceManager.GetImage(imageName);
+
+            var grid = new Grid();
+            grid.Dimension = CalculateDimension(new Vector2(0, 0), new Vector2(image.width, image.height), alignment, alignTo, outside);
+            grid.Columns = new float[1];
+            grid.Columns[0] = image.width;
+            grid.Rows = new float[1];
+            grid.Rows[0] = image.height;
+
+            grid.BackgroundColors = new Extras.ColorMethod[1];
+            grid.BackgroundImages = new string[1];
+            grid.BackgroundImages[0] = imageName;
+
+            grid.Offsets = new Vector2[1];
+            grid.RadiusCorners = new float[1];
+            grid.Shadows = new Shadow[1];
+
+            int cornerTotals = 4;
+            grid.Margin = new float[cornerTotals];
+            grid.Padding = new float[cornerTotals];
+            grid.BorderColors = new Color[cornerTotals];
+            grid.Borders = new bool[cornerTotals];
+            grid.BorderThicknesses = new int[cornerTotals];
+
+            layouts.Add(grid);
+            return layouts.Count - 1;
+        }
+
+        public void AddBackgroundImage(string imageName)
+        {
+            backgroundImages.Add(imageName);
+        }
+
         public void Begin()
         {
             if (requestRebuild)
@@ -114,6 +191,20 @@ namespace TwinspireCS.Engine.GUI
                 elementIdCache.Clear();
                 elementTweens.Clear();
             }
+        }
+
+        public void TransformMousePosition(int width, int height)
+        {
+            backBufferWidth = width;
+            backBufferHeight = height;
+            actualMouseX = Raylib.GetMouseX() * (width / Raylib.GetRenderWidth());
+            actualMouseY = Raylib.GetMouseY() * (height / Raylib.GetRenderHeight());
+        }
+
+        public Vector2 GetMousePosition()
+        {
+            TransformMousePosition(backBufferWidth, backBufferHeight);
+            return new Vector2(actualMouseX, actualMouseY);
         }
 
         public void End()
@@ -1051,7 +1142,7 @@ namespace TwinspireCS.Engine.GUI
             for (int i = 0; i < elements.Count; i++)
             {
                 var element = elements[i];
-                if (Raylib.CheckCollisionPointRec(Raylib.GetMousePosition(), element.Dimension))
+                if (Raylib.CheckCollisionPointRec(GetMousePosition(), element.Dimension))
                 {
                     possibleActiveElements.Add(i);
                 }
@@ -1067,7 +1158,7 @@ namespace TwinspireCS.Engine.GUI
             for (int i = 0; i < layouts.Count; i++)
             {
                 var grid = layouts[i];
-                if (Raylib.CheckCollisionPointRec(Raylib.GetMousePosition(), grid.Dimension))
+                if (Raylib.CheckCollisionPointRec(GetMousePosition(), grid.Dimension))
                 {
                     possibleActiveGrids.Add(i);
                 }
@@ -1117,8 +1208,23 @@ namespace TwinspireCS.Engine.GUI
             }
         }
 
+        /// <summary>
+        /// Called by UI when UI.Render is called. Do not use directly.
+        /// </summary>
         public void Render()
         {
+            foreach (var image in backgroundImages)
+            {
+                if (!preloadedAll)
+                    Application.Instance.ResourceManager.LoadImage(image);
+
+                var textureBG = Application.Instance.ResourceManager.GetTexture(image);
+                Raylib.DrawTexturePro(textureBG,
+                    new Rectangle(0, 0, textureBG.width, textureBG.height),
+                    new Rectangle(0, 0, backBufferWidth, backBufferHeight),
+                    new Vector2(0, 0), 0, Color.WHITE);
+            }
+
             for (int i = 0; i < layouts.Count; i++)
             {
                 RenderLayout(i);
@@ -1136,7 +1242,7 @@ namespace TwinspireCS.Engine.GUI
 
                 if (!Equals(grid.Shadows[i], Shadow.Empty))
                 {
-                    var name = "Grid_" + gridIndex + "_Cell_" + i + "_Shadow";
+                    var name = Name + "_Grid_" + gridIndex + "_Cell_" + i + "_Shadow";
                     if (!Application.Instance.ResourceManager.DoesIdentifierExist(name))
                     {
                         var shadowImage = Raylib.GenImageColor((int)cellDim.Z + (grid.Shadows[i].BlurRadius * 2), (int)cellDim.W + (grid.Shadows[i].BlurRadius * 2), Color.WHITE);
