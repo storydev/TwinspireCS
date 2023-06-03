@@ -17,7 +17,7 @@ namespace TwinspireCS.Engine.GUI
 
         private List<Grid> layouts;
         private List<Element> elements;
-        private IDictionary<string, int> elementIdCache;
+        private IDictionary<string, int[]> elementIdCache;
         private IDictionary<int, TextDim> elementTexts;
 
         private List<int> animationIndices;
@@ -61,7 +61,7 @@ namespace TwinspireCS.Engine.GUI
         {
             layouts = new List<Grid>();
             elements = new List<Element>();
-            elementIdCache = new Dictionary<string, int>();
+            elementIdCache = new Dictionary<string, int[]>();
             elementTexts = new Dictionary<int, TextDim>();
             animationIndices = new List<int>();
             styleStack = new List<Style>();
@@ -454,7 +454,7 @@ namespace TwinspireCS.Engine.GUI
             if (elementIdCache.ContainsKey(id) && !requestRebuild)
             {
                 var index = elementIdCache[id];
-                var element = elements[index];
+                var element = elements[index[0]];
 
                 var hoverTween = id + ":hover";
 
@@ -512,27 +512,29 @@ namespace TwinspireCS.Engine.GUI
                 }
 
                 TextDim textDim;
-                if (elementTexts.ContainsKey(index))
+                if (elementTexts.ContainsKey(index[0]))
                 {
-                    textDim = elementTexts[index];
-                    DrawText(index, textDim, Color.BLACK, alignment);
+                    textDim = elementTexts[index[0]];
+                    DrawText(index[0], textDim, Color.BLACK, alignment);
                 }
 
                 return element.State;
             }
             else if (requestRebuild)
             {
-
-
-                var element = new Element();
-                element.Type = ElementType.Interactive;
-                element.GridIndex = currentGridIndex;
-                element.CellIndex = currentCellIndex;
                 var elementDim = CalculateNextDimension(elements.Count, text);
-                element.Dimension = new Rectangle(elementDim.X, elementDim.Y, elementDim.Z, elementDim.W);
+                var build = BuildElementsFromComponent("Button", elementDim);
+                int elementsLength = build.Length;
+                for (int i = 0; i < build.Length; i++)
+                {
+                    build[i].IsBaseElement = i == 0;
+                    build[i].CellIndex = currentCellIndex;
+                    build[i].GridIndex = currentGridIndex;
 
-                elements.Add(element);
-                elementIdCache.Add(id, elements.Count - 1);
+                    elements.Add(build[i]);
+                    if (i == 0)
+                        elementIdCache.Add(id, new int[] { elements.Count - 1, elementsLength });
+                }
 
                 var tween = new Tween();
                 tween.Duration = 0.25f;
@@ -571,7 +573,7 @@ namespace TwinspireCS.Engine.GUI
                 var compElement = component.Elements[i];
                 elements[i].Type = compElement.Type;
                 elements[i].State = ElementState.Idle;
-
+                elements[i].Shape = compElement.Shape;
 
                 Vector2 offset = new Vector2();
                 offset.X = compElement.HorizontalMeasureType == MeasureType.Percentage ? compElement.Offset.X * dimension.width : compElement.Offset.X;
@@ -674,7 +676,41 @@ namespace TwinspireCS.Engine.GUI
                     result.y = against.height + against.y + offset.Y;
                     result.x = against.x;
                 }
-
+                else if (alignment == ContentAlignment.BottomRight)
+                {
+                    result.y = against.height + against.y + offset.Y;
+                    result.x = (against.width - measure.X) + against.x;
+                }
+                else if (alignment == ContentAlignment.Center)
+                {
+                    result.x = ((against.width - measure.X) / 2) + offset.X;
+                    result.y = ((against.height - measure.Y) / 2) + offset.Y;
+                }
+                else if (alignment == ContentAlignment.Left)
+                {
+                    result.x = against.x - measure.X - offset.X;
+                    result.y = ((against.height - measure.Y) / 2) + offset.Y;
+                }
+                else if (alignment == ContentAlignment.Right)
+                {
+                    result.x = against.x + against.width + offset.X;
+                    result.y = ((against.height - measure.Y) / 2) + offset.Y;
+                }
+                else if (alignment == ContentAlignment.Top)
+                {
+                    result.x = ((against.width - measure.X) / 2) + offset.X;
+                    result.y = against.y - measure.Y - offset.Y;
+                }
+                else if (alignment == ContentAlignment.TopLeft)
+                {
+                    result.x = against.x;
+                    result.y = against.y - measure.Y - offset.Y;
+                }
+                else if (alignment == ContentAlignment.TopRight)
+                {
+                    result.x = (against.x + against.width) - measure.X - offset.X;
+                    result.y = against.y - measure.Y - offset.Y;
+                }
             }
             return result;
         }
@@ -820,7 +856,7 @@ namespace TwinspireCS.Engine.GUI
             }
 
             Raylib.BeginScissorMode((int)textX, (int)textY, (int)textDim.ContentSize.X, (int)textDim.ContentSize.Y);
-            Utils.RenderMultilineText(Application.Instance.ResourceManager.GetFont(currentFontName), currentFontSize, new Vector2(textX, textY), currentFontSpacing, textDim, Color.BLACK);
+            Utils.RenderMultilineText(Application.Instance.ResourceManager.GetFont(currentFontName), currentFontSize, new Vector2(textX, textY), currentFontSpacing, textDim, color);
             Raylib.EndScissorMode();
         }
 
@@ -828,9 +864,9 @@ namespace TwinspireCS.Engine.GUI
 
         #endregion
 
-        private Vector4 CalculateNextDimension(int elementIndex, string textOrImageName = "")
+        private Rectangle CalculateNextDimension(int elementIndex, string textOrImageName = "")
         {
-            var currentRowElements = elements.Where((e) => e.GridIndex == currentGridIndex && e.CellIndex == currentCellIndex);
+            var currentRowElements = elements.Where((e) => e.GridIndex == currentGridIndex && e.CellIndex == currentCellIndex && e.IsBaseElement);
 
             Image imageToUse = new Image();
             bool usingImage = false;
@@ -974,7 +1010,7 @@ namespace TwinspireCS.Engine.GUI
                 heightToBecome += imageToUse.height;
             }
 
-            return new Vector4(xToBecome, yToBecome, widthToBecome, heightToBecome);
+            return new Rectangle(xToBecome, yToBecome, widthToBecome, heightToBecome);
         }
 
         public void SimulateEvents()

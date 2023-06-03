@@ -14,9 +14,11 @@ namespace TwinspireCS.Engine.GUI
         public ElementType Type;
         public int GridIndex;
         public int CellIndex;
+        public bool IsBaseElement;
         public int StyleIndex;
         public Rectangle Dimension;
         public ElementState State;
+        public ComponentShape Shape;
 
         public Element()
         {

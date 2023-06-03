@@ -79,6 +79,11 @@ namespace TwinspireCS
         public int TargetFPS { get; set; }
 
         /// <summary>
+        /// Set the window's icon. Will not change after InitAll has been called.
+        /// </summary>
+        public string IconPath { get; set; }
+
+        /// <summary>
         /// Initialise a new application.
         /// </summary>
         /// <param name="title">The title of the window.</param>
@@ -131,6 +136,11 @@ namespace TwinspireCS
             InitDefaultUI();
 
             Raylib.InitWindow(startingWidth, startingHeight, windowTitle);
+            if (!string.IsNullOrEmpty(IconPath))
+            {
+                Raylib.SetWindowIcon(Raylib.LoadImage(IconPath));
+            }
+
             Raylib.SetConfigFlags(ConfigFlags.FLAG_VSYNC_HINT | ConfigFlags.FLAG_MSAA_4X_HINT);
             Raylib.SetTargetFPS(TargetFPS);
         }
