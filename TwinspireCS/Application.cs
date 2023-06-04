@@ -145,6 +145,14 @@ namespace TwinspireCS
             Raylib.SetTargetFPS(TargetFPS);
         }
 
+        /// <summary>
+        /// Initialise the Raylib audio device.
+        /// </summary>
+        public void InitAudio()
+        {
+            Raylib.InitAudioDevice();
+        }
+
         private void InitDefaultUI()
         {
             UI.Init();
@@ -223,10 +231,16 @@ namespace TwinspireCS
         }
 
         /// <summary>
-        /// Free any native Raylib resources before closing.
+        /// Close the application and free all resources.
         /// </summary>
-        public void Free()
+        public void Close()
         {
+            resourceManager.UnloadAll();
+            if (Raylib.IsAudioDeviceReady())
+            {
+                Raylib.CloseAudioDevice();
+            }
+
             Raylib.CloseWindow();
         }
 

@@ -296,17 +296,14 @@ namespace TwinspireCS
             var fullPath = Path.Combine(AssetDirectory, foundPackage?.SourceFilePath);
             byte[] buffer = new byte[foundData.Size];
 
-            using (FileStream stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read))
+            using (FileStream stream = new(fullPath, FileMode.Open, FileAccess.Read))
             {
-                using (GZipStream zip = new GZipStream(stream, CompressionMode.Decompress))
-                {
-                    using (BinaryReader reader = new BinaryReader(stream))
-                    {
-                        var headerSize = reader.ReadInt32();
-                        reader.ReadBytes(headerSize - sizeof(int) + (int)foundData.Cursor);
-                        reader.Read(buffer, 0, buffer.Length);
-                    }
-                }
+                using GZipStream zip = new(stream, CompressionMode.Decompress);
+                using BinaryReader reader = new(stream);
+
+                var headerSize = reader.ReadInt32();
+                reader.ReadBytes(headerSize - sizeof(int) + (int)foundData.Cursor);
+                reader.Read(buffer, 0, buffer.Length);
             }
 
             ext = Utils.GetSByteFromString(foundData.FileExt);
