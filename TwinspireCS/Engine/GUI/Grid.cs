@@ -122,7 +122,7 @@ namespace TwinspireCS.Engine.GUI
             return (int)Math.Floor((float)(index % Columns.Length));
         }
 
-        public Vector4 GetCellDimension(int cell)
+        public Rectangle GetCellDimension(int cell)
         {
             int cellItemIndex = cell * 4;
             int column = GetColumn(cell);
@@ -167,20 +167,20 @@ namespace TwinspireCS.Engine.GUI
                 cellHeight -= Margin[cellItemIndex + 3];
             }
 
-            return new Vector4(x, y, cellWidth, cellHeight);
+            return new Rectangle(x, y, cellWidth, cellHeight);
         }
 
-        public Vector4 GetContentDimension(int cell)
+        public Rectangle GetContentDimension(int cell)
         {
             int cellItemIndex = cell * 4;
             int column = GetColumn(cell);
             int row = GetRow(cell);
 
             var cellDim = GetCellDimension(cell);
-            var x = cellDim.X;
-            var y = cellDim.Y;
-            var width = cellDim.Z;
-            var height = cellDim.W;
+            var x = cellDim.x;
+            var y = cellDim.y;
+            var width = cellDim.width;
+            var height = cellDim.height;
 
             if (Borders[cellItemIndex])
             {
@@ -204,7 +204,7 @@ namespace TwinspireCS.Engine.GUI
                 height -= BorderThicknesses[cellItemIndex + 3];
             }
 
-            return new Vector4(x + Padding[cellItemIndex + 1], y + Padding[cellItemIndex], 
+            return new Rectangle(x + Padding[cellItemIndex + 1], y + Padding[cellItemIndex], 
                 width - Padding[cellItemIndex + 2] - Padding[cellItemIndex + 1], height - Padding[cellItemIndex + 3] - Padding[cellItemIndex]);
         }
 

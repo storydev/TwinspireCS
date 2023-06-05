@@ -9,12 +9,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ImGui.NET" Version="1.89.5" />
-    <PackageReference Include="Raylib-cs" Version="4.5.0" />
+    <Compile Remove="Engine\Render\**" />
+    <EmbeddedResource Remove="Engine\Render\**" />
+    <None Remove="Engine\Render\**" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Engine\Render\" />
+    <PackageReference Include="ImGui.NET" Version="1.89.5" />
+    <PackageReference Include="Raylib-cs" Version="4.5.0" />
   </ItemGroup>
 
 </Project>

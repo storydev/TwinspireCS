@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 using Raylib_cs;
@@ -50,6 +51,23 @@ namespace TwinspireCS.Engine.GUI
                 return;
 
             canvases[currentCanvasIndex].Render();
+        }
+
+        public static Rectangle CentreRectangleHorizontally(Rectangle a, Rectangle b)
+        {
+            return new Rectangle(((a.width - b.width) / 2) + a.x, b.y, b.width, b.height);
+        }
+
+        public static Rectangle CentreRectangleVertically(Rectangle a, Rectangle b)
+        {
+            return new Rectangle(b.x, ((a.height - b.height) / 2) + b.y, b.width, b.height);
+        }
+
+        public static Rectangle CentreRectangle(Rectangle a, Rectangle b)
+        {
+            var result = CentreRectangleHorizontally(a, b);
+            result = CentreRectangleVertically(a, result);
+            return result;
         }
 
     }

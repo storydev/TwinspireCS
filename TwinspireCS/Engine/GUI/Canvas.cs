@@ -728,7 +728,7 @@ namespace TwinspireCS.Engine.GUI
             {
                 if (alignment == ContentAlignment.Top || alignment == ContentAlignment.TopLeft || alignment == ContentAlignment.TopRight)
                 {
-                    result.y = offset.Y;
+                    result.y = constraints.y + offset.Y;
                 }
                 else if (alignment == ContentAlignment.Center || alignment == ContentAlignment.Left || alignment == ContentAlignment.Right)
                 {
@@ -970,7 +970,7 @@ namespace TwinspireCS.Engine.GUI
             }
 
             var gridContentDim = layouts[currentGridIndex].GetContentDimension(currentCellIndex);
-            var remainingWidth = gridContentDim.Z;
+            var remainingWidth = gridContentDim.width;
             var xToBecome = 0.0f;
             var yToBecome = 0.0f;
             var lastRowHeight = 0.0f;
@@ -988,7 +988,7 @@ namespace TwinspireCS.Engine.GUI
                         lastRowHeight = element.Dimension.y;
                     }
 
-                    if (xToBecome > gridContentDim.Z)
+                    if (xToBecome > gridContentDim.width)
                     {
                         if (currentLayoutFlags.HasFlag(LayoutFlags.DynamicRows))
                             yToBecome += lastRowHeight;
@@ -997,13 +997,13 @@ namespace TwinspireCS.Engine.GUI
 
                         xToBecome = 0.0f;
                         lastRowHeight = 0;
-                        remainingWidth = gridContentDim.Z;
+                        remainingWidth = gridContentDim.width;
                     }
                 }
             }
 
-            xToBecome += gridContentDim.X;
-            yToBecome += gridContentDim.Y;
+            xToBecome += gridContentDim.x;
+            yToBecome += gridContentDim.y;
 
             var widthToBecome = 0.0f;
             var heightToBecome = 0.0f;
@@ -1017,7 +1017,7 @@ namespace TwinspireCS.Engine.GUI
             }
             else if (currentLayoutFlags.HasFlag(LayoutFlags.SpanColumn))
             {
-                heightToBecome = gridContentDim.W;
+                heightToBecome = gridContentDim.height;
             }
             else
             {
@@ -1030,7 +1030,7 @@ namespace TwinspireCS.Engine.GUI
             }
             else if (currentLayoutFlags.HasFlag(LayoutFlags.SpanRow))
             {
-                widthToBecome = gridContentDim.Z;
+                widthToBecome = gridContentDim.width;
             }
             else
             {
@@ -1080,17 +1080,17 @@ namespace TwinspireCS.Engine.GUI
                 if (currentLayoutFlags.HasFlag(LayoutFlags.DynamicRows) && widthToBecome >= remainingWidth)
                 {
                     yToBecome += lastRowHeight;
-                    xToBecome = gridContentDim.X;
+                    xToBecome = gridContentDim.x;
                 }
                 else if (currentLayoutFlags.HasFlag(LayoutFlags.StaticRows) && widthToBecome >= remainingWidth)
                 {
                     yToBecome += fixedRowHeight;
-                    xToBecome = gridContentDim.X;
+                    xToBecome = gridContentDim.x;
                 }
                 else if (currentLayoutFlags.HasFlag(LayoutFlags.SpanRow))
                 {
-                    yToBecome += gridContentDim.W;
-                    xToBecome = gridContentDim.X;
+                    yToBecome += gridContentDim.height;
+                    xToBecome = gridContentDim.x;
                 }
             }
 
@@ -1245,16 +1245,16 @@ namespace TwinspireCS.Engine.GUI
                     var name = Name + "_Grid_" + gridIndex + "_Cell_" + i + "_Shadow";
                     if (!Application.Instance.ResourceManager.DoesIdentifierExist(name))
                     {
-                        var shadowImage = Raylib.GenImageColor((int)cellDim.Z + (grid.Shadows[i].BlurRadius * 2), (int)cellDim.W + (grid.Shadows[i].BlurRadius * 2), Color.WHITE);
+                        var shadowImage = Raylib.GenImageColor((int)cellDim.width + (grid.Shadows[i].BlurRadius * 2), (int)cellDim.height + (grid.Shadows[i].BlurRadius * 2), Color.WHITE);
                         Raylib.ImageDrawRectangle(ref shadowImage, grid.Shadows[i].BlurRadius, grid.Shadows[i].BlurRadius,
-                            (int)(cellDim.Z - grid.Shadows[i].BlurRadius), (int)(cellDim.W - grid.Shadows[i].BlurRadius), grid.Shadows[i].Color);
+                            (int)(cellDim.width - grid.Shadows[i].BlurRadius), (int)(cellDim.height - grid.Shadows[i].BlurRadius), grid.Shadows[i].Color);
                         Raylib.ImageBlurGaussian(&shadowImage, grid.Shadows[i].BlurRadius);
                         Application.Instance.ResourceManager.AddResourceImage(name, shadowImage);
                     }
                     else
                     {
                         var shadowTexture = Application.Instance.ResourceManager.GetTexture(name);
-                        Raylib.DrawTexture(shadowTexture, (int)grid.Shadows[i].OffsetX + (int)cellDim.X, (int)grid.Shadows[i].OffsetY + (int)cellDim.Y, Color.WHITE);
+                        Raylib.DrawTexture(shadowTexture, (int)grid.Shadows[i].OffsetX + (int)cellDim.x, (int)grid.Shadows[i].OffsetY + (int)cellDim.y, Color.WHITE);
                     }
                 }
                 
@@ -1266,7 +1266,7 @@ namespace TwinspireCS.Engine.GUI
                     var bgImageTexture = Application.Instance.ResourceManager.GetTexture(grid.BackgroundImages[i]);
                     Raylib.DrawTexturePro(bgImageTexture,
                         new Rectangle(0, 0, bgImageTexture.width, bgImageTexture.height),
-                        new Rectangle(cellDim.X + grid.Offsets[i].X, cellDim.Y + grid.Offsets[i].Y, cellDim.Z, cellDim.W),
+                        new Rectangle(cellDim.x + grid.Offsets[i].X, cellDim.y + grid.Offsets[i].Y, cellDim.width, cellDim.height),
                         new Vector2(0, 0), 0, Color.WHITE);
                 }
                 else
@@ -1278,7 +1278,7 @@ namespace TwinspireCS.Engine.GUI
                         // cannot use gradient colours with background rectangles using radius corners.
                         // defaults to using first solid colour input
                         var backgroundColor = grid.BackgroundColors[i].Colors[0];
-                        Raylib.DrawRectangleRounded(new Rectangle(cellDim.X, cellDim.Y, cellDim.Z, cellDim.W),
+                        Raylib.DrawRectangleRounded(new Rectangle(cellDim.x, cellDim.y, cellDim.width, cellDim.height),
                             grid.RadiusCorners[i], (int)(grid.RadiusCorners[i] * Math.PI), backgroundColor);
                     }
                     else
@@ -1288,15 +1288,15 @@ namespace TwinspireCS.Engine.GUI
 
                         if (grid.BackgroundColors[i].Type == Extras.ColorType.Solid)
                         {
-                            Raylib.DrawRectangle((int)cellDim.X, (int)cellDim.Y, (int)cellDim.Z, (int)cellDim.W, grid.BackgroundColors[i].Colors[0]);
+                            Raylib.DrawRectangle((int)cellDim.x, (int)cellDim.y, (int)cellDim.width, (int)cellDim.height, grid.BackgroundColors[i].Colors[0]);
                         }
                         else if (grid.BackgroundColors[i].Type == Extras.ColorType.GradientHorizontal)
                         {
-                            Raylib.DrawRectangleGradientH((int)cellDim.X, (int)cellDim.Y, (int)cellDim.Z, (int)cellDim.W, grid.BackgroundColors[i].Colors[0], grid.BackgroundColors[i].Colors[1]);
+                            Raylib.DrawRectangleGradientH((int)cellDim.x, (int)cellDim.y, (int)cellDim.width, (int)cellDim.height, grid.BackgroundColors[i].Colors[0], grid.BackgroundColors[i].Colors[1]);
                         }
                         else if (grid.BackgroundColors[i].Type == Extras.ColorType.GradientVertical)
                         {
-                            Raylib.DrawRectangleGradientV((int)cellDim.X, (int)cellDim.Y, (int)cellDim.Z, (int)cellDim.W, grid.BackgroundColors[i].Colors[0], grid.BackgroundColors[i].Colors[1]);
+                            Raylib.DrawRectangleGradientV((int)cellDim.x, (int)cellDim.y, (int)cellDim.width, (int)cellDim.height, grid.BackgroundColors[i].Colors[0], grid.BackgroundColors[i].Colors[1]);
                         }
 
                         DRAW_BORDERS:
@@ -1304,22 +1304,22 @@ namespace TwinspireCS.Engine.GUI
                         // draw borders
                         if (grid.Borders[cellItemIndex]) // top
                         {
-                            Raylib.DrawLineEx(new Vector2(cellDim.X, cellDim.Y), new Vector2(cellDim.X + cellDim.Z, cellDim.Y), grid.BorderThicknesses[cellItemIndex], grid.BorderColors[cellItemIndex]);
+                            Raylib.DrawLineEx(new Vector2(cellDim.x, cellDim.y), new Vector2(cellDim.x + cellDim.width, cellDim.y), grid.BorderThicknesses[cellItemIndex], grid.BorderColors[cellItemIndex]);
                         }
 
                         if (grid.Borders[cellItemIndex + 1]) // left
                         {
-                            Raylib.DrawLineEx(new Vector2(cellDim.X, cellDim.Y), new Vector2(cellDim.X, cellDim.Y + cellDim.W), grid.BorderThicknesses[cellItemIndex + 1], grid.BorderColors[cellItemIndex + 1]);
+                            Raylib.DrawLineEx(new Vector2(cellDim.x, cellDim.y), new Vector2(cellDim.x, cellDim.y + cellDim.height), grid.BorderThicknesses[cellItemIndex + 1], grid.BorderColors[cellItemIndex + 1]);
                         }
 
                         if (grid.Borders[cellItemIndex + 2]) // right
                         {
-                            Raylib.DrawLineEx(new Vector2(cellDim.X + cellDim.Z, cellDim.Y), new Vector2(cellDim.X + cellDim.Z, cellDim.Y + cellDim.W), grid.BorderThicknesses[cellItemIndex + 2], grid.BorderColors[cellItemIndex + 2]);
+                            Raylib.DrawLineEx(new Vector2(cellDim.x + cellDim.width, cellDim.y), new Vector2(cellDim.x + cellDim.width, cellDim.y + cellDim.height), grid.BorderThicknesses[cellItemIndex + 2], grid.BorderColors[cellItemIndex + 2]);
                         }
 
                         if (grid.Borders[cellItemIndex + 3]) // bottom
                         {
-                            Raylib.DrawLineEx(new Vector2(cellDim.X, cellDim.Y + cellDim.W), new Vector2(cellDim.X + cellDim.Z, cellDim.Y + cellDim.W), grid.BorderThicknesses[cellItemIndex + 3], grid.BorderColors[cellItemIndex + 3]);
+                            Raylib.DrawLineEx(new Vector2(cellDim.x, cellDim.y + cellDim.height), new Vector2(cellDim.x + cellDim.width, cellDim.y + cellDim.height), grid.BorderThicknesses[cellItemIndex + 3], grid.BorderColors[cellItemIndex + 3]);
                         }
                     }
                 }
