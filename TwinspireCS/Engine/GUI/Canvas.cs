@@ -59,6 +59,11 @@ namespace TwinspireCS.Engine.GUI
 
         private int childInnerPadding;
 
+        private List<Rectangle> dragDropRegions;
+        private List<string> dragDropAcceptedFileTypes;
+        private List<string> dragDropFilesDropped;
+        private int dragDropCurrentRegion;
+
         private bool firstClick;
         private const float firstClickDelay = 0.25f;
         private float firstClickTime;
@@ -82,6 +87,10 @@ namespace TwinspireCS.Engine.GUI
             activeElement = 0;
 
             backgroundImages = new List<string>();
+
+            dragDropRegions = new List<Rectangle>();
+            dragDropAcceptedFileTypes = new List<string>();
+            dragDropFilesDropped = new List<string>();
             
             currentGridIndex = 0;
             currentCellIndex = 0;
@@ -190,6 +199,10 @@ namespace TwinspireCS.Engine.GUI
                 elementTexts.Clear();
                 elementIdCache.Clear();
                 elementTweens.Clear();
+
+                dragDropRegions.Clear();
+                dragDropFilesDropped.Clear();
+                dragDropAcceptedFileTypes.Clear();
             }
         }
 
@@ -241,6 +254,29 @@ namespace TwinspireCS.Engine.GUI
         public void SetFixedColumnWidth(float width)
         {
             fixedColumnWidth = width;
+        }
+
+        public void BeginDragDrop(string filters)
+        {
+            var gridCellDim = layouts.ElementAt(currentGridIndex).GetCellDimension(currentCellIndex);
+            dragDropRegions.Add(gridCellDim);
+            dragDropAcceptedFileTypes.Add(filters);
+            dragDropCurrentRegion = dragDropRegions.Count - 1;
+        }
+
+        public string[]? GetDroppedFiles()
+        {
+            if (dragDropCurrentRegion > -1)
+            {
+                return dragDropFilesDropped.ToArray();
+            }
+
+            return null;
+        }
+
+        public void EndDragDrop()
+        {
+            dragDropCurrentRegion = -1;
         }
 
         public void PreloadAll()
@@ -1187,6 +1223,7 @@ namespace TwinspireCS.Engine.GUI
 
             var possibleActiveElements = new List<int>();
             var possibleActiveGrids = new List<int>();
+            var possiblyDropped = new List<int>();
             for (int i = 0; i < elements.Count; i++)
             {
                 var element = elements[i];
