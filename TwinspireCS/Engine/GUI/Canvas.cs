@@ -638,6 +638,42 @@ namespace TwinspireCS.Engine.GUI
             return ElementState.Idle;
         }
 
+        public ElementState Label(string id, string text, ContentAlignment alignment = ContentAlignment.Center)
+        {
+            if (elementIdCache.ContainsKey(id) && !requestRebuild)
+            {
+                var index = elementIdCache[id];
+                var element = elements[index[0]];
+
+                TextDim textDim;
+                if (elementTexts.ContainsKey(index[0]))
+                {
+                    textDim = elementTexts[index[0]];
+                    DrawText(index[0], textDim, Color.BLACK, alignment);
+                }
+
+                return element.State;
+            }
+            else if (requestRebuild)
+            {
+                var elementDim = CalculateNextDimension(elements.Count, text);
+                var build = BuildElementsFromComponent("Label", elementDim);
+                int elementsLength = build.Length;
+                for (int i = 0; i < build.Length; i++)
+                {
+                    build[i].IsBaseElement = i == 0;
+                    build[i].CellIndex = currentCellIndex;
+                    build[i].GridIndex = currentGridIndex;
+
+                    elements.Add(build[i]);
+                    if (i == 0)
+                        elementIdCache.Add(id, new int[] { elements.Count - 1, elementsLength });
+                }
+            }
+
+            return ElementState.Idle;
+        }
+
 
         #region Drawing Utilities
 
@@ -662,6 +698,7 @@ namespace TwinspireCS.Engine.GUI
             {
                 elements[i] = new Element();
                 var compElement = component.Elements[i];
+                var compInterpreted = component.ElementInterpetedTypes[i];
                 elements[i].Type = compElement.Type;
                 elements[i].State = ElementState.Idle;
                 elements[i].Shape = compElement.Shape;
@@ -671,8 +708,19 @@ namespace TwinspireCS.Engine.GUI
                 offset.Y = compElement.VerticalMeasureType == MeasureType.Percentage ? compElement.Offset.Y * dimension.height : compElement.Offset.Y;
 
                 Vector2 measure = new Vector2();
-                measure.X = compElement.HorizontalMeasureType == MeasureType.Percentage ? compElement.Measure.X * dimension.width : compElement.Measure.X;
-                measure.Y = compElement.HorizontalMeasureType == MeasureType.Percentage ? compElement.Measure.Y * dimension.height : compElement.Measure.Y;
+                var pixelWidth = compElement.Measure.X;
+                var pixelHeight = compElement.Measure.Y;
+
+                // if text is the first element, use the maximum dimension for both width and height
+                // to perform the correct content alignment
+                if (compInterpreted == InterpretedType.Text && i == 0)
+                {
+                    pixelWidth = dimension.width;
+                    pixelHeight = dimension.height;
+                }
+
+                measure.X = compElement.HorizontalMeasureType == MeasureType.Percentage ? compElement.Measure.X * dimension.width : pixelWidth;
+                measure.Y = compElement.HorizontalMeasureType == MeasureType.Percentage ? compElement.Measure.Y * dimension.height : pixelHeight;
 
                 if (compElement.AlignAgainstIndex == -1)
                 {
