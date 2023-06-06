@@ -218,8 +218,8 @@ namespace TwinspireCS.Engine.GUI
         {
             backBufferWidth = width;
             backBufferHeight = height;
-            actualMouseX = Raylib.GetMouseX() * (width / Raylib.GetRenderWidth());
-            actualMouseY = Raylib.GetMouseY() * (height / Raylib.GetRenderHeight());
+            actualMouseX = (int)(Raylib.GetMouseX() * (float)((float)width / (float)Raylib.GetRenderWidth()));
+            actualMouseY = (int)(Raylib.GetMouseY() * (float)((float)height / (float)Raylib.GetRenderHeight()));
         }
 
         public Vector2 GetMousePosition()

@@ -116,11 +116,11 @@ namespace TwinspireCS.Audio
                     continue;
 
                 var music = Application.Instance.ResourceManager.GetMusic(musicChannel.AudioName);
-                Raylib.UpdateMusicStream(music);
-
                 //Raylib.SetMusicVolume(music, musicChannel.Volume);
                 //Raylib.SetMusicPan(music, musicChannel.Pan);
                 //Raylib.SetMusicPitch(music, musicChannel.Pitch);
+
+                Raylib.UpdateMusicStream(music);
             }
         }
 

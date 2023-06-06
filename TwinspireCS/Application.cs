@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using ImGuiNET;
 using TwinspireCS.Engine.GUI;
 using TwinspireCS.Engine.Extras;
+using TwinspireCS.Engine;
 
 namespace TwinspireCS
 {
@@ -212,7 +213,7 @@ namespace TwinspireCS
                 .SetBorderBottomThickness(1)
                 .ApplyBordersBottom(true));
 
-
+            Animate.Init();
         }
 
         /// <summary>

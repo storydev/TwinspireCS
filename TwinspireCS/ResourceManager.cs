@@ -274,7 +274,7 @@ namespace TwinspireCS
         /// <param name="size">A reference to an integer determining the size of the resource.</param>
         /// <returns></returns>
         /// <exception cref="Exception">Throws if an identifier could not be found.</exception>
-        public unsafe byte[] GetBytesFromMemory(string identifier, ref sbyte* ext, ref int size)
+        public unsafe byte[] GetBytesFromMemory(string identifier, ref string ext, ref int size)
         {
             DataSegment foundData = null;
             DataPackage foundPackage = null;
@@ -302,11 +302,11 @@ namespace TwinspireCS
                 using BinaryReader reader = new(stream);
 
                 var headerSize = reader.ReadInt32();
-                reader.ReadBytes(headerSize - sizeof(int) + (int)foundData.Cursor);
+                reader.ReadBytes((headerSize - sizeof(int)) + (int)foundData.Cursor);
                 reader.Read(buffer, 0, buffer.Length);
             }
 
-            ext = Utils.GetSByteFromString(foundData.FileExt);
+            ext = foundData.FileExt;
             size = buffer.Length;
             return buffer;
         }
@@ -326,14 +326,14 @@ namespace TwinspireCS
                 return;
             }
 
-            sbyte* fileType = null;
+            string fileType = null;
             int size = 0;
             var data = GetBytesFromMemory(identifier, ref fileType, ref size);
             fixed (byte* ptrData = data.AsSpan())
             {
                 try
                 {
-                    var result = Raylib.LoadImageFromMemory(fileType, ptrData, size);
+                    var result = Raylib.LoadImageFromMemory(fileType, data);
                     imageCache.Add(identifier, result);
                 }
                 catch
@@ -396,20 +396,17 @@ namespace TwinspireCS
                 return;
             }
 
-            sbyte* fileType = null;
+            string fileType = null;
             int size = 0;
             var data = GetBytesFromMemory(identifier, ref fileType, ref size);
-            fixed (byte* ptrData = data.AsSpan())
+            try
             {
-                try
-                {
-                    var result = Raylib.LoadMusicStreamFromMemory(fileType, ptrData, size);
-                    musicCache.Add(identifier, result);
-                }
-                catch
-                {
-                    throw new Exception("Unable to get music data from identifier. Format from binary file is incorrect.");
-                }
+                var result = Raylib.LoadMusicStreamFromMemory(fileType, data);
+                musicCache.Add(identifier, result);
+            }
+            catch
+            {
+                throw new Exception("Unable to get music data from identifier. Format from binary file is incorrect.");
             }
             
         }
@@ -444,20 +441,17 @@ namespace TwinspireCS
                 return;
             }
 
-            sbyte* fileType = null;
+            string fileType = null;
             int size = 0;
             var data = GetBytesFromMemory(identifier, ref fileType, ref size);
-            fixed (byte* ptrData = data.AsSpan())
+            try
             {
-                try
-                {
-                    var result = Raylib.LoadWaveFromMemory(fileType, ptrData, size);
-                    waveCache.Add(identifier, result);
-                }
-                catch
-                {
-                    throw new Exception("Unable to get wave data from identifier. Format from binary file is incorrect.");
-                }
+                var result = Raylib.LoadWaveFromMemory(fileType, data);
+                waveCache.Add(identifier, result);
+            }
+            catch
+            {
+                throw new Exception("Unable to get wave data from identifier. Format from binary file is incorrect.");
             }
         }
 
@@ -493,34 +487,20 @@ namespace TwinspireCS
                 return;
             }
 
-            sbyte* fileType = null;
+            string fileType = null;
             int size = 0;
-            int* fontCharPtr = null;
 
             var data = GetBytesFromMemory(identifier, ref fileType, ref size);
 
-            fixed (int* tempPtr = fontChars)
-            fixed (byte* ptrData = data.AsSpan())
+            try
             {
-                if (fontChars != null)
-                    fontCharPtr = tempPtr;
-
-                int glyphs = 0;
-                if (fontChars != null)
-                    glyphs = fontChars.Length;
-
-                try
-                {
-                    var result = Raylib.LoadFontFromMemory(fileType, ptrData, size, fontSize, fontCharPtr, glyphs);
-                    fontCache.Add(identifier + ":" + fontSize, result);
-                }
-                catch
-                {
-                    throw new Exception("Unable to get font from identifier. Format from binary file is incorrect.");
-                }
-
+                var result = Raylib.LoadFontFromMemory(fileType, data, fontSize, fontChars, fontChars == null ? 0 : fontChars.Length);
+                fontCache.Add(identifier + ":" + fontSize, result);
             }
-            
+            catch
+            {
+                throw new Exception("Unable to get font from identifier. Format from binary file is incorrect.");
+            }
         }
 
         /// <summary>
