@@ -193,7 +193,15 @@ namespace TwinspireCS.Engine.GUI
 
         public void Begin()
         {
-            if (requestRebuild)
+            if (!requestRebuild)
+            {
+                foreach (var element in elements)
+                {
+                    element.Rendered = false;
+                }
+            }
+
+            if (requestRebuild || firstBuild)
             {
                 elements.Clear();
                 elementTexts.Clear();
@@ -222,10 +230,15 @@ namespace TwinspireCS.Engine.GUI
 
         public void End()
         {
-            if (firstBuild)
+            if (!requestRebuild)
             {
-                requestRebuild = false;
-                firstBuild = false;
+                foreach (var element in elements)
+                {
+                    if (!element.Rendered)
+                    {
+                        requestRebuild = true;
+                    }
+                }
             }
 
             if (requestRebuild)
@@ -234,6 +247,14 @@ namespace TwinspireCS.Engine.GUI
                 {
                     Animate.Reset(id);
                 }
+
+                requestRebuild = false;
+            }
+
+            if (firstBuild)
+            {
+                requestRebuild = false;
+                firstBuild = false;
             }
 
             Animate.ResetTicks();
@@ -582,6 +603,10 @@ namespace TwinspireCS.Engine.GUI
             {
                 var index = elementIdCache[id];
                 var element = elements[index[0]];
+                for (int i = index[0]; i < (index[1] + index[0]); i++)
+                {
+                    elements[i].Rendered = true;
+                }
 
                 var hoverTween = id + ":hover";
 
@@ -680,6 +705,10 @@ namespace TwinspireCS.Engine.GUI
             {
                 var index = elementIdCache[id];
                 var element = elements[index[0]];
+                for (int i = index[0]; i < index[1]; i++)
+                {
+                    elements[i].Rendered = true;
+                }
 
                 TextDim textDim;
                 if (elementTexts.ContainsKey(index[0]))
@@ -1249,11 +1278,50 @@ namespace TwinspireCS.Engine.GUI
                 }
             }
 
+            for (int i = 0; i < dragDropRegions.Count; i++)
+            {
+                var region = dragDropRegions[i];
+                if (Raylib.CheckCollisionPointRec(GetMousePosition(), region) && Raylib.IsFileDropped())
+                {
+                    possiblyDropped.Add(i);
+                }
+            }
+
+            var allowingDroppedFiles = false;
+            if (possiblyDropped.Count > 0)
+            {
+                var lastPossibleDropped = possiblyDropped[possiblyDropped.Count - 1];
+                var files = Raylib.GetDroppedFiles();
+                var filters = dragDropAcceptedFileTypes[lastPossibleDropped];
+                if (!string.IsNullOrWhiteSpace(filters))
+                {
+                    var fileTypes = filters.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+                    for (int i = 0; i < files.Length; i++)
+                    {
+                        var allowed = false;
+                        for (int j = 0; j < fileTypes.Length; j++)
+                        {
+                            if (Path.GetExtension(files[i]) == fileTypes[j])
+                            {
+                                allowed = true;
+                                break;
+                            }
+                        }
+
+                        if (allowed)
+                        {
+                            dragDropFilesDropped.Add(files[i]);
+                            allowingDroppedFiles = true;
+                        }
+                    }
+                }
+            }
+
             if (possibleActiveElements.Count > 0 && elements.Count > 0)
             {
                 int last = possibleActiveElements.Count - 1;
                 int index = last;
-                while (index > -1)
+                while (index > -1 && !allowingDroppedFiles)
                 {
                     var active = elements[possibleActiveElements[index]];
                     var firstClickTimePassed = !firstClick && firstClickTime == 0.0f && tempClick;
