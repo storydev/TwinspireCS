@@ -11,6 +11,7 @@ namespace TwinspireCS.Engine.GUI
     public class Element
     {
 
+        public string ID;
         public ElementType Type;
         public int GridIndex;
         public int CellIndex;

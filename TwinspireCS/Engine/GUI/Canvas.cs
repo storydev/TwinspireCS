@@ -234,7 +234,7 @@ namespace TwinspireCS.Engine.GUI
             {
                 foreach (var element in elements)
                 {
-                    if (!element.Rendered)
+                    if (!element.Rendered || !elementIdCache.ContainsKey(element.ID))
                     {
                         requestRebuild = true;
                     }
@@ -682,6 +682,7 @@ namespace TwinspireCS.Engine.GUI
                     build[i].IsBaseElement = i == 0;
                     build[i].CellIndex = currentCellIndex;
                     build[i].GridIndex = currentGridIndex;
+                    build[i].ID = id;
 
                     elements.Add(build[i]);
                     if (i == 0)
@@ -729,6 +730,7 @@ namespace TwinspireCS.Engine.GUI
                     build[i].IsBaseElement = i == 0;
                     build[i].CellIndex = currentCellIndex;
                     build[i].GridIndex = currentGridIndex;
+                    build[i].ID = id;
 
                     elements.Add(build[i]);
                     if (i == 0)
