@@ -40,6 +40,7 @@ namespace TwinspireCS.Engine.GUI
 
         private int currentGridIndex;
         private int currentCellIndex;
+        private FlowDirection currentFlowDirection;
         private LayoutFlags currentLayoutFlags;
         private float fixedRowHeight;
         private float fixedColumnWidth;
@@ -99,6 +100,7 @@ namespace TwinspireCS.Engine.GUI
             
             currentGridIndex = 0;
             currentCellIndex = 0;
+            currentFlowDirection = FlowDirection.LeftToRight;
 
             childInnerPadding = 4;
 
@@ -282,6 +284,11 @@ namespace TwinspireCS.Engine.GUI
             currentGridIndex = gridIndex;
             currentCellIndex = cellIndex;
             currentLayoutFlags = flags;
+        }
+
+        public void SetFlowDirection(FlowDirection direction)
+        {
+            currentFlowDirection = direction;
         }
 
         public void SetFixedRowHeight(float height)
@@ -1115,6 +1122,11 @@ namespace TwinspireCS.Engine.GUI
             var remainingWidth = gridContentDim.width;
             var xToBecome = 0.0f;
             var yToBecome = 0.0f;
+            if (currentFlowDirection == FlowDirection.RightToLeft)
+            {
+                xToBecome = gridContentDim.width;
+            }
+
             var lastRowHeight = 0.0f;
             if (elementIndex > 0)
             {
@@ -1122,7 +1134,14 @@ namespace TwinspireCS.Engine.GUI
                 for (int i = 0; i < count; i++)
                 {
                     var element = currentRowElements.ElementAt(i);
-                    xToBecome += element.Dimension.x;
+                    if (currentFlowDirection == FlowDirection.RightToLeft)
+                    {
+                        xToBecome -= element.Dimension.width;
+                    }
+                    else
+                    {
+                        xToBecome += element.Dimension.x;
+                    }
                     remainingWidth -= element.Dimension.width;
 
                     if (element.Dimension.y > lastRowHeight && currentLayoutFlags.HasFlag(LayoutFlags.DynamicRows))
@@ -1130,14 +1149,14 @@ namespace TwinspireCS.Engine.GUI
                         lastRowHeight = element.Dimension.y;
                     }
 
-                    if (xToBecome > gridContentDim.width)
+                    if ((xToBecome > gridContentDim.width && currentFlowDirection == FlowDirection.LeftToRight) || (xToBecome < 0 && currentFlowDirection == FlowDirection.RightToLeft))
                     {
                         if (currentLayoutFlags.HasFlag(LayoutFlags.DynamicRows))
                             yToBecome += lastRowHeight;
                         else if (currentLayoutFlags.HasFlag(LayoutFlags.StaticRows))
                             yToBecome += fixedRowHeight;
 
-                        xToBecome = 0.0f;
+                        xToBecome = gridContentDim.width;
                         lastRowHeight = 0;
                         remainingWidth = gridContentDim.width;
                     }
@@ -1222,17 +1241,26 @@ namespace TwinspireCS.Engine.GUI
                 if (currentLayoutFlags.HasFlag(LayoutFlags.DynamicRows) && widthToBecome >= remainingWidth)
                 {
                     yToBecome += lastRowHeight;
-                    xToBecome = gridContentDim.x;
+                    if (currentFlowDirection == FlowDirection.LeftToRight)
+                        xToBecome = gridContentDim.x;
+                    else
+                        xToBecome = gridContentDim.x + gridContentDim.width;
                 }
                 else if (currentLayoutFlags.HasFlag(LayoutFlags.StaticRows) && widthToBecome >= remainingWidth)
                 {
                     yToBecome += fixedRowHeight;
-                    xToBecome = gridContentDim.x;
+                    if (currentFlowDirection == FlowDirection.LeftToRight)
+                        xToBecome = gridContentDim.x;
+                    else
+                        xToBecome = gridContentDim.x + gridContentDim.width;
                 }
                 else if (currentLayoutFlags.HasFlag(LayoutFlags.SpanRow))
                 {
                     yToBecome += gridContentDim.height;
-                    xToBecome = gridContentDim.x;
+                    if (currentFlowDirection == FlowDirection.LeftToRight)
+                        xToBecome = gridContentDim.x;
+                    else
+                        xToBecome = gridContentDim.x + gridContentDim.width;
                 }
             }
 
@@ -1242,6 +1270,9 @@ namespace TwinspireCS.Engine.GUI
                 widthToBecome += imageToUse.width;
                 heightToBecome += imageToUse.height;
             }
+
+            if (currentFlowDirection == FlowDirection.RightToLeft)
+                xToBecome -= widthToBecome;
 
             return new Rectangle(xToBecome, yToBecome, widthToBecome, heightToBecome);
         }
