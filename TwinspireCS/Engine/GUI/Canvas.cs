@@ -17,6 +17,7 @@ namespace TwinspireCS.Engine.GUI
 
         private List<Grid> layouts;
         private List<Element> elements;
+        private List<string> elementsToAdd;
         private IDictionary<string, int[]> elementIdCache;
         private IDictionary<int, TextDim> elementTexts;
         private bool elementsChanged;
@@ -79,6 +80,7 @@ namespace TwinspireCS.Engine.GUI
             layouts = new List<Grid>();
             elements = new List<Element>();
             elementIdCache = new Dictionary<string, int[]>();
+            elementsToAdd = new List<string>();
             elementTexts = new Dictionary<int, TextDim>();
             animationIndices = new List<int>();
             styleStack = new List<Style>();
@@ -204,18 +206,6 @@ namespace TwinspireCS.Engine.GUI
                 }
             }
 
-            if (elementsChanged && !firstBuild)
-            {
-                foreach (var element in elements)
-                {
-                    if (!elementIdCache.ContainsKey(element.ID))
-                    {
-                        requestRebuild = true;
-                        break;
-                    }
-                }
-            }
-
             if (requestRebuild || firstBuild)
             {
                 elements.Clear();
@@ -224,7 +214,6 @@ namespace TwinspireCS.Engine.GUI
                 elementTweens.Clear();
 
                 dragDropRegions.Clear();
-                dragDropFilesDropped.Clear();
                 dragDropAcceptedFileTypes.Clear();
             }
         }
@@ -245,32 +234,31 @@ namespace TwinspireCS.Engine.GUI
 
         public void End()
         {
-            if (elementsChanged)
+            foreach (var id in elementIdCache)
             {
-                var allFound = true;
-                foreach (var element in elements)
+                var found = true;
+                foreach (var key in elementsToAdd)
                 {
-                    if (!elementIdCache.ContainsKey(element.ID))
+                    if (id.Key != key)
                     {
-                        requestRebuild = true;
-                        allFound = false;
+                        found = false;
                         break;
                     }
                 }
 
-                if (!allFound)
+                if (!found)
                 {
-                    foreach (var element in elements)
-                    {
-                        if (!element.Rendered)
-                        {
-                            requestRebuild = true;
-                        }
-                    }
+                    requestRebuild = true;
+                    elementsChanged = false;
+                    break;
                 }
-
-                elementsChanged = false;
+                else
+                {
+                    requestRebuild = false;
+                }
             }
+
+            elementsToAdd.Clear();
 
             if (requestRebuild)
             {
@@ -628,9 +616,6 @@ namespace TwinspireCS.Engine.GUI
 
         public ElementState Button(string id, string text, ContentAlignment alignment = ContentAlignment.Center)
         {
-            if (!elementsChanged)
-                elementsChanged = !elementIdCache.ContainsKey(id);
-
             if (!requestRebuild && elementIdCache.ContainsKey(id))
             {
                 var index = elementIdCache[id];
@@ -704,7 +689,7 @@ namespace TwinspireCS.Engine.GUI
 
                 return element.State;
             }
-            else if (!elementsChanged || requestRebuild)
+            else if (requestRebuild)
             {
                 var elementDim = CalculateNextDimension(elements.Count, text);
                 var build = BuildElementsFromComponent("Button", elementDim);
@@ -717,7 +702,7 @@ namespace TwinspireCS.Engine.GUI
                     build[i].ID = id;
 
                     elements.Add(build[i]);
-                    if (i == 0 && elementsChanged)
+                    if (i == 0)
                         elementIdCache.Add(id, new int[] { elements.Count - 1, elementsLength });
                 }
 
@@ -728,15 +713,17 @@ namespace TwinspireCS.Engine.GUI
                 AddTween(id + ":hover", tween);
                 StartTween(id + ":hover");
             }
+            else
+            {
+                elementsChanged = true;
+                elementsToAdd.Add(id);
+            }
 
             return ElementState.Idle;
         }
 
         public ElementState Label(string id, string text, ContentAlignment alignment = ContentAlignment.Center)
         {
-            if (!elementsChanged)
-                elementsChanged = !elementIdCache.ContainsKey(id);
-
             if (!requestRebuild && elementIdCache.ContainsKey(id))
             {
                 var index = elementIdCache[id];
@@ -755,7 +742,7 @@ namespace TwinspireCS.Engine.GUI
 
                 return element.State;
             }
-            else if (!elementsChanged || requestRebuild)
+            else if (requestRebuild)
             {
                 var elementDim = CalculateNextDimension(elements.Count, text);
                 var build = BuildElementsFromComponent("Label", elementDim);
@@ -768,9 +755,14 @@ namespace TwinspireCS.Engine.GUI
                     build[i].ID = id;
 
                     elements.Add(build[i]);
-                    if (i == 0 && elementsChanged)
+                    if (i == 0)
                         elementIdCache.Add(id, new int[] { elements.Count - 1, elementsLength });
                 }
+            }
+            else
+            {
+                elementsChanged = true;
+                elementsToAdd.Add(id);
             }
 
             return ElementState.Idle;
