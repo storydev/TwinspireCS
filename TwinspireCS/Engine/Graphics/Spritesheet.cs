@@ -42,6 +42,8 @@ namespace TwinspireCS.Engine.Graphics
         /// <returns>The index of the spritesheet in the global Spritesheets enumerator.</returns>
         public static int CreateSpritesheet(string imageName)
         {
+            _spritesheets ??= new List<Spritesheet>();
+
             var spritesheet = new Spritesheet();
             spritesheet.ImageName = imageName;
             _spritesheets.Add(spritesheet);
@@ -61,6 +63,8 @@ namespace TwinspireCS.Engine.Graphics
         /// <returns>The index of the spritesheet in the global Spritesheets enumerator.</returns>
         public static unsafe int CreateTiledSpritesheet(string imageName, int tileSize)
         {
+            _spritesheets ??= new List<Spritesheet>();
+
             var hasIdentifier = Application.Instance.ResourceManager.DoesIdentifierExist(imageName);
             if (!hasIdentifier)
             {

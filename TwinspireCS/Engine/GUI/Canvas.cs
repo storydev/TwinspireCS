@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Diagnostics;
 using Raylib_cs;
 using System.Xml.Linq;
+using TwinspireCS.Engine.Graphics;
 
 namespace TwinspireCS.Engine.GUI
 {
@@ -60,6 +61,7 @@ namespace TwinspireCS.Engine.GUI
         private string currentFontName;
         private int currentFontSize;
         private int currentFontSpacing;
+        private Color currentFontColor;
 
         private int childInnerPadding;
 
@@ -101,6 +103,7 @@ namespace TwinspireCS.Engine.GUI
             currentGridIndex = 0;
             currentCellIndex = 0;
             currentFlowDirection = FlowDirection.LeftToRight;
+            currentFontColor = Color.BLACK;
 
             childInnerPadding = 4;
 
@@ -350,6 +353,11 @@ namespace TwinspireCS.Engine.GUI
             currentFontSpacing = spacing;
         }
 
+        public void SetFontColor(Color color)
+        {
+            currentFontColor = color;
+        }
+
         public void SetNextStyle(Style style)
         {
             basicStyle = style;
@@ -385,7 +393,7 @@ namespace TwinspireCS.Engine.GUI
             }
         }
 
-        private Style? GetLocalStyle(ElementState state)
+        private Style GetLocalStyle(ElementState state, string defaultState)
         {
             if (usingCustomStyle)
             {
@@ -410,7 +418,7 @@ namespace TwinspireCS.Engine.GUI
                 return style;
             }
 
-            return null;
+            return Theme.Default.Styles[defaultState];
         }
 
         public void PushTween(Tween tween)
@@ -504,6 +512,9 @@ namespace TwinspireCS.Engine.GUI
             {
                 var tweenIndices = elementTweens[id];
                 var actualTween = tweens[tweenIndices[0]];
+                if (actualTween.From.Spritesheet > -1 || actualTween.To.Spritesheet > -1)
+                    return actualTween.From;
+
                 var style = new Style();
 
                 // border check
@@ -633,8 +644,22 @@ namespace TwinspireCS.Engine.GUI
                 }
 
                 var hoverTween = id + ":hover";
+                string stateToChangeTo = "";
+                if (element.State == ElementState.Idle)
+                {
+                    stateToChangeTo = Theme.BUTTON;
+                }
+                else if (element.State == ElementState.Hovered || element.State == ElementState.Clicked)
+                {
+                    stateToChangeTo = Theme.BUTTON_HOVER;
+                }
+                else if (element.State == ElementState.Active)
+                {
+                    stateToChangeTo = Theme.BUTTON_DOWN;
+                }
 
-                if (elementTweens.ContainsKey(hoverTween))
+                var style = GetLocalStyle(element.State, stateToChangeTo);
+                if (elementTweens.ContainsKey(hoverTween) && style.Spritesheet == -1)
                 {
                     var tween = tweens[elementTweens[hoverTween][0]];
                     if (element.State == ElementState.Hovered || element.State == ElementState.Idle)
@@ -647,51 +672,19 @@ namespace TwinspireCS.Engine.GUI
                     }
                     else
                     {
-                        var style = GetLocalStyle(element.State);
-                        if (style != null)
-                        {
-                            DrawRectStyle(element.Dimension, style);
-                        }
-                        else if (element.State == ElementState.Active)
-                        {
-                            DrawRectStyle(element.Dimension, Theme.Default.Styles[Theme.BUTTON_DOWN]);
-                        }
-                        else if (element.State == ElementState.Hovered || element.State == ElementState.Clicked || element.State == ElementState.DoubleClicked)
-                        {
-                            DrawRectStyle(element.Dimension, Theme.Default.Styles[Theme.BUTTON_HOVER]);
-                        }
-                        else
-                        {
-                            DrawRectStyle(element.Dimension, Theme.Default.Styles[Theme.BUTTON]);
-                        }
+                        DrawRectStyle(element.Dimension, style);
                     }
                 }
                 else
                 {
-                    var style = GetLocalStyle(element.State);
-                    if (style != null)
-                    {
-                        DrawRectStyle(element.Dimension, style);
-                    }
-                    else if (element.State == ElementState.Active)
-                    {
-                        DrawRectStyle(element.Dimension, Theme.Default.Styles[Theme.BUTTON_DOWN]);
-                    }
-                    else if (element.State == ElementState.Hovered || element.State == ElementState.Clicked || element.State == ElementState.DoubleClicked)
-                    {
-                        DrawRectStyle(element.Dimension, Theme.Default.Styles[Theme.BUTTON_HOVER]);
-                    }
-                    else
-                    {
-                        DrawRectStyle(element.Dimension, Theme.Default.Styles[Theme.BUTTON]);
-                    }
+                    DrawRectStyle(element.Dimension, style);
                 }
 
                 TextDim textDim;
                 if (elementTexts.ContainsKey(index[0]))
                 {
                     textDim = elementTexts[index[0]];
-                    DrawText(index[0], textDim, Color.BLACK, alignment);
+                    DrawText(index[0], textDim, currentFontColor, alignment);
                 }
 
                 return element.State;
@@ -744,7 +737,7 @@ namespace TwinspireCS.Engine.GUI
                 if (elementTexts.ContainsKey(index[0]))
                 {
                     textDim = elementTexts[index[0]];
-                    DrawText(index[0], textDim, Color.BLACK, alignment);
+                    DrawText(index[0], textDim, currentFontColor, alignment);
                 }
 
                 return element.State;
@@ -957,7 +950,24 @@ namespace TwinspireCS.Engine.GUI
 
         private void DrawRectStyle(Rectangle rect, Style style)
         {
-            if (!string.IsNullOrEmpty(style.BackgroundImage))
+            if (style.Spritesheet > -1 && style.Spritesheet < Spritesheet.Spritesheets.Count())
+            {
+                var spritesheet = Spritesheet.Spritesheets.ElementAt(style.Spritesheet);
+                if (style.FrameIndex < spritesheet.Frames.Count)
+                {
+                    var frame = spritesheet.Frames[style.FrameIndex];
+                    var texture = Application.Instance.ResourceManager.GetTexture(spritesheet.ImageName);
+                    if (frame.UsingPatch)
+                    {
+                        Raylib.DrawTextureNPatch(texture, frame.Patch, rect, new Vector2(0, 0), 0, Color.WHITE);
+                    }
+                    else
+                    {
+                        Raylib.DrawTexturePro(texture, frame.Dimension, rect, new Vector2(0, 0), 0, Color.WHITE);
+                    }
+                }
+            }
+            else if (!string.IsNullOrEmpty(style.BackgroundImage))
             {
                 Application.Instance.ResourceManager.LoadImage(style.BackgroundImage);
 
