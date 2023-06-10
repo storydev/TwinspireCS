@@ -29,6 +29,9 @@ namespace TwinspireCS.Engine.GUI
         private IDictionary<string, int[]> elementTweens;
         private List<Tween> tweenStack;
 
+        private List<MenuWrapper> menuWrappers;
+        private int currentMenuWrapper;
+
         private List<string> backgroundImages;
 
         private int activeElement = -1;
@@ -93,6 +96,9 @@ namespace TwinspireCS.Engine.GUI
             tweensRunning = new List<bool>();
             activeElement = 0;
             elementsChanged = true;
+
+            menuWrappers = new List<MenuWrapper>();
+            currentMenuWrapper = -1;
 
             backgroundImages = new List<string>();
 
@@ -220,6 +226,8 @@ namespace TwinspireCS.Engine.GUI
 
                 dragDropRegions.Clear();
                 dragDropAcceptedFileTypes.Clear();
+
+                menuWrappers.Clear();
             }
         }
 
@@ -342,6 +350,94 @@ namespace TwinspireCS.Engine.GUI
             }
 
             preloadedAll = true;
+        }
+
+        public void BeginMenuWrapper(string id, KeyboardKey confirm)
+        {
+            if (currentMenuWrapper > -1)
+            {
+                throw new Exception("Cannot wrap a menu inside another menu.");
+            }
+
+            var menus = menuWrappers.Where((wrap) => wrap.ID == id);
+            if (menus.Any())
+            {
+                var menu = menus.First();
+                if (Raylib.IsKeyPressed(KeyboardKey.KEY_UP))
+                {
+                    if (menu.SelectedElement - 1 < 0)
+                    {
+                        menu.SelectedElement = 0;
+                    }
+                    else
+                    {
+                        var elementToSelect = menu.StartElement + menu.SelectedElement - 1;
+                        while (!elements[elementToSelect].IsBaseElement && 
+                            elements[elementToSelect].Type != ElementType.Interactive)
+                        {
+                            elementToSelect -= 1;
+                        }
+                        menu.SelectedElement = elementToSelect;
+                    }
+                }
+                else if (Raylib.IsKeyPressed(KeyboardKey.KEY_DOWN))
+                {
+                    var count = menu.EndElement - menu.StartElement;
+                    var temp = menu.SelectedElement;
+                    var elementToSelect = menu.SelectedElement + menu.StartElement + 1;
+                    if (elementToSelect >= elements.Count - 1)
+                    {
+                        menu.SelectedElement = temp;
+                    }
+                    else
+                    {
+                        while (!elements[elementToSelect].IsBaseElement &&
+                        elements[elementToSelect].Type != ElementType.Interactive)
+                        {
+                            elementToSelect += 1;
+                            if (elementToSelect > count || elementToSelect >= elements.Count - 1)
+                            {
+                                elementToSelect = temp;
+                                break;
+                            }
+                        }
+
+                        menu.SelectedElement = elementToSelect;
+                    }
+                }
+            }
+            else
+            {
+                var menuWrapper = new MenuWrapper();
+                menuWrapper.ID = id;
+                menuWrapper.StartElement = elements.Count;
+                menuWrapper.ConfirmKey = confirm;
+                menuWrappers.Add(menuWrapper);
+            }
+
+            var index = menuWrappers.FindIndex((wrap) => wrap.ID == id);
+            if (index > -1)
+            {
+                currentMenuWrapper = index;
+            }
+            else
+            {
+                currentMenuWrapper = menuWrappers.Count - 1;
+            }
+        }
+
+        public void EndMenuWrapper()
+        {
+            if (currentMenuWrapper == -1)
+            {
+                TwinspireCS.Utils.Warn("Trying to end a menu wrapper where one is not open.", 1);
+            }
+            else if (requestRebuild)
+            {
+                menuWrappers[currentMenuWrapper].EndElement = elements.Count;
+            }
+
+            currentMenuWrapper = -1;
         }
 
         #region Styling
@@ -645,7 +741,24 @@ namespace TwinspireCS.Engine.GUI
 
                 var hoverTween = id + ":hover";
                 string stateToChangeTo = "";
-                if (element.State == ElementState.Idle)
+                if (currentMenuWrapper > -1)
+                {
+                    var menu = menuWrappers[currentMenuWrapper];
+                    if (menu.SelectedElement == index[0]
+                        && Raylib.IsKeyDown(menu.ConfirmKey))
+                    {
+                        stateToChangeTo = Theme.BUTTON_DOWN;
+                    }
+                    else if (menu.SelectedElement == index[0])
+                    {
+                        stateToChangeTo = Theme.BUTTON_HOVER;
+                    }
+                    else
+                    {
+                        stateToChangeTo = Theme.BUTTON;
+                    }
+                }
+                else if (element.State == ElementState.Idle)
                 {
                     stateToChangeTo = Theme.BUTTON;
                 }
