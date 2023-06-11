@@ -81,6 +81,16 @@ namespace TwinspireCS.Engine.GUI
         private const float firstClickDelay = 0.25f;
         private float firstClickTime;
 
+        private int fadeOutEffectAnimateIndex = -1;
+        private float fadeOutEffectDuration;
+        private Color fadeOutEffectToColor;
+        private bool fadingOut;
+
+        private int fadeInEffectAnimateIndex = -1;
+        private float fadeInEffectDuration;
+        private Color fadeInEffectFromColor;
+        private bool fadingIn;
+
         public IEnumerable<Grid> Layouts => layouts;
 
         public string Name { get; set; }
@@ -275,7 +285,28 @@ namespace TwinspireCS.Engine.GUI
 
         public void End()
         {
-            
+            if (fadingIn)
+            {
+                if (Animate.Tick(fadeInEffectAnimateIndex, fadeInEffectDuration))
+                {
+                    fadingIn = false;
+                }
+
+                var color = new Color(fadeInEffectFromColor.r, fadeInEffectFromColor.g, fadeInEffectFromColor.b, (byte)(255 - (Animate.GetRatio(fadeInEffectAnimateIndex) * 255)));
+                Raylib.DrawRectangle(0, 0, backBufferWidth, backBufferHeight, color);
+            }
+
+            if (fadingOut && !fadingIn)
+            {
+                if (Animate.Tick(fadeOutEffectAnimateIndex, fadeOutEffectDuration))
+                {
+                    fadingOut = false;
+                }
+
+                var color = new Color(fadeOutEffectToColor.r, fadeOutEffectToColor.g, fadeOutEffectToColor.b, (byte)(Animate.GetRatio(fadeOutEffectAnimateIndex) * 255));
+                Raylib.DrawRectangle(0, 0, backBufferWidth, backBufferHeight, color);
+            }
+
             foreach (var id in elementIdCache)
             {
                 var found = true;
@@ -300,9 +331,7 @@ namespace TwinspireCS.Engine.GUI
                 }
             }
 
-            elementsToAdd.Clear();
-
-            
+            elementsToAdd.Clear();   
 
             if (requestRebuild)
             {
@@ -489,6 +518,32 @@ namespace TwinspireCS.Engine.GUI
 
             currentMenuWrapper = -1;
         }
+
+        #region Canvas Effects
+
+        public void FadeOutCanvas(float duration, Color to)
+        {
+            if (fadeOutEffectAnimateIndex == -1)
+            {
+                fadeOutEffectAnimateIndex = Animate.Create();
+                fadeOutEffectDuration = duration;
+                fadeOutEffectToColor = to;
+                fadingOut = true;
+            }
+        }
+
+        public void FadeInCanvas(float duration, Color from)
+        {
+            if (fadeInEffectAnimateIndex == -1)
+            {
+                fadeInEffectAnimateIndex = Animate.Create();
+                fadeInEffectDuration = duration;
+                fadeInEffectFromColor = from;
+                fadingIn = true;
+            }
+        }
+
+        #endregion
 
         #region Styling
 
