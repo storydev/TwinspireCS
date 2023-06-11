@@ -746,7 +746,8 @@ namespace TwinspireCS.Engine.GUI
                 {
                     var menu = menuWrappers[currentMenuWrapper];
                     if (menu.SelectedElement == index[0]
-                        && HotKeys.IsHotkeyDown(menu.ConfirmKeyName))
+                        && (HotKeys.IsHotkeyDown(menu.ConfirmKeyName) 
+                        || Raylib.IsMouseButtonDown(MouseButton.MOUSE_BUTTON_LEFT)))
                     {
                         stateToChangeTo = Theme.BUTTON_DOWN;
                     }
@@ -1507,7 +1508,8 @@ namespace TwinspireCS.Engine.GUI
                 int index = last;
                 while (index > -1 && !allowingDroppedFiles)
                 {
-                    var active = elements[possibleActiveElements[index]];
+                    var activeIndex = possibleActiveElements[index];
+                    var active = elements[activeIndex];
                     var firstClickTimePassed = !firstClick && firstClickTime == 0.0f && tempClick;
                     var mouseReleased = Raylib.IsMouseButtonReleased(MouseButton.MOUSE_BUTTON_LEFT);
                     if (active.Type != ElementType.Interactive && active.Type != ElementType.Input)
@@ -1515,6 +1517,8 @@ namespace TwinspireCS.Engine.GUI
                         index -= 1;
                         continue;
                     }
+
+                    var isElementInMenu = menuWrappers.Where((menu) => activeIndex >= menu.StartElement && activeIndex < menu.EndElement);
 
                     if (Raylib.IsMouseButtonDown(MouseButton.MOUSE_BUTTON_LEFT) && index == last)
                     {
@@ -1531,7 +1535,25 @@ namespace TwinspireCS.Engine.GUI
                     }
                     else
                     {
-                        active.State = ElementState.Hovered;
+                        if (isElementInMenu.Any())
+                        {
+                            var menu = isElementInMenu.First();
+                            var elementToSelect = activeIndex - menu.StartElement;
+                            while (!elements[elementToSelect].IsBaseElement &&
+                            elements[elementToSelect].Type != ElementType.Interactive)
+                            {
+                                elementToSelect -= 1;
+                            }
+
+                            if (elementToSelect > -1)
+                                menu.SelectedElement = elementToSelect;
+                            else
+                                menu.SelectedElement = 0;
+                        }
+                        else
+                        {
+                            active.State = ElementState.Hovered;
+                        }
                     }
 
                     index -= 1;
