@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Raylib_cs;
+using TwinspireCS.Engine;
 
 namespace TwinspireCS.Audio
 {
@@ -18,6 +19,8 @@ namespace TwinspireCS.Audio
         private int startVoicePlayingIndex;
         private int startAmbiencePlayingIndex;
         private List<bool> isPlaying;
+
+        private Dictionary<string, SoundState> soundStates;
 
         public float MusicVolume;
         public float SoundEffectVolume;
@@ -38,6 +41,8 @@ namespace TwinspireCS.Audio
             Ambience = Array.Empty<SoundChannel>();
             Voice = Array.Empty<SoundChannel>();
             Music = Array.Empty<SoundChannel>();
+
+            soundStates = new Dictionary<string, SoundState>();
 
             isPlaying = new List<bool>();
 
@@ -112,8 +117,31 @@ namespace TwinspireCS.Audio
                 if (string.IsNullOrEmpty(musicChannel.AudioName))
                     continue;
 
+                SoundState state = null;
+                if (soundStates.ContainsKey(musicChannel.AudioName))
+                {
+                    state = soundStates[musicChannel.AudioName];
+                }
+
                 var music = Application.Instance.ResourceManager.GetMusic(musicChannel.AudioName);
-                Raylib.SetMusicVolume(music, musicChannel.Volume);
+                if (state == null)
+                {
+                    Raylib.SetMusicVolume(music, musicChannel.Volume);
+                }
+                else
+                {
+                    if (Animate.Tick(state.AnimationIndex, state.Duration))
+                    {
+                        state.Complete = true;
+                        Raylib.StopMusicStream(music);
+                        musicChannel = new SoundChannel();
+                    }
+
+                    var ratio = Animate.GetRatio(state.AnimationIndex);
+                    var volume = ((MusicVolume - state.ToVolume) * (1 - ratio)) + state.ToVolume;
+                    Raylib.SetMusicVolume(music, volume);
+                }
+
                 Raylib.SetMusicPan(music, musicChannel.Pan);
                 Raylib.SetMusicPitch(music, musicChannel.Pitch);
 
@@ -202,6 +230,23 @@ namespace TwinspireCS.Audio
 
                 Raylib.SetSoundPitch(SoundEffects[identifier], pitch);
                 Raylib.SetSoundPan(SoundEffects[identifier], pan);
+            }
+        }
+
+        public void FadeOutAndStopMusic(string identifier, float duration)
+        {
+            if (soundStates.ContainsKey(identifier))
+            {
+                soundStates[identifier].Duration = duration;
+                soundStates[identifier].ToVolume = 0.0f;
+                soundStates[identifier].Complete = false;
+            }
+            else
+            {
+                soundStates[identifier] = new SoundState();
+                soundStates[identifier].Duration = duration;
+                soundStates[identifier].AnimationIndex = Animate.Create();
+                soundStates[identifier].ToVolume = 0.0f;
             }
         }
 
