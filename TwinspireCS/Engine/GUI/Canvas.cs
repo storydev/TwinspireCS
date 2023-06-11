@@ -10,6 +10,7 @@ using System.Diagnostics;
 using Raylib_cs;
 using System.Xml.Linq;
 using TwinspireCS.Engine.Graphics;
+using TwinspireCS.Engine.Input;
 
 namespace TwinspireCS.Engine.GUI
 {
@@ -352,7 +353,7 @@ namespace TwinspireCS.Engine.GUI
             preloadedAll = true;
         }
 
-        public void BeginMenuWrapper(string id, KeyboardKey confirm)
+        public void BeginMenuWrapper(string id, string confirmHotkeyName)
         {
             if (currentMenuWrapper > -1)
             {
@@ -363,7 +364,7 @@ namespace TwinspireCS.Engine.GUI
             if (menus.Any())
             {
                 var menu = menus.First();
-                if (Raylib.IsKeyPressed(KeyboardKey.KEY_UP))
+                if (HotKeys.IsHotkeyPressed(HotKeys.UP))
                 {
                     if (menu.SelectedElement - 1 < 0)
                     {
@@ -380,7 +381,7 @@ namespace TwinspireCS.Engine.GUI
                         menu.SelectedElement = elementToSelect;
                     }
                 }
-                else if (Raylib.IsKeyPressed(KeyboardKey.KEY_DOWN))
+                else if (HotKeys.IsHotkeyPressed(HotKeys.DOWN))
                 {
                     var count = menu.EndElement - menu.StartElement;
                     var temp = menu.SelectedElement;
@@ -411,7 +412,7 @@ namespace TwinspireCS.Engine.GUI
                 var menuWrapper = new MenuWrapper();
                 menuWrapper.ID = id;
                 menuWrapper.StartElement = elements.Count;
-                menuWrapper.ConfirmKey = confirm;
+                menuWrapper.ConfirmKeyName = confirmHotkeyName;
                 menuWrappers.Add(menuWrapper);
             }
 
@@ -745,7 +746,7 @@ namespace TwinspireCS.Engine.GUI
                 {
                     var menu = menuWrappers[currentMenuWrapper];
                     if (menu.SelectedElement == index[0]
-                        && Raylib.IsKeyDown(menu.ConfirmKey))
+                        && HotKeys.IsHotkeyDown(menu.ConfirmKeyName))
                     {
                         stateToChangeTo = Theme.BUTTON_DOWN;
                     }

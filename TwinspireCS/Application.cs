@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using ImGuiNET;
 using TwinspireCS.Engine.GUI;
 using TwinspireCS.Engine.Extras;
+using TwinspireCS.Engine.Input;
 using TwinspireCS.Engine;
 
 namespace TwinspireCS
@@ -135,6 +136,8 @@ namespace TwinspireCS
         public void InitAll()
         {
             InitDefaultUI();
+            HotKeys.Init();
+            Animate.Init();
 
             Raylib.InitWindow(startingWidth, startingHeight, windowTitle);
             if (!string.IsNullOrEmpty(IconPath))
@@ -212,8 +215,6 @@ namespace TwinspireCS
                 .SetBorderBottomColors(new Color(140, 140, 140, 255))
                 .SetBorderBottomThickness(1)
                 .ApplyBordersBottom(true));
-
-            Animate.Init();
         }
 
         /// <summary>

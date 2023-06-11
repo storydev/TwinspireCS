@@ -14,11 +14,12 @@ namespace TwinspireCS.Engine.GUI
         public int StartElement;
         public int EndElement;
         public int SelectedElement;
-        public KeyboardKey ConfirmKey;
+        public string ConfirmKeyName;
 
         public MenuWrapper()
         {
-
+            ID = string.Empty;
+            ConfirmKeyName = string.Empty;
         }
 
     }
