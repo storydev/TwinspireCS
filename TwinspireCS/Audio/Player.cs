@@ -10,23 +10,19 @@ namespace TwinspireCS.Audio
     public class Player
     {
 
-        private CancellationTokenSource soundTaskCancelSource;
-        private CancellationToken soundTaskCancelToken;
-        private bool soundTaskRunning;
-        private Task soundTask;
+        private int numSoundsReserved;
         private int maxSoundChannels;
         private bool crossFadeMusic;
 
-
-        private int startSoundEffectsPlayingIndex;
         private int startMusicPlayingIndex;
         private int startVoicePlayingIndex;
         private int startAmbiencePlayingIndex;
         private List<bool> isPlaying;
 
         public float MusicVolume;
+        public float SoundEffectVolume;
 
-        public SoundChannel[] SoundEffects;
+        public Dictionary<string, Sound> SoundEffects;
         public SoundChannel[] Ambience;
         public SoundChannel[] Voice;
         public SoundChannel[] Music;
@@ -38,7 +34,7 @@ namespace TwinspireCS.Audio
         /// </summary>
         public Player()
         {
-            SoundEffects = Array.Empty<SoundChannel>();
+            SoundEffects = new Dictionary<string, Sound>();
             Ambience = Array.Empty<SoundChannel>();
             Voice = Array.Empty<SoundChannel>();
             Music = Array.Empty<SoundChannel>();
@@ -46,6 +42,7 @@ namespace TwinspireCS.Audio
             isPlaying = new List<bool>();
 
             MusicVolume = 1.0f;
+            SoundEffectVolume = 0.5f;
         }
 
         /// <summary>
@@ -62,6 +59,8 @@ namespace TwinspireCS.Audio
         public void Init(int maxSoundChannels, int numSoundsReserved, bool allowMusicCrossFade = false, bool multipleVoiceTracks = false)
         {
             this.maxSoundChannels = maxSoundChannels;
+            this.numSoundsReserved = numSoundsReserved;
+
             crossFadeMusic = allowMusicCrossFade;
 
             if (maxSoundChannels % 2 != 0)
@@ -74,18 +73,16 @@ namespace TwinspireCS.Audio
                 throw new Exception("The number of sounds being reserved is greater than the maximum sound channels.");
             }
 
-            startSoundEffectsPlayingIndex = 0;
-            SoundEffects = new SoundChannel[numSoundsReserved];
             var musicChannels = 1;
             if (allowMusicCrossFade)
                 musicChannels = 2;
 
-            startMusicPlayingIndex = numSoundsReserved;
+            startMusicPlayingIndex = 0;
 
             Music = new SoundChannel[musicChannels];
 
-            startVoicePlayingIndex = numSoundsReserved + musicChannels;
-            var remaining = maxSoundChannels - numSoundsReserved - musicChannels;
+            startVoicePlayingIndex = musicChannels;
+            var remaining = maxSoundChannels - musicChannels;
             if (multipleVoiceTracks)
             {
                 var half = remaining / 2;
@@ -100,7 +97,7 @@ namespace TwinspireCS.Audio
                 Ambience = new SoundChannel[remaining - 1];
             }
 
-            for (int i = 0; i < maxSoundChannels; i++)
+            for (int i = 0; i < maxSoundChannels - numSoundsReserved; i++)
                 isPlaying.Add(false);
         }
 
@@ -124,7 +121,7 @@ namespace TwinspireCS.Audio
             }
         }
 
-        public void PlayMusic(string identifier)
+        public int PlayMusic(string identifier)
         {
             var isAnyMusicPlaying = false;
             for (int i = startMusicPlayingIndex; i < startVoicePlayingIndex; i++)
@@ -133,8 +130,9 @@ namespace TwinspireCS.Audio
                     isAnyMusicPlaying = true;
             }
 
-            if (!isAnyMusicPlaying)
+            if (!isAnyMusicPlaying || !crossFadeMusic)
             {
+                var playingMusicChannel = 0;
                 for (int i = 0; i < Music.Length; i++)
                 {
                     if (Equals(Music[i], new SoundChannel()))
@@ -147,13 +145,63 @@ namespace TwinspireCS.Audio
                         var music = Application.Instance.ResourceManager.GetMusic(identifier);
                         Raylib.PlayMusicStream(music);
                         isPlaying[startMusicPlayingIndex + i] = true;
+                        playingMusicChannel = i;
                         break;
                     }
                 }
+                return playingMusicChannel;
             }
             else
             {
+                if (!crossFadeMusic)
+                {
 
+                    return 0;
+                }
+                    
+                // TODO: Implement cross-fade
+
+            }
+
+            return 0;
+        }
+
+        public void PlaySound(string identifier)
+        {
+            if (SoundEffects.ContainsKey(identifier))
+            {
+                var sound = SoundEffects[identifier];
+                Raylib.PlaySound(sound);
+            }
+            else
+            {
+                if (SoundEffects.Count >= numSoundsReserved)
+                    return;
+
+                var wave = Application.Instance.ResourceManager.GetWave(identifier);
+                var sound = Raylib.LoadSoundFromWave(wave);
+                SoundEffects.Add(identifier, sound);
+
+                Raylib.SetSoundVolume(sound, SoundEffectVolume);
+                Raylib.SetSoundPitch(sound, 1.0f);
+                Raylib.SetSoundPan(sound, 0.5f);
+
+                Raylib.PlaySound(sound);
+            }
+        }
+
+        public void UpdateSound(string identifier, float pitch, float pan)
+        {
+            if (SoundEffects.ContainsKey(identifier))
+            {
+                if (!Raylib.IsSoundPlaying(SoundEffects[identifier]))
+                {
+                    SoundEffects.Remove(identifier);
+                    return;
+                }
+
+                Raylib.SetSoundPitch(SoundEffects[identifier], pitch);
+                Raylib.SetSoundPan(SoundEffects[identifier], pan);
             }
         }
 

@@ -22,7 +22,10 @@ namespace TwinspireCS.Engine.GUI
         private List<string> elementsToAdd;
         private IDictionary<string, int[]> elementIdCache;
         private IDictionary<int, TextDim> elementTexts;
+        private int currentElementIndex;
         private bool elementsChanged;
+        private int forceChangeElementIndex;
+        private ElementState forceChangeElementStateTo;
 
         private List<int> animationIndices;
         private List<Tween> tweens;
@@ -230,6 +233,30 @@ namespace TwinspireCS.Engine.GUI
 
                 menuWrappers.Clear();
             }
+            else
+            {
+                foreach (var element in elements)
+                {
+                    element.LastState = element.State;
+                }
+            }
+
+            currentElementIndex = -1;
+        }
+
+        public int GetLastElementIndex()
+        {
+            return currentElementIndex;
+        }
+
+        public bool WasElementState(int index, ElementState state)
+        {
+            if (index > -1)
+                return elements[index].LastState == state && 
+                    elements[index].LastState != elements[index].State &&
+                    elements[index].State != state;
+
+            return false;
         }
 
         public void TransformMousePosition(int width, int height)
@@ -248,6 +275,7 @@ namespace TwinspireCS.Engine.GUI
 
         public void End()
         {
+            
             foreach (var id in elementIdCache)
             {
                 var found = true;
@@ -274,6 +302,8 @@ namespace TwinspireCS.Engine.GUI
 
             elementsToAdd.Clear();
 
+            
+
             if (requestRebuild)
             {
                 foreach (var id in animationIndices)
@@ -289,6 +319,12 @@ namespace TwinspireCS.Engine.GUI
             }
 
             Animate.ResetTicks();
+        }
+
+        public void ForceChangeElementState(int elementIndex, ElementState state)
+        {
+            forceChangeElementIndex = elementIndex;
+            forceChangeElementStateTo = state;
         }
 
         public void DrawTo(int gridIndex, int cellIndex, LayoutFlags flags = LayoutFlags.DynamicRows | LayoutFlags.DynamicColumns)
@@ -379,6 +415,7 @@ namespace TwinspireCS.Engine.GUI
                             elementToSelect -= 1;
                         }
                         menu.SelectedElement = elementToSelect;
+                        ForceChangeElementState(elementToSelect, ElementState.Hovered);
                     }
                 }
                 else if (HotKeys.IsHotkeyPressed(HotKeys.DOWN))
@@ -404,6 +441,7 @@ namespace TwinspireCS.Engine.GUI
                         }
 
                         menu.SelectedElement = elementToSelect;
+                        ForceChangeElementState(elementToSelect, ElementState.Hovered);
                     }
                 }
             }
@@ -433,10 +471,21 @@ namespace TwinspireCS.Engine.GUI
             {
                 TwinspireCS.Utils.Warn("Trying to end a menu wrapper where one is not open.", 1);
             }
-            else if (requestRebuild)
+
+            var menu = menuWrappers[currentMenuWrapper];
+            if (requestRebuild)
             {
-                menuWrappers[currentMenuWrapper].EndElement = elements.Count;
+                menu.EndElement = elements.Count;
             }
+            else
+            {
+                if (HotKeys.IsHotkeyReleased(menu.ConfirmKeyName))
+                {
+                    ForceChangeElementState(menu.SelectedElement, ElementState.Clicked);                    
+                }
+            }
+
+            
 
             currentMenuWrapper = -1;
         }
@@ -740,6 +789,8 @@ namespace TwinspireCS.Engine.GUI
                     elements[i].Rendered = true;
                 }
 
+                currentElementIndex = index[0];
+
                 var hoverTween = id + ":hover";
                 string stateToChangeTo = "";
                 if (currentMenuWrapper > -1)
@@ -747,7 +798,7 @@ namespace TwinspireCS.Engine.GUI
                     var menu = menuWrappers[currentMenuWrapper];
                     if (menu.SelectedElement == index[0]
                         && (HotKeys.IsHotkeyDown(menu.ConfirmKeyName) 
-                        || Raylib.IsMouseButtonDown(MouseButton.MOUSE_BUTTON_LEFT)))
+                        || elements[index[0]].State == ElementState.Active))
                     {
                         stateToChangeTo = Theme.BUTTON_DOWN;
                     }
@@ -847,6 +898,8 @@ namespace TwinspireCS.Engine.GUI
                 {
                     elements[i].Rendered = true;
                 }
+
+                currentElementIndex = index[0];
 
                 TextDim textDim;
                 if (elementTexts.ContainsKey(index[0]))
@@ -1519,19 +1572,20 @@ namespace TwinspireCS.Engine.GUI
                     }
 
                     var isElementInMenu = menuWrappers.Where((menu) => activeIndex >= menu.StartElement && activeIndex < menu.EndElement);
-
+                    var changeStateTo = ElementState.Idle;
+                    
                     if (Raylib.IsMouseButtonDown(MouseButton.MOUSE_BUTTON_LEFT) && index == last)
                     {
-                        active.State = ElementState.Active;
+                        changeStateTo = ElementState.Active;
                     }
                     else if ((mouseReleased && index == last && firstClickTimePassed) || (firstClickTimePassed && index == last))
                     {
                         if (Raylib.IsMouseButtonReleased(MouseButton.MOUSE_BUTTON_RIGHT) && !doubleClick)
-                            active.State = ElementState.ContextMenu;
+                            changeStateTo = ElementState.ContextMenu;
                         else if (doubleClick)
-                            active.State = ElementState.DoubleClicked;
+                            changeStateTo = ElementState.DoubleClicked;
                         else
-                            active.State = ElementState.Clicked;
+                            changeStateTo = ElementState.Clicked;
                     }
                     else
                     {
@@ -1549,16 +1603,27 @@ namespace TwinspireCS.Engine.GUI
                                 menu.SelectedElement = elementToSelect;
                             else
                                 menu.SelectedElement = 0;
+
+                            changeStateTo = ElementState.Hovered;
                         }
                         else
                         {
-                            active.State = ElementState.Hovered;
+                            changeStateTo = ElementState.Hovered;
                         }
                     }
 
                     index -= 1;
+                    active.LastState = active.State;
+                    active.State = changeStateTo;
                 }
-                
+            }
+
+            if (forceChangeElementIndex > -1 && forceChangeElementIndex < elements.Count - 1)
+            {
+                elements[forceChangeElementIndex].LastState = elements[forceChangeElementIndex].State;
+                elements[forceChangeElementIndex].State = forceChangeElementStateTo;
+                forceChangeElementIndex = -1;
+                forceChangeElementStateTo = ElementState.Idle;
             }
 
             if (Raylib.IsMouseButtonReleased(MouseButton.MOUSE_BUTTON_LEFT) && !tempClick)

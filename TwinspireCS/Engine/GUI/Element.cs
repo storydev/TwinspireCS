@@ -20,6 +20,7 @@ namespace TwinspireCS.Engine.GUI
         public int StyleIndex;
         public Rectangle Dimension;
         public ElementState State;
+        public ElementState LastState;
         public ComponentShape Shape;
 
         public Element()
