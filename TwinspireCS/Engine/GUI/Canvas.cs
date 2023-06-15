@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Diagnostics;
 using Raylib_cs;
 using System.Xml.Linq;
+using TwinspireCS.Engine.Render;
 using TwinspireCS.Engine.Graphics;
 using TwinspireCS.Engine.Input;
 
@@ -17,6 +18,7 @@ namespace TwinspireCS.Engine.GUI
     public class Canvas
     {
 
+        private GameContext gameContext;
         private List<Grid> layouts;
         private List<Element> elements;
         private List<string> elementsToAdd;
@@ -91,6 +93,12 @@ namespace TwinspireCS.Engine.GUI
         private Color fadeInEffectFromColor;
         private bool fadingIn;
 
+        private int previousAfterTransitionAnimateIndex;
+        private int afterTransitionAnimateIndex;
+        private float afterTransitionDuration;
+        private Action afterTransitionCallback;
+        private bool afterTransitionComplete;
+
         public IEnumerable<Grid> Layouts => layouts;
 
         public string Name { get; set; }
@@ -110,6 +118,10 @@ namespace TwinspireCS.Engine.GUI
             tweensRunning = new List<bool>();
             activeElement = 0;
             elementsChanged = true;
+
+            previousAfterTransitionAnimateIndex = -1;
+            afterTransitionAnimateIndex = -1;
+            afterTransitionDuration = 0.0f;
 
             menuWrappers = new List<MenuWrapper>();
             currentMenuWrapper = -1;
@@ -216,6 +228,11 @@ namespace TwinspireCS.Engine.GUI
             return layouts.Count - 1;
         }
 
+        public void SetGameContext(GameContext context)
+        {
+            gameContext = context;
+        }
+
         public void AddBackgroundImage(string imageName)
         {
             backgroundImages.Add(imageName);
@@ -252,6 +269,8 @@ namespace TwinspireCS.Engine.GUI
             }
 
             currentElementIndex = -1;
+
+            HotKeys.DisableHotkeys(afterTransitionAnimateIndex > -1);
         }
 
         public int GetLastElementIndex()
@@ -307,6 +326,19 @@ namespace TwinspireCS.Engine.GUI
                 Raylib.DrawRectangle(0, 0, backBufferWidth, backBufferHeight, color);
             }
 
+            if (afterTransitionComplete)
+                return;
+
+            if (afterTransitionAnimateIndex > -1)
+            {
+                if (Animate.Tick(afterTransitionAnimateIndex, afterTransitionDuration))
+                {
+                    afterTransitionCallback();
+                    afterTransitionComplete = true;
+                    return;
+                }
+            }
+
             foreach (var id in elementIdCache)
             {
                 var found = true;
@@ -348,6 +380,42 @@ namespace TwinspireCS.Engine.GUI
             }
 
             Animate.ResetTicks();
+        }
+
+        /// <summary>
+        /// Performs a call to the given callback after the given delay. Once the callback is called, this
+        /// canvas blocks further render instructions until <c>ResetAfter</c> is called.
+        /// 
+        /// This also disables event simulation and hotkeys on this canvas.
+        /// </summary>
+        /// <param name="delay">The delay, in seconds, before the callback method is called.</param>
+        /// <param name="callback">The method to call after the delay timer has passed.</param>
+        public void After(float delay, Action callback)
+        {
+            if (afterTransitionAnimateIndex == -1)
+            {
+                if (previousAfterTransitionAnimateIndex > -1)
+                {
+                    afterTransitionAnimateIndex = previousAfterTransitionAnimateIndex;
+                }
+                else
+                {
+                    afterTransitionAnimateIndex = Animate.Create();
+                }
+            }
+
+            afterTransitionDuration = delay;
+            afterTransitionCallback = callback;
+        }
+
+        /// <summary>
+        /// Resets the After transition to allow rendering this canvas again.
+        /// </summary>
+        public void ResetAfter()
+        {
+            afterTransitionComplete = false;
+            previousAfterTransitionAnimateIndex = afterTransitionAnimateIndex;
+            afterTransitionAnimateIndex = -1;
         }
 
         public void ForceChangeElementState(int elementIndex, ElementState state)
@@ -514,8 +582,6 @@ namespace TwinspireCS.Engine.GUI
                 }
             }
 
-            
-
             currentMenuWrapper = -1;
         }
 
@@ -594,7 +660,7 @@ namespace TwinspireCS.Engine.GUI
             }
         }
 
-        private Style GetLocalStyle(ElementState state, string defaultState)
+        protected Style GetLocalStyle(ElementState state, string defaultState)
         {
             if (usingCustomStyle)
             {
@@ -707,7 +773,7 @@ namespace TwinspireCS.Engine.GUI
             return float.NaN;
         }
 
-        private Style? GetTweenState(string id, float ratio)
+        protected Style? GetTweenState(string id, float ratio)
         {
             if (elementTweens.ContainsKey(id))
             {
@@ -835,6 +901,9 @@ namespace TwinspireCS.Engine.GUI
 
         public ElementState Button(string id, string text, ContentAlignment alignment = ContentAlignment.Center)
         {
+            if (afterTransitionComplete && afterTransitionAnimateIndex > -1)
+                return ElementState.Idle;
+
             if (!requestRebuild && elementIdCache.ContainsKey(id))
             {
                 var index = elementIdCache[id];
@@ -945,6 +1014,9 @@ namespace TwinspireCS.Engine.GUI
 
         public ElementState Label(string id, string text, ContentAlignment alignment = ContentAlignment.Center)
         {
+            if (afterTransitionComplete && afterTransitionAnimateIndex > -1)
+                return ElementState.Idle;
+
             if (!requestRebuild && elementIdCache.ContainsKey(id))
             {
                 var index = elementIdCache[id];
@@ -1001,7 +1073,7 @@ namespace TwinspireCS.Engine.GUI
         /// <param name="componentName"></param>
         /// <param name="dimension"></param>
         /// <returns></returns>
-        private Element[]? BuildElementsFromComponent(string componentName, Rectangle dimension)
+        protected Element[]? BuildElementsFromComponent(string componentName, Rectangle dimension)
         {
             if (!UI.InterfaceBuilder.Components.ContainsKey(componentName))
             {
@@ -1053,7 +1125,7 @@ namespace TwinspireCS.Engine.GUI
             return elements;
         }
 
-        private Rectangle CalculateDimension(Rectangle constraints, Vector2 offset, Vector2 measure, ContentAlignment alignment)
+        protected Rectangle CalculateDimension(Rectangle constraints, Vector2 offset, Vector2 measure, ContentAlignment alignment)
         {
             Rectangle result = new Rectangle();
             var fullWidth = measure.X > constraints.width;
@@ -1110,7 +1182,7 @@ namespace TwinspireCS.Engine.GUI
             return result;
         }
 
-        private Rectangle CalculateDimension(Vector2 offset, Vector2 measure, ContentAlignment alignment, Rectangle against, bool outside = false)
+        protected Rectangle CalculateDimension(Vector2 offset, Vector2 measure, ContentAlignment alignment, Rectangle against, bool outside = false)
         {
             Rectangle result = new Rectangle();
             result.width = measure.X;
@@ -1171,7 +1243,7 @@ namespace TwinspireCS.Engine.GUI
             return result;
         }
 
-        private void DrawRectStyle(Rectangle rect, Style style)
+        protected void DrawRectStyle(Rectangle rect, Style style)
         {
             if (style.Spritesheet > -1 && style.Spritesheet < Spritesheet.Spritesheets.Count())
             {
@@ -1278,7 +1350,7 @@ namespace TwinspireCS.Engine.GUI
             }
         }
 
-        private void DrawText(int index, TextDim textDim, Color color, ContentAlignment alignment)
+        protected void DrawText(int index, TextDim textDim, Color color, ContentAlignment alignment)
         {
             var textX = 0.0f;
             var textY = 0.0f;
@@ -1337,7 +1409,7 @@ namespace TwinspireCS.Engine.GUI
 
         #endregion
 
-        private Rectangle CalculateNextDimension(int elementIndex, string textOrImageName = "")
+        protected Rectangle CalculateNextDimension(int elementIndex, string textOrImageName = "")
         {
             var currentRowElements = elements.Where((e) => e.GridIndex == currentGridIndex && e.CellIndex == currentCellIndex && e.IsBaseElement);
 
@@ -1512,6 +1584,9 @@ namespace TwinspireCS.Engine.GUI
 
         public void SimulateEvents()
         {
+            if (afterTransitionAnimateIndex > -1)
+                return;
+
             var doubleClick = false;
             var tempClick = false; // to prevent firstClick always being true.
             if (firstClick)
@@ -1692,6 +1767,9 @@ namespace TwinspireCS.Engine.GUI
         /// </summary>
         public void Render()
         {
+            if (afterTransitionComplete && afterTransitionAnimateIndex > -1)
+                return;
+
             foreach (var image in backgroundImages)
             {
                 if (!preloadedAll)
@@ -1702,6 +1780,11 @@ namespace TwinspireCS.Engine.GUI
                     new Rectangle(0, 0, textureBG.width, textureBG.height),
                     new Rectangle(0, 0, backBufferWidth, backBufferHeight),
                     new Vector2(0, 0), 0, Color.WHITE);
+            }
+
+            if (gameContext != null)
+            {
+                gameContext.Render();
             }
 
             for (int i = 0; i < layouts.Count; i++)

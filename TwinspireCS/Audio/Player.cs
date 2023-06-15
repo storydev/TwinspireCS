@@ -218,21 +218,6 @@ namespace TwinspireCS.Audio
             }
         }
 
-        public void UpdateSound(string identifier, float pitch, float pan)
-        {
-            if (SoundEffects.ContainsKey(identifier))
-            {
-                if (!Raylib.IsSoundPlaying(SoundEffects[identifier]))
-                {
-                    SoundEffects.Remove(identifier);
-                    return;
-                }
-
-                Raylib.SetSoundPitch(SoundEffects[identifier], pitch);
-                Raylib.SetSoundPan(SoundEffects[identifier], pan);
-            }
-        }
-
         public void FadeOutAndStopMusic(string identifier, float duration)
         {
             if (soundStates.ContainsKey(identifier))

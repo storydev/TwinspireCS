@@ -22,6 +22,13 @@ namespace TwinspireCS.Engine.Input
         private static Dictionary<string, InputMethod[]> hotKeyMappings;
         public static IDictionary<string, InputMethod[]> HotKeyMappings => hotKeyMappings ??= new Dictionary<string, InputMethod[]>();
 
+        private static bool isHotkeysDisabled;
+
+        public static void DisableHotkeys(bool yes)
+        {
+            isHotkeysDisabled = yes;
+        }
+
         public static void Init()
         {
             hotKeyMappings = new Dictionary<string, InputMethod[]>();
@@ -134,6 +141,9 @@ namespace TwinspireCS.Engine.Input
             if (!hotKeyMappings.ContainsKey(hotkey))
                 return false;
 
+            if (isHotkeysDisabled)
+                return false;
+
             var mappings = hotKeyMappings[hotkey];
             var isDown = false;
             for (int i = 0; i < mappings.Length; i++)
@@ -164,6 +174,9 @@ namespace TwinspireCS.Engine.Input
         public static bool IsHotkeyUp(string hotkey)
         {
             if (!hotKeyMappings.ContainsKey(hotkey))
+                return false;
+
+            if (isHotkeysDisabled)
                 return false;
 
             var mappings = hotKeyMappings[hotkey];
@@ -218,6 +231,9 @@ namespace TwinspireCS.Engine.Input
             if (!hotKeyMappings.ContainsKey(hotkey))
                 return false;
 
+            if (isHotkeysDisabled)
+                return false;
+
             var mappings = hotKeyMappings[hotkey];
             var isUp = false;
             for (int i = 0; i < mappings.Length; i++)
@@ -268,6 +284,9 @@ namespace TwinspireCS.Engine.Input
         public static bool IsHotkeyReleased(string hotkey)
         {
             if (!hotKeyMappings.ContainsKey(hotkey))
+                return false;
+
+            if (isHotkeysDisabled)
                 return false;
 
             var mappings = hotKeyMappings[hotkey];

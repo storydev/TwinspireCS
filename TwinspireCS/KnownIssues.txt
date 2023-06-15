@@ -1,0 +1,11 @@
+﻿** Known Issues **
+
+Current Issue Number: 10003
+
+* AUDIO *
+[#10001-PLAYER]: After adding returns for the "After" effects in the Canvas class, for some reason Player.PlaySound seems to queue up sounds rather than just playing them immediately. Not sure if the returns are actually having an effect on Player.PlaySound, but it was working fine before this change.
+
+* GUI *
+[#10002-CANVAS]: Need to ensure mouse leave from elements do not cause an ElementState change if the element is within a menu wrapper.
+
+** Fixed Issues **
