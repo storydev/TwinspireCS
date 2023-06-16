@@ -9,9 +9,10 @@ namespace TwinspireCS.Engine.Events
     public interface ITimelineProcessor
     {
 
+        List<TimelineEvent> Events { get; set; }
         void StartEvent(TimelineEvent ev);
         int GetCurrentEventIndex();
-        TimelineEvent GetCurrentEvent();
+        TimelineEvent? GetCurrentEvent();
         int DetermineNextEvent();
 
     }
