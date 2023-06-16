@@ -99,6 +99,8 @@ namespace TwinspireCS.Engine.GUI
         private Action afterTransitionCallback;
         private bool afterTransitionComplete;
 
+        private bool disableNextItem;
+
         public IEnumerable<Grid> Layouts => layouts;
 
         public string Name { get; set; }
@@ -265,6 +267,7 @@ namespace TwinspireCS.Engine.GUI
                 foreach (var element in elements)
                 {
                     element.LastState = element.State;
+                    element.State = element.NextState;
                 }
             }
 
@@ -286,6 +289,11 @@ namespace TwinspireCS.Engine.GUI
                     elements[index].State != state;
 
             return false;
+        }
+
+        public void SetNextItemDisabled()
+        {
+            disableNextItem = true;
         }
 
         public void TransformMousePosition(int width, int height)
@@ -947,11 +955,17 @@ namespace TwinspireCS.Engine.GUI
                         stateToChangeTo = Theme.BUTTON;
                     }
                 }
+                else if (disableNextItem)
+                {
+                    element.State = ElementState.Inactive;
+                    stateToChangeTo = Theme.DISABLED;
+                    disableNextItem = false;
+                }
                 else if (element.State == ElementState.Idle)
                 {
                     stateToChangeTo = Theme.BUTTON;
                 }
-                else if (element.State == ElementState.Hovered || element.State == ElementState.Clicked)
+                else if (element.State == ElementState.Hovered || element.State == ElementState.Clicked || element.State == ElementState.Focused)
                 {
                     stateToChangeTo = Theme.BUTTON_HOVER;
                 }
@@ -1626,7 +1640,7 @@ namespace TwinspireCS.Engine.GUI
             {
                 if ((element.State == ElementState.Active || element.State == ElementState.Clicked || element.State == ElementState.DoubleClicked) && Raylib.IsMouseButtonUp(MouseButton.MOUSE_BUTTON_LEFT))
                 {
-                    element.State = ElementState.Focused;
+                    element.NextState = ElementState.Focused;
                 }
             }
 
@@ -1644,7 +1658,7 @@ namespace TwinspireCS.Engine.GUI
                 {
                     if (element.State != ElementState.Idle || element.State != ElementState.Inactive)
                     {
-                        element.State = ElementState.Idle;
+                        element.NextState = ElementState.Idle;
                     }
                 }
             }
@@ -1755,15 +1769,13 @@ namespace TwinspireCS.Engine.GUI
                     }
 
                     index -= 1;
-                    active.LastState = active.State;
-                    active.State = changeStateTo;
+                    active.NextState = changeStateTo;
                 }
             }
 
             if (forceChangeElementIndex > -1 && forceChangeElementIndex < elements.Count - 1)
             {
-                elements[forceChangeElementIndex].LastState = elements[forceChangeElementIndex].State;
-                elements[forceChangeElementIndex].State = forceChangeElementStateTo;
+                elements[forceChangeElementIndex].NextState = forceChangeElementStateTo;
                 forceChangeElementIndex = -1;
                 forceChangeElementStateTo = ElementState.Idle;
             }
