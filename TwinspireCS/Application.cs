@@ -86,6 +86,11 @@ namespace TwinspireCS
         public string IconPath { get; set; }
 
         /// <summary>
+        /// Gets or sets the state of the game, as a 
+        /// </summary>
+        public IGameState GameState { get; set; }
+
+        /// <summary>
         /// Initialise a new application.
         /// </summary>
         /// <param name="title">The title of the window.</param>
