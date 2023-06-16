@@ -280,13 +280,48 @@ namespace TwinspireCS.Engine.GUI
         {
             return currentElementIndex;
         }
-
-        public bool WasElementState(int index, ElementState state)
+        
+        /// <summary>
+        /// Checks if the next element after this call will become the given state. If the state
+        /// of the element is already this state, or there is no next element, the result is <c>false</c>.
+        /// </summary>
+        /// <param name="state">The state to check.</param>
+        /// <returns></returns>
+        public bool IsNextElementState(ElementState state)
         {
-            if (index > -1)
-                return elements[index].LastState == state && 
-                    elements[index].LastState != elements[index].State &&
-                    elements[index].State != state;
+            var elementToSelect = currentElementIndex + 1;
+            var temp = currentElementIndex;
+            if (elements.Count == 0)
+                return false;
+
+            while (!elements[elementToSelect].IsBaseElement &&
+                        elements[elementToSelect].Type != ElementType.Interactive)
+            {
+                elementToSelect += 1;
+                if (elementToSelect >= elements.Count - 1)
+                {
+                    elementToSelect = temp;
+                    break;
+                }
+            }
+
+            return elements[elementToSelect].NextState == state &&
+                elements[elementToSelect].State != state &&
+                elementToSelect != temp;
+        }
+        
+        /// <summary>
+        /// Checks if the element at the given index is currently the given state. If the next state for the
+        /// given element is the same as the current state of the element, the result is <c>false</c>.
+        /// </summary>
+        /// <param name="index"></param>
+        /// <param name="state"></param>
+        /// <returns></returns>
+        public bool IsElementState(int index, ElementState state)
+        {
+            if (index > -1 && index < elements.Count)
+                return elements[index].State == state && 
+                    elements[index].NextState != state;
 
             return false;
         }
