@@ -220,6 +220,13 @@ namespace TwinspireCS
                 .SetBorderBottomColors(new Color(140, 140, 140, 255))
                 .SetBorderBottomThickness(1)
                 .ApplyBordersBottom(true));
+
+            Theme.Default.Styles.Add(Theme.DISABLED, new Style()
+                .SetBackground(new ColorMethod(ColorType.Solid, new Color[] { new Color(230, 230, 230, 127) }))
+                .SetBorderColors(new Color(127, 127, 127, 127))
+                .SetBorderThickness(2)
+                .ApplyBorders(true));
+                
         }
 
         /// <summary>

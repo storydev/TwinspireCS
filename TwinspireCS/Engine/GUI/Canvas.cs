@@ -99,6 +99,8 @@ namespace TwinspireCS.Engine.GUI
         private Action afterTransitionCallback;
         private bool afterTransitionComplete;
 
+        private bool disableNextItem;
+
         public IEnumerable<Grid> Layouts => layouts;
 
         public string Name { get; set; }
@@ -265,6 +267,7 @@ namespace TwinspireCS.Engine.GUI
                 foreach (var element in elements)
                 {
                     element.LastState = element.State;
+                    element.State = element.NextState;
                 }
             }
 
@@ -286,6 +289,11 @@ namespace TwinspireCS.Engine.GUI
                     elements[index].State != state;
 
             return false;
+        }
+
+        public void SetNextItemDisabled()
+        {
+            disableNextItem = true;
         }
 
         public void TransformMousePosition(int width, int height)
@@ -775,124 +783,136 @@ namespace TwinspireCS.Engine.GUI
 
         protected Style? GetTweenState(string id, float ratio)
         {
-            if (elementTweens.ContainsKey(id))
+            if (tweenStack.Count > 0)
+            {
+                var tween = tweenStack.Last();
+                if (tween.From.Spritesheet > -1 || tween.To.Spritesheet > -1)
+                    return tween.From;
+
+                return CreateStyleFromRatio(ratio, tween);
+            }
+            else if (elementTweens.ContainsKey(id))
             {
                 var tweenIndices = elementTweens[id];
                 var actualTween = tweens[tweenIndices[0]];
                 if (actualTween.From.Spritesheet > -1 || actualTween.To.Spritesheet > -1)
                     return actualTween.From;
 
-                var style = new Style();
-
-                // border check
-                {
-                    // change from false to true,
-                    // when this happens, default to animate in via opacity
-                    if (actualTween.From.Borders[0] != actualTween.To.Borders[0] && actualTween.To.Borders[0])
-                    {
-                        style.Opacity = ratio;
-                        style.BorderColors[0] = Utils.ChangeColour(actualTween.From.BorderColors[0], actualTween.To.BorderColors[0], ratio);
-                        style.BorderThicknesses[0] = actualTween.To.BorderThicknesses[0];
-                    }
-                    else if (actualTween.From.Borders[0]) // if already true, expand via thickness
-                    {
-                        style.BorderThicknesses[0] = (int)(((actualTween.To.BorderThicknesses[0] - actualTween.From.BorderThicknesses[0]) * ratio) + actualTween.From.BorderThicknesses[0]);
-                        style.BorderColors[0] = Utils.ChangeColour(actualTween.From.BorderColors[0], actualTween.To.BorderColors[0], ratio);
-                    }
-
-                    style.Borders[0] = actualTween.To.Borders[0];
-
-                    // change from false to true,
-                    // when this happens, default to animate in via opacity
-                    if (actualTween.From.Borders[1] != actualTween.To.Borders[1] && actualTween.To.Borders[1])
-                    {
-                        style.Opacity = ratio;
-                        style.BorderColors[1] = Utils.ChangeColour(actualTween.From.BorderColors[1], actualTween.To.BorderColors[1], ratio);
-                        style.BorderThicknesses[1] = actualTween.To.BorderThicknesses[1];
-                    }
-                    else if (actualTween.From.Borders[1]) // if already true, expand via thickness
-                    {
-                        style.BorderThicknesses[1] = (int)(((actualTween.To.BorderThicknesses[1] - actualTween.From.BorderThicknesses[1]) * ratio) + actualTween.From.BorderThicknesses[1]);
-                        style.BorderColors[1] = Utils.ChangeColour(actualTween.From.BorderColors[1], actualTween.To.BorderColors[1], ratio);
-                    }
-
-                    style.Borders[1] = actualTween.To.Borders[1];
-
-                    // change from false to true,
-                    // when this happens, default to animate in via opacity
-                    if (actualTween.From.Borders[2] != actualTween.To.Borders[2] && actualTween.To.Borders[2])
-                    {
-                        style.Opacity = ratio;
-                        style.BorderColors[2] = Utils.ChangeColour(actualTween.From.BorderColors[2], actualTween.To.BorderColors[2], ratio);
-                        style.BorderThicknesses[2] = actualTween.To.BorderThicknesses[2];
-                    }
-                    else if (actualTween.From.Borders[2]) // if already true, expand via thickness
-                    {
-                        style.BorderThicknesses[2] = (int)(((actualTween.To.BorderThicknesses[2] - actualTween.From.BorderThicknesses[2]) * ratio) + actualTween.From.BorderThicknesses[2]);
-                        style.BorderColors[2] = Utils.ChangeColour(actualTween.From.BorderColors[2], actualTween.To.BorderColors[2], ratio);
-                    }
-
-                    style.Borders[2] = actualTween.To.Borders[2];
-
-                    // change from false to true,
-                    // when this happens, default to animate in via opacity
-                    if (actualTween.From.Borders[3] != actualTween.To.Borders[3] && actualTween.To.Borders[3])
-                    {
-                        style.Opacity = ratio;
-                        style.BorderColors[3] = Utils.ChangeColour(actualTween.From.BorderColors[3], actualTween.To.BorderColors[3], ratio);
-                        style.BorderThicknesses[3] = actualTween.To.BorderThicknesses[3];
-                    }
-                    else if (actualTween.From.Borders[3]) // if already true, expand via thickness
-                    {
-                        style.BorderThicknesses[3] = (int)(((actualTween.To.BorderThicknesses[3] - actualTween.From.BorderThicknesses[3]) * ratio) + actualTween.From.BorderThicknesses[3]);
-                        style.BorderColors[3] = Utils.ChangeColour(actualTween.From.BorderColors[3], actualTween.To.BorderColors[3], ratio);
-                    }
-
-                    style.Borders[3] = actualTween.To.Borders[3];
-                }
-
-                // background color
-
-                style.BackgroundColor.Type = actualTween.To.BackgroundColor.Type;
-
-                if (actualTween.From.BackgroundColor.Type == actualTween.To.BackgroundColor.Type) // do literal conversion regardless of type here
-                {
-                    if (actualTween.From.BackgroundColor.Colors.Length != actualTween.To.BackgroundColor.Colors.Length)
-                    {
-                        // if the length of the two types are different, it was probably setup incorrectly!
-                        TwinspireCS.Utils.Warn("The length of the tween background colours for this call does not match. Exiting animation.", 2);
-                        return null;
-                    }
-
-                    style.BackgroundColor.Colors = new Color[actualTween.From.BackgroundColor.Colors.Length];
-                    for (int i = 0; i < actualTween.From.BackgroundColor.Colors.Length; i++)
-                    {
-                        style.BackgroundColor.Colors[i] = Utils.ChangeColour(actualTween.From.BackgroundColor.Colors[i], actualTween.To.BackgroundColor.Colors[i], ratio);
-                    }
-                }
-                else if (actualTween.From.BackgroundColor.Type != actualTween.To.BackgroundColor.Type)
-                {
-                    // if types are not the same, check if changing from solid -> gradient or gradient -> solid
-                    if (actualTween.From.BackgroundColor.Type == Extras.ColorType.Solid) // changing to gradient
-                    {
-                        // use solid colour for first colour in gradient
-                        style.BackgroundColor.Colors[0] = Utils.ChangeColour(actualTween.From.BackgroundColor.Colors[0], actualTween.To.BackgroundColor.Colors[0], ratio);
-                        style.BackgroundColor.Colors[1] = Utils.ChangeColour(actualTween.From.BackgroundColor.Colors[0], actualTween.To.BackgroundColor.Colors[1], ratio);
-                    }
-                    else if (actualTween.To.BackgroundColor.Type == Extras.ColorType.Solid) // changing from gradient
-                    {
-                        style.BackgroundColor.Colors[0] = Utils.ChangeColour(actualTween.From.BackgroundColor.Colors[0], actualTween.To.BackgroundColor.Colors[0], ratio);
-                        style.BackgroundColor.Colors[0] = Utils.ChangeColour(actualTween.From.BackgroundColor.Colors[1], actualTween.To.BackgroundColor.Colors[0], ratio);
-                    }
-                }
-
-                // radius corners
-                style.RadiusCorners = ((actualTween.To.RadiusCorners - actualTween.From.RadiusCorners) * ratio) + actualTween.From.RadiusCorners;
-
-                return style;
+                return CreateStyleFromRatio(ratio, actualTween);
             }
 
             return null;
+        }
+
+        private Style CreateStyleFromRatio(float ratio, Tween actualTween)
+        {
+            var style = new Style();
+
+            // border check
+            {
+                // change from false to true,
+                // when this happens, default to animate in via opacity
+                if (actualTween.From.Borders[0] != actualTween.To.Borders[0] && actualTween.To.Borders[0])
+                {
+                    style.Opacity = ratio;
+                    style.BorderColors[0] = Utils.ChangeColour(actualTween.From.BorderColors[0], actualTween.To.BorderColors[0], ratio);
+                    style.BorderThicknesses[0] = actualTween.To.BorderThicknesses[0];
+                }
+                else if (actualTween.From.Borders[0]) // if already true, expand via thickness
+                {
+                    style.BorderThicknesses[0] = (int)(((actualTween.To.BorderThicknesses[0] - actualTween.From.BorderThicknesses[0]) * ratio) + actualTween.From.BorderThicknesses[0]);
+                    style.BorderColors[0] = Utils.ChangeColour(actualTween.From.BorderColors[0], actualTween.To.BorderColors[0], ratio);
+                }
+
+                style.Borders[0] = actualTween.To.Borders[0];
+
+                // change from false to true,
+                // when this happens, default to animate in via opacity
+                if (actualTween.From.Borders[1] != actualTween.To.Borders[1] && actualTween.To.Borders[1])
+                {
+                    style.Opacity = ratio;
+                    style.BorderColors[1] = Utils.ChangeColour(actualTween.From.BorderColors[1], actualTween.To.BorderColors[1], ratio);
+                    style.BorderThicknesses[1] = actualTween.To.BorderThicknesses[1];
+                }
+                else if (actualTween.From.Borders[1]) // if already true, expand via thickness
+                {
+                    style.BorderThicknesses[1] = (int)(((actualTween.To.BorderThicknesses[1] - actualTween.From.BorderThicknesses[1]) * ratio) + actualTween.From.BorderThicknesses[1]);
+                    style.BorderColors[1] = Utils.ChangeColour(actualTween.From.BorderColors[1], actualTween.To.BorderColors[1], ratio);
+                }
+
+                style.Borders[1] = actualTween.To.Borders[1];
+
+                // change from false to true,
+                // when this happens, default to animate in via opacity
+                if (actualTween.From.Borders[2] != actualTween.To.Borders[2] && actualTween.To.Borders[2])
+                {
+                    style.Opacity = ratio;
+                    style.BorderColors[2] = Utils.ChangeColour(actualTween.From.BorderColors[2], actualTween.To.BorderColors[2], ratio);
+                    style.BorderThicknesses[2] = actualTween.To.BorderThicknesses[2];
+                }
+                else if (actualTween.From.Borders[2]) // if already true, expand via thickness
+                {
+                    style.BorderThicknesses[2] = (int)(((actualTween.To.BorderThicknesses[2] - actualTween.From.BorderThicknesses[2]) * ratio) + actualTween.From.BorderThicknesses[2]);
+                    style.BorderColors[2] = Utils.ChangeColour(actualTween.From.BorderColors[2], actualTween.To.BorderColors[2], ratio);
+                }
+
+                style.Borders[2] = actualTween.To.Borders[2];
+
+                // change from false to true,
+                // when this happens, default to animate in via opacity
+                if (actualTween.From.Borders[3] != actualTween.To.Borders[3] && actualTween.To.Borders[3])
+                {
+                    style.Opacity = ratio;
+                    style.BorderColors[3] = Utils.ChangeColour(actualTween.From.BorderColors[3], actualTween.To.BorderColors[3], ratio);
+                    style.BorderThicknesses[3] = actualTween.To.BorderThicknesses[3];
+                }
+                else if (actualTween.From.Borders[3]) // if already true, expand via thickness
+                {
+                    style.BorderThicknesses[3] = (int)(((actualTween.To.BorderThicknesses[3] - actualTween.From.BorderThicknesses[3]) * ratio) + actualTween.From.BorderThicknesses[3]);
+                    style.BorderColors[3] = Utils.ChangeColour(actualTween.From.BorderColors[3], actualTween.To.BorderColors[3], ratio);
+                }
+
+                style.Borders[3] = actualTween.To.Borders[3];
+            }
+
+            // background color
+
+            style.BackgroundColor.Type = actualTween.To.BackgroundColor.Type;
+
+            if (actualTween.From.BackgroundColor.Type == actualTween.To.BackgroundColor.Type) // do literal conversion regardless of type here
+            {
+                if (actualTween.From.BackgroundColor.Colors.Length != actualTween.To.BackgroundColor.Colors.Length)
+                {
+                    // if the length of the two types are different, it was probably setup incorrectly!
+                    TwinspireCS.Utils.Warn("The length of the tween background colours for this call does not match. Exiting animation.", 2);
+                    return null;
+                }
+
+                style.BackgroundColor.Colors = new Color[actualTween.From.BackgroundColor.Colors.Length];
+                for (int i = 0; i < actualTween.From.BackgroundColor.Colors.Length; i++)
+                {
+                    style.BackgroundColor.Colors[i] = Utils.ChangeColour(actualTween.From.BackgroundColor.Colors[i], actualTween.To.BackgroundColor.Colors[i], ratio);
+                }
+            }
+            else if (actualTween.From.BackgroundColor.Type != actualTween.To.BackgroundColor.Type)
+            {
+                // if types are not the same, check if changing from solid -> gradient or gradient -> solid
+                if (actualTween.From.BackgroundColor.Type == Extras.ColorType.Solid) // changing to gradient
+                {
+                    // use solid colour for first colour in gradient
+                    style.BackgroundColor.Colors[0] = Utils.ChangeColour(actualTween.From.BackgroundColor.Colors[0], actualTween.To.BackgroundColor.Colors[0], ratio);
+                    style.BackgroundColor.Colors[1] = Utils.ChangeColour(actualTween.From.BackgroundColor.Colors[0], actualTween.To.BackgroundColor.Colors[1], ratio);
+                }
+                else if (actualTween.To.BackgroundColor.Type == Extras.ColorType.Solid) // changing from gradient
+                {
+                    style.BackgroundColor.Colors[0] = Utils.ChangeColour(actualTween.From.BackgroundColor.Colors[0], actualTween.To.BackgroundColor.Colors[0], ratio);
+                    style.BackgroundColor.Colors[0] = Utils.ChangeColour(actualTween.From.BackgroundColor.Colors[1], actualTween.To.BackgroundColor.Colors[0], ratio);
+                }
+            }
+
+            // radius corners
+            style.RadiusCorners = ((actualTween.To.RadiusCorners - actualTween.From.RadiusCorners) * ratio) + actualTween.From.RadiusCorners;
+            return style;
         }
 
         #endregion
@@ -935,11 +955,17 @@ namespace TwinspireCS.Engine.GUI
                         stateToChangeTo = Theme.BUTTON;
                     }
                 }
+                else if (disableNextItem)
+                {
+                    element.State = ElementState.Inactive;
+                    stateToChangeTo = Theme.DISABLED;
+                    disableNextItem = false;
+                }
                 else if (element.State == ElementState.Idle)
                 {
                     stateToChangeTo = Theme.BUTTON;
                 }
-                else if (element.State == ElementState.Hovered || element.State == ElementState.Clicked)
+                else if (element.State == ElementState.Hovered || element.State == ElementState.Clicked || element.State == ElementState.Focused)
                 {
                     stateToChangeTo = Theme.BUTTON_HOVER;
                 }
@@ -1614,7 +1640,7 @@ namespace TwinspireCS.Engine.GUI
             {
                 if ((element.State == ElementState.Active || element.State == ElementState.Clicked || element.State == ElementState.DoubleClicked) && Raylib.IsMouseButtonUp(MouseButton.MOUSE_BUTTON_LEFT))
                 {
-                    element.State = ElementState.Focused;
+                    element.NextState = ElementState.Focused;
                 }
             }
 
@@ -1632,7 +1658,7 @@ namespace TwinspireCS.Engine.GUI
                 {
                     if (element.State != ElementState.Idle || element.State != ElementState.Inactive)
                     {
-                        element.State = ElementState.Idle;
+                        element.NextState = ElementState.Idle;
                     }
                 }
             }
@@ -1743,15 +1769,13 @@ namespace TwinspireCS.Engine.GUI
                     }
 
                     index -= 1;
-                    active.LastState = active.State;
-                    active.State = changeStateTo;
+                    active.NextState = changeStateTo;
                 }
             }
 
             if (forceChangeElementIndex > -1 && forceChangeElementIndex < elements.Count - 1)
             {
-                elements[forceChangeElementIndex].LastState = elements[forceChangeElementIndex].State;
-                elements[forceChangeElementIndex].State = forceChangeElementStateTo;
+                elements[forceChangeElementIndex].NextState = forceChangeElementStateTo;
                 forceChangeElementIndex = -1;
                 forceChangeElementStateTo = ElementState.Idle;
             }
