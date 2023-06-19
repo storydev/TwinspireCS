@@ -1124,6 +1124,133 @@ namespace TwinspireCS.Engine.GUI
             return ElementState.Idle;
         }
 
+        public ElementState ButtonImage(string id, string text, string imageName, Vector2 imageSize, ImageAlignment imageAlignment, ButtonImageFormat imageFormat, ContentAlignment alignment = ContentAlignment.Center)
+        {
+            if (afterTransitionComplete && afterTransitionAnimateIndex > -1)
+                return ElementState.Idle;
+
+            if (!requestRebuild && elementIdCache.ContainsKey(id))
+            {
+                var index = elementIdCache[id];
+                var element = elements[index[0]];
+                for (int i = index[0]; i < index[1]; i++)
+                {
+                    elements[i].Rendered = true;
+                }
+
+                currentElementIndex = index[0];
+
+                var hoverTween = id + ":hover";
+                string stateToChangeTo = "";
+                if (currentMenuWrapper > -1)
+                {
+                    var menu = menuWrappers[currentMenuWrapper];
+                    if (menu.SelectedElement == index[0]
+                        && (HotKeys.IsHotkeyDown(menu.ConfirmKeyName)
+                        || elements[index[0]].State == ElementState.Active))
+                    {
+                        stateToChangeTo = Theme.BUTTON_DOWN;
+                    }
+                    else if (menu.SelectedElement == index[0])
+                    {
+                        stateToChangeTo = Theme.BUTTON_HOVER;
+                    }
+                    else
+                    {
+                        stateToChangeTo = Theme.BUTTON;
+                    }
+                }
+                else if (disableNextItem)
+                {
+                    element.State = ElementState.Inactive;
+                    stateToChangeTo = Theme.DISABLED;
+                    disableNextItem = false;
+                }
+                else if (element.State == ElementState.Idle)
+                {
+                    stateToChangeTo = Theme.BUTTON;
+                }
+                else if (element.State == ElementState.Hovered || element.State == ElementState.Clicked || element.State == ElementState.Focused)
+                {
+                    stateToChangeTo = Theme.BUTTON_HOVER;
+                }
+                else if (element.State == ElementState.Active)
+                {
+                    stateToChangeTo = Theme.BUTTON_DOWN;
+                }
+
+                var style = GetLocalStyle(element.State, stateToChangeTo);
+                if (elementTweens.ContainsKey(hoverTween) && style.Spritesheet == -1)
+                {
+                    var tween = tweens[elementTweens[hoverTween][0]];
+                    if (element.State == ElementState.Hovered || element.State == ElementState.Idle)
+                    {
+                        ReverseTween(hoverTween, element.State == ElementState.Idle);
+                        var tweenRatio = RunTween(hoverTween, tween.Duration, tween.Delay);
+                        var tweenStyle = GetTweenState(hoverTween, tweenRatio != float.NaN ? tweenRatio : 0);
+                        if (tweenStyle != null)
+                            DrawRectStyle(element.Dimension, tweenStyle);
+                    }
+                    else
+                    {
+                        DrawRectStyle(element.Dimension, style);
+                    }
+                }
+                else
+                {
+                    DrawRectStyle(element.Dimension, style);
+                }
+
+                
+
+                TextDim textDim;
+                if (elementTexts.ContainsKey(index[0]))
+                {
+                    textDim = elementTexts[index[0]];
+                }
+
+                
+
+                return element.State;
+            }
+            else if (requestRebuild)
+            {
+                Rectangle elementDim = CalculateNextDimension(elements.Count, text + "<image:" + imageName + ">", true);
+                if (imageFormat == ButtonImageFormat.Image || imageFormat == ButtonImageFormat.ImageTextAsTooltip)
+                {
+                    elementDim.width = imageSize.X + childInnerPadding * 2;
+                    elementDim.height = imageSize.Y + childInnerPadding * 2;
+                }
+                else if (imageFormat == ButtonImageFormat.ImageAndText)
+                {
+                    if (imageAlignment == ImageAlignment.BeforeText)
+                    {
+                        
+                    }
+                }
+
+                var build = BuildElementsFromComponent("ButtonImage", elementDim);
+                int elementsLength = build.Length;
+                for (int i = 0; i < build.Length; i++)
+                {
+                    build[i].IsBaseElement = i == 0;
+                    build[i].CellIndex = currentCellIndex;
+                    build[i].GridIndex = currentGridIndex;
+                    build[i].ID = id;
+
+                    elements.Add(build[i]);
+                    if (i == 0)
+                        elementIdCache.Add(id, new int[] { elements.Count - 1, elementsLength });
+                }
+            }
+            else
+            {
+                elementsChanged = true;
+                elementsToAdd.Add(id);
+            }
+
+            return ElementState.Idle;
+        }
 
         #region Drawing Utilities
 
@@ -1470,18 +1597,29 @@ namespace TwinspireCS.Engine.GUI
 
         #endregion
 
-        protected Rectangle CalculateNextDimension(int elementIndex, string textOrImageName = "")
+        protected Rectangle CalculateNextDimension(int elementIndex, string textOrImageName = "", bool includeImage = false)
         {
             var currentRowElements = elements.Where((e) => e.GridIndex == currentGridIndex && e.CellIndex == currentCellIndex && e.IsBaseElement);
 
             Image imageToUse = new Image();
             bool usingImage = false;
 
-            if (textOrImageName.StartsWith("image:"))
+            if (textOrImageName.StartsWith("image:") && !includeImage)
             {
                 var imageName = textOrImageName["image:".Length..];
                 imageToUse = Application.Instance.ResourceManager.GetImage(imageName);
                 usingImage = true;
+            }
+            else if (includeImage)
+            {
+                var startImageIndex = textOrImageName.IndexOf("<image:");
+                var totalLength = "<image:>".Length;
+                if (textOrImageName.Length < startImageIndex + totalLength)
+                {
+                    var imageName = textOrImageName.Substring(startImageIndex + totalLength - 1, textOrImageName.Length - startImageIndex - 1);
+                    imageToUse = Application.Instance.ResourceManager.GetImage(imageName);
+                    usingImage = true;
+                }
             }
 
             var gridContentDim = layouts[currentGridIndex].GetContentDimension(currentCellIndex);
@@ -1634,7 +1772,17 @@ namespace TwinspireCS.Engine.GUI
                 && !currentLayoutFlags.HasFlag(LayoutFlags.FixedComponentHeights) && !currentLayoutFlags.HasFlag(LayoutFlags.FixedComponentWidths))
             {
                 widthToBecome += imageToUse.width;
-                heightToBecome += imageToUse.height;
+                if (!includeImage)
+                    heightToBecome += imageToUse.height;
+
+                if (widthToBecome > remainingWidth && currentLayoutFlags.HasFlag(LayoutFlags.DynamicRows))
+                {
+                    yToBecome += lastRowHeight;
+                    if (currentFlowDirection == FlowDirection.LeftToRight)
+                        xToBecome = gridContentDim.x;
+                    else
+                        xToBecome = gridContentDim.x + gridContentDim.width;
+                }
             }
 
             if (currentFlowDirection == FlowDirection.RightToLeft)

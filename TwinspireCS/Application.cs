@@ -193,6 +193,7 @@ namespace TwinspireCS
                 {
                     new ComponentElement()
                     {
+                        Type = ElementType.NonInteractive,
                         HorizontalMeasureType = MeasureType.Pixels,
                         VerticalMeasureType = MeasureType.Pixels
                     }
@@ -202,6 +203,38 @@ namespace TwinspireCS
                     InterpretedType.Text
                 }
             });
+
+            UI.InterfaceBuilder.AddComponent("ButtonImage", new Component(3)
+            {
+                Elements = new ComponentElement[]
+                {
+                    new ComponentElement()
+                    {
+                        Type = ElementType.Interactive,
+                        Shape = ComponentShape.Rectangle
+                    },
+                    new ComponentElement()
+                    {
+                        Type = ElementType.NonInteractive,
+                        HorizontalMeasureType = MeasureType.Pixels,
+                        VerticalMeasureType = MeasureType.Pixels
+                    },
+                    new ComponentElement()
+                    {
+                        Type = ElementType.NonInteractive,
+                        HorizontalMeasureType = MeasureType.Pixels,
+                        VerticalMeasureType = MeasureType.Pixels
+                    }
+                },
+                ElementInterpetedTypes = new InterpretedType[]
+                {
+                    InterpretedType.Shape,
+                    InterpretedType.Image,
+                    InterpretedType.Text
+                }
+            });
+
+
 
             Theme.Default.Styles.Add(Theme.BUTTON, new Style()
                 .SetBackground(new ColorMethod(ColorType.GradientVertical, new Color[] { new Color(220, 220, 220, 255), new Color(185, 185, 185, 255) }))
