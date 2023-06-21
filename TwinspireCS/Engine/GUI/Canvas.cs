@@ -1221,22 +1221,34 @@ namespace TwinspireCS.Engine.GUI
                     elementDim.width = imageSize.X + childInnerPadding * 2;
                     elementDim.height = imageSize.Y + childInnerPadding * 2;
                 }
-                else if (imageFormat == ButtonImageFormat.ImageAndText)
-                {
-                    if (imageAlignment == ImageAlignment.BeforeText)
-                    {
-                        
-                    }
-                }
 
                 var build = BuildElementsFromComponent("ButtonImage", elementDim);
                 int elementsLength = build.Length;
+                TextDim textInfo = null;
+                if (elementTexts.ContainsKey(elements.Count))
+                {
+                    textInfo = elementTexts[elements.Count];
+                }
+
                 for (int i = 0; i < build.Length; i++)
                 {
                     build[i].IsBaseElement = i == 0;
                     build[i].CellIndex = currentCellIndex;
                     build[i].GridIndex = currentGridIndex;
                     build[i].ID = id;
+
+                    if (i == 1) // for image component
+                    {
+                        if (imageFormat == ButtonImageFormat.ImageAndText)
+                        {
+                            if (imageAlignment == ImageAlignment.BeforeText)
+                            {
+                                build[i + 1].Dimension = CalculateDimension(build[0].Dimension, new Vector2(0, childInnerPadding), textInfo.ContentSize, alignment);
+                                // todo
+                                build[i].Dimension = CalculateDimension(new Vector2(0, childInnerPadding), textInfo.ContentSize, alignment, build[i + 1].Dimension, true);
+                            }
+                        }
+                    }
 
                     elements.Add(build[i]);
                     if (i == 0)
