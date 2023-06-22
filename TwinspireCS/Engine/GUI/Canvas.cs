@@ -1032,7 +1032,7 @@ namespace TwinspireCS.Engine.GUI
                 }
 
                 TextDim textDim;
-                if (elementTexts.ContainsKey(index[0]))
+                if (elementTexts.ContainsKey(index[0]) && elements[index[0] + 1].Visible)
                 {
                     textDim = elementTexts[index[0]];
                     DrawText(index[0], textDim, currentFontColor, alignment);
@@ -1050,6 +1050,7 @@ namespace TwinspireCS.Engine.GUI
                     build[i].IsBaseElement = i == 0;
                     build[i].CellIndex = currentCellIndex;
                     build[i].GridIndex = currentGridIndex;
+                    build[i].Visible = true;
                     build[i].ID = id;
 
                     elements.Add(build[i]);
@@ -1082,7 +1083,7 @@ namespace TwinspireCS.Engine.GUI
             {
                 var index = elementIdCache[id];
                 var element = elements[index[0]];
-                for (int i = index[0]; i < index[1]; i++)
+                for (int i = index[0]; i < (index[1] + index[0]); i++)
                 {
                     elements[i].Rendered = true;
                 }
@@ -1108,6 +1109,7 @@ namespace TwinspireCS.Engine.GUI
                     build[i].IsBaseElement = i == 0;
                     build[i].CellIndex = currentCellIndex;
                     build[i].GridIndex = currentGridIndex;
+                    build[i].Visible = true;
                     build[i].ID = id;
 
                     elements.Add(build[i]);
@@ -1124,6 +1126,263 @@ namespace TwinspireCS.Engine.GUI
             return ElementState.Idle;
         }
 
+        public ElementState ButtonImage(string id, string text, string imageName, Vector2 imageSize, ImageAlignment imageAlignment, ButtonImageFormat imageFormat, ContentAlignment alignment = ContentAlignment.Center)
+        {
+            if (afterTransitionComplete && afterTransitionAnimateIndex > -1)
+                return ElementState.Idle;
+
+            if (!requestRebuild && elementIdCache.ContainsKey(id))
+            {
+                var index = elementIdCache[id];
+                var element = elements[index[0]];
+                for (int i = index[0]; i < (index[1] + index[0]); i++)
+                {
+                    elements[i].Rendered = true;
+                }
+
+                currentElementIndex = index[0];
+
+                var hoverTween = id + ":hover";
+                string stateToChangeTo = "";
+                if (currentMenuWrapper > -1)
+                {
+                    var menu = menuWrappers[currentMenuWrapper];
+                    if (menu.SelectedElement == index[0]
+                        && (HotKeys.IsHotkeyDown(menu.ConfirmKeyName)
+                        || elements[index[0]].State == ElementState.Active))
+                    {
+                        stateToChangeTo = Theme.BUTTON_DOWN;
+                    }
+                    else if (menu.SelectedElement == index[0])
+                    {
+                        stateToChangeTo = Theme.BUTTON_HOVER;
+                    }
+                    else
+                    {
+                        stateToChangeTo = Theme.BUTTON;
+                    }
+                }
+                else if (disableNextItem)
+                {
+                    element.State = ElementState.Inactive;
+                    stateToChangeTo = Theme.DISABLED;
+                    disableNextItem = false;
+                }
+                else if (element.State == ElementState.Idle)
+                {
+                    stateToChangeTo = Theme.BUTTON;
+                }
+                else if (element.State == ElementState.Hovered || element.State == ElementState.Clicked || element.State == ElementState.Focused)
+                {
+                    stateToChangeTo = Theme.BUTTON_HOVER;
+                }
+                else if (element.State == ElementState.Active)
+                {
+                    stateToChangeTo = Theme.BUTTON_DOWN;
+                }
+
+                var style = GetLocalStyle(element.State, stateToChangeTo);
+                if (elementTweens.ContainsKey(hoverTween) && style.Spritesheet == -1)
+                {
+                    var tween = tweens[elementTweens[hoverTween][0]];
+                    if (element.State == ElementState.Hovered || element.State == ElementState.Idle)
+                    {
+                        ReverseTween(hoverTween, element.State == ElementState.Idle);
+                        var tweenRatio = RunTween(hoverTween, tween.Duration, tween.Delay);
+                        var tweenStyle = GetTweenState(hoverTween, tweenRatio != float.NaN ? tweenRatio : 0);
+                        if (tweenStyle != null)
+                            DrawRectStyle(element.Dimension, tweenStyle);
+                    }
+                    else
+                    {
+                        DrawRectStyle(element.Dimension, style);
+                    }
+                }
+                else
+                {
+                    DrawRectStyle(element.Dimension, style);
+                }
+
+                var imageElement = elements[index[0] + 1];
+
+                TextDim textDim = null;
+                if (elementTexts.ContainsKey(index[0]))
+                {
+                    textDim = elementTexts[index[0]];
+                }
+
+                var imageTexture = Application.Instance.ResourceManager.GetTexture(imageName);
+                Raylib.DrawTexturePro(imageTexture, new Rectangle(0, 0, imageTexture.width, imageTexture.height), 
+                    new Rectangle(imageElement.Dimension.x, imageElement.Dimension.y, imageSize.X, imageSize.Y), new Vector2(0, 0), 0, Color.WHITE);
+
+                if (imageFormat == ButtonImageFormat.ImageAndText)
+                {
+                    if (textDim != null)
+                    {
+                        DrawText(index[0] + 2, textDim, style.ForegroundColor, alignment);
+                    }
+                }
+
+                return element.State;
+            }
+            else if (requestRebuild)
+            {
+                Rectangle elementDim = CalculateNextDimension(elements.Count, text + "<image:" + imageName + ">", true);
+                if (imageFormat == ButtonImageFormat.Image || imageFormat == ButtonImageFormat.ImageTextAsTooltip)
+                {
+                    elementDim.width = imageSize.X + childInnerPadding * 2;
+                    elementDim.height = imageSize.Y + childInnerPadding * 2;
+                }
+
+                var build = BuildElementsFromComponent("ButtonImage", elementDim);
+                int elementsLength = build.Length;
+                TextDim textInfo = null;
+                if (elementTexts.ContainsKey(elements.Count))
+                {
+                    textInfo = elementTexts[elements.Count];
+                }
+
+                for (int i = 0; i < build.Length; i++)
+                {
+                    build[i].IsBaseElement = i == 0;
+                    build[i].CellIndex = currentCellIndex;
+                    build[i].GridIndex = currentGridIndex;
+                    build[i].Visible = true;
+                    build[i].ID = id;
+
+
+                    var totalElementsToBuild = build.Length;
+                    if (imageFormat == ButtonImageFormat.ImageTextAsTooltip)
+                    {
+                        totalElementsToBuild = totalElementsToBuild + 1;
+                    }
+
+                    if (i == 1) // for image component
+                    {
+                        if (imageFormat == ButtonImageFormat.ImageAndText)
+                        {
+                            if (imageAlignment == ImageAlignment.BeforeText)
+                            { 
+                                ContentAlignment againstAlignment = ContentAlignment.Right;
+                                if (alignment == ContentAlignment.Bottom || alignment == ContentAlignment.BottomLeft || alignment == ContentAlignment.BottomRight)
+                                {
+                                    // if alignment at bottom, set label alignment first, then image
+                                    build[i + 1].Dimension = CalculateDimension(build[0].Dimension, new Vector2(childInnerPadding, childInnerPadding), new Vector2(build[i].Dimension.width, build[i].Dimension.height), alignment);
+                                    if (alignment == ContentAlignment.Bottom)
+                                    {
+                                        build[i].Dimension = CalculateDimension(build[0].Dimension, new Vector2(childInnerPadding, childInnerPadding), textInfo.ContentSize, ContentAlignment.Top);
+                                    }
+                                    else if (alignment == ContentAlignment.BottomLeft)
+                                    {
+                                        build[i].Dimension = CalculateDimension(build[0].Dimension, new Vector2(childInnerPadding, childInnerPadding), textInfo.ContentSize, ContentAlignment.TopLeft);
+                                    }
+                                    else if (alignment == ContentAlignment.BottomRight)
+                                    {
+                                        build[i].Dimension = CalculateDimension(build[0].Dimension, new Vector2(childInnerPadding, childInnerPadding), textInfo.ContentSize, ContentAlignment.TopRight);
+                                    }
+                                }
+                                else
+                                {
+                                    // if alignment elsewhere, set image alignment first, then text
+                                    build[i].Dimension = CalculateDimension(build[0].Dimension, new Vector2(childInnerPadding, childInnerPadding), imageSize, alignment);
+                                    if (alignment == ContentAlignment.Center)
+                                    {
+                                        againstAlignment = ContentAlignment.Bottom;
+                                    }
+                                    else if (alignment == ContentAlignment.Right)
+                                    {
+                                        againstAlignment = ContentAlignment.BottomRight;
+                                    }
+                                    else if (alignment == ContentAlignment.Top)
+                                    {
+                                        againstAlignment = ContentAlignment.Bottom;
+                                    }
+                                    else if (alignment == ContentAlignment.TopRight)
+                                    {
+                                        againstAlignment = ContentAlignment.BottomRight;
+                                    }
+                                    build[i + 1].Dimension = CalculateDimension(new Vector2(0, 0), textInfo.ContentSize, againstAlignment, build[i].Dimension);
+                                }
+                            }
+                            else if (imageAlignment == ImageAlignment.AfterText)
+                            {
+                                ContentAlignment againstAlignment = ContentAlignment.Right;
+                                if (alignment == ContentAlignment.Bottom || alignment == ContentAlignment.BottomLeft || alignment == ContentAlignment.BottomRight)
+                                {
+                                    // if alignment at bottom, set image alignment first, then label
+                                    build[i].Dimension = CalculateDimension(build[0].Dimension, new Vector2(childInnerPadding, childInnerPadding), new Vector2(build[i].Dimension.width, build[i].Dimension.height), alignment);
+                                    if (alignment == ContentAlignment.Bottom)
+                                    {
+                                        build[i + 1].Dimension = CalculateDimension(build[0].Dimension, new Vector2(childInnerPadding, childInnerPadding), textInfo.ContentSize, ContentAlignment.Top);
+                                    }
+                                    else if (alignment == ContentAlignment.BottomLeft)
+                                    {
+                                        build[i + 1].Dimension = CalculateDimension(build[0].Dimension, new Vector2(childInnerPadding, childInnerPadding), textInfo.ContentSize, ContentAlignment.TopLeft);
+                                    }
+                                    else if (alignment == ContentAlignment.BottomRight)
+                                    {
+                                        build[i + 1].Dimension = CalculateDimension(build[0].Dimension, new Vector2(childInnerPadding, childInnerPadding), textInfo.ContentSize, ContentAlignment.TopRight);
+                                    }
+                                }
+                                else
+                                {
+                                    // if alignment elsewhere, set label alignment first, then image
+                                    build[i + 1].Dimension = CalculateDimension(build[0].Dimension, new Vector2(childInnerPadding, childInnerPadding), imageSize, alignment);
+                                    if (alignment == ContentAlignment.Center)
+                                    {
+                                        againstAlignment = ContentAlignment.Bottom;
+                                    }
+                                    else if (alignment == ContentAlignment.Right)
+                                    {
+                                        againstAlignment = ContentAlignment.BottomRight;
+                                    }
+                                    else if (alignment == ContentAlignment.Top)
+                                    {
+                                        againstAlignment = ContentAlignment.Bottom;
+                                    }
+                                    else if (alignment == ContentAlignment.TopRight)
+                                    {
+                                        againstAlignment = ContentAlignment.BottomRight;
+                                    }
+                                    build[i].Dimension = CalculateDimension(build[0].Dimension, new Vector2(childInnerPadding, childInnerPadding), textInfo.ContentSize, againstAlignment);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            build[i].Dimension = CalculateDimension(build[0].Dimension, new Vector2(childInnerPadding, childInnerPadding), imageSize, alignment);
+                            build[i + 1].Visible = false;
+                        }
+                    }
+
+                    elements.Add(build[i]);
+                    if (i == 0)
+                        elementIdCache.Add(id, new int[] { elements.Count - 1, totalElementsToBuild });
+
+                    if (imageFormat == ButtonImageFormat.ImageTextAsTooltip)
+                    {
+                        var toolTipElement = new Element();
+                        toolTipElement.CellIndex = -1;
+                        toolTipElement.GridIndex = -1;
+                        toolTipElement.IsBaseElement = true;
+                        toolTipElement.State = ElementState.Idle;
+                        toolTipElement.Type = ElementType.NonInteractive;
+                        toolTipElement.Visible = false;
+                        toolTipElement.ID = id + "_tooltip";
+                        // set position at zero, will be determined on-demand
+                        toolTipElement.Dimension = new Rectangle(0, 0, textInfo.ContentSize.X + (childInnerPadding * 2), textInfo.ContentSize.Y + (childInnerPadding * 2));
+                        elements.Add(toolTipElement);
+                    }
+                }
+            }
+            else
+            {
+                elementsChanged = true;
+                elementsToAdd.Add(id);
+            }
+
+            return ElementState.Idle;
+        }
 
         #region Drawing Utilities
 
@@ -1470,18 +1729,31 @@ namespace TwinspireCS.Engine.GUI
 
         #endregion
 
-        protected Rectangle CalculateNextDimension(int elementIndex, string textOrImageName = "")
+        protected Rectangle CalculateNextDimension(int elementIndex, string textOrImageName = "", bool includeImage = false)
         {
             var currentRowElements = elements.Where((e) => e.GridIndex == currentGridIndex && e.CellIndex == currentCellIndex && e.IsBaseElement);
 
             Image imageToUse = new Image();
             bool usingImage = false;
 
-            if (textOrImageName.StartsWith("image:"))
+            if (textOrImageName.StartsWith("image:") && !includeImage)
             {
                 var imageName = textOrImageName["image:".Length..];
                 imageToUse = Application.Instance.ResourceManager.GetImage(imageName);
                 usingImage = true;
+            }
+            else if (includeImage)
+            {
+                var startImageIndex = textOrImageName.IndexOf("<image:");
+                var totalLength = "<image:>".Length;
+                if (textOrImageName.Length < startImageIndex + totalLength)
+                {
+                    var imageName = textOrImageName.Substring(startImageIndex + totalLength - 1, textOrImageName.Length - startImageIndex - 1);
+                    imageToUse = Application.Instance.ResourceManager.GetImage(imageName);
+                    usingImage = true;
+                }
+
+                textOrImageName = textOrImageName[..startImageIndex];
             }
 
             var gridContentDim = layouts[currentGridIndex].GetContentDimension(currentCellIndex);
@@ -1634,7 +1906,17 @@ namespace TwinspireCS.Engine.GUI
                 && !currentLayoutFlags.HasFlag(LayoutFlags.FixedComponentHeights) && !currentLayoutFlags.HasFlag(LayoutFlags.FixedComponentWidths))
             {
                 widthToBecome += imageToUse.width;
-                heightToBecome += imageToUse.height;
+                if (!includeImage)
+                    heightToBecome += imageToUse.height;
+
+                if (widthToBecome > remainingWidth && currentLayoutFlags.HasFlag(LayoutFlags.DynamicRows))
+                {
+                    yToBecome += lastRowHeight;
+                    if (currentFlowDirection == FlowDirection.LeftToRight)
+                        xToBecome = gridContentDim.x;
+                    else
+                        xToBecome = gridContentDim.x + gridContentDim.width;
+                }
             }
 
             if (currentFlowDirection == FlowDirection.RightToLeft)
