@@ -13,6 +13,7 @@ namespace TwinspireCS.Engine.GUI
         public static readonly string BUTTON_HOVER = "ButtonHover";
         public static readonly string BUTTON_DOWN = "ButtonDown";
         public static readonly string DISABLED = "Disabled";
+        public static readonly string TOOLTIP = "ToolTip";
 
 
         public Dictionary<string, Style> Styles;

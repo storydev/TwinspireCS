@@ -14,6 +14,7 @@ namespace TwinspireCS.Engine.GUI
 
         public StyleMethod Method;
         public ColorMethod BackgroundColor;
+        public Color ForegroundColor;
         public string BackgroundImage;
         public float RadiusCorners;
         public float Opacity;
@@ -29,6 +30,7 @@ namespace TwinspireCS.Engine.GUI
         public Style()
         {
             BackgroundColor = new ColorMethod();
+            ForegroundColor = Color.BLACK;
             BackgroundImage = string.Empty;
             RadiusCorners = 0f;
 
@@ -45,6 +47,12 @@ namespace TwinspireCS.Engine.GUI
         public Style SetBackground(ColorMethod color)
         {
             BackgroundColor = color;
+            return this;
+        }
+
+        public Style SetForeground(Color color)
+        {
+            ForegroundColor = color;
             return this;
         }
 
