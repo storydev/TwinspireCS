@@ -2028,7 +2028,7 @@ namespace TwinspireCS.Engine.GUI
                 }
             }
 
-            if (possibleActiveElements.Count > 0 && elements.Count > 0)
+            if (possibleActiveElements.Count > 0 && elements.Count > 0 && !ImGuiController.IsImGuiInteracted())
             {
                 int last = possibleActiveElements.Count - 1;
                 int index = last;

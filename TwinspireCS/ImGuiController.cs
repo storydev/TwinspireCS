@@ -207,6 +207,15 @@ namespace TwinspireCS
             }
         }
 
+        /// <summary>
+        /// Gets a value to determine if the Dear ImGui interface is currently being interacted with.
+        /// </summary>
+        /// <returns></returns>
+        public static bool IsImGuiInteracted()
+        {
+            return ImGui.IsAnyItemActive() || ImGui.IsAnyItemFocused() || ImGui.IsAnyItemHovered() || ImGui.IsWindowFocused(ImGuiFocusedFlags.AnyWindow) || ImGui.IsWindowHovered(ImGuiHoveredFlags.AnyWindow);
+        }
+
         public bool ProcessEvent()
         {
             var io = ImGui.GetIO();
