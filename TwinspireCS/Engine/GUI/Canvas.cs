@@ -1301,7 +1301,7 @@ namespace TwinspireCS.Engine.GUI
                                     {
                                         againstAlignment = ContentAlignment.BottomRight;
                                     }
-                                    build[i + 1].Dimension = CalculateDimension(new Vector2(0, 0), textInfo.ContentSize, againstAlignment, build[i].Dimension);
+                                    build[i + 1].Dimension = CalculateDimension(new Vector2(0, 0), textInfo.ContentSize, againstAlignment, build[i].Dimension, true);
                                 }
                             }
                             else if (imageAlignment == ImageAlignment.AfterText)
@@ -1344,7 +1344,7 @@ namespace TwinspireCS.Engine.GUI
                                     {
                                         againstAlignment = ContentAlignment.BottomRight;
                                     }
-                                    build[i].Dimension = CalculateDimension(build[0].Dimension, new Vector2(childInnerPadding, childInnerPadding), textInfo.ContentSize, againstAlignment);
+                                    build[i].Dimension = CalculateDimension(new Vector2(childInnerPadding, childInnerPadding), textInfo.ContentSize, againstAlignment, build[0].Dimension, true);
                                 }
                             }
                         }
@@ -1531,22 +1531,22 @@ namespace TwinspireCS.Engine.GUI
                 }
                 else if (alignment == ContentAlignment.Center)
                 {
-                    result.x = ((against.width - measure.X) / 2) + offset.X;
-                    result.y = ((against.height - measure.Y) / 2) + offset.Y;
+                    result.x = against.x + ((against.width - measure.X) / 2) + offset.X;
+                    result.y = against.y + ((against.height - measure.Y) / 2) + offset.Y;
                 }
                 else if (alignment == ContentAlignment.Left)
                 {
                     result.x = against.x - measure.X - offset.X;
-                    result.y = ((against.height - measure.Y) / 2) + offset.Y;
+                    result.y = against.y + (((against.height - measure.Y) / 2) + offset.Y);
                 }
                 else if (alignment == ContentAlignment.Right)
                 {
                     result.x = against.x + against.width + offset.X;
-                    result.y = ((against.height - measure.Y) / 2) + offset.Y;
+                    result.y = against.y + (((against.height - measure.Y) / 2) + offset.Y);
                 }
                 else if (alignment == ContentAlignment.Top)
                 {
-                    result.x = ((against.width - measure.X) / 2) + offset.X;
+                    result.x = against.x + (((against.width - measure.X) / 2) + offset.X);
                     result.y = against.y - measure.Y - offset.Y;
                 }
                 else if (alignment == ContentAlignment.TopLeft)
@@ -2146,7 +2146,7 @@ namespace TwinspireCS.Engine.GUI
                 }
             }
 
-            if (possibleActiveElements.Count > 0 && elements.Count > 0)
+            if (possibleActiveElements.Count > 0 && elements.Count > 0 && !ImGuiController.IsImGuiInteracted())
             {
                 int last = possibleActiveElements.Count - 1;
                 int index = last;
