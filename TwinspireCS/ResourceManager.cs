@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO.Compression;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -59,7 +60,7 @@ namespace TwinspireCS
         /// <param name="packageIndex">The index of the package to access.</param>
         /// <param name="identifier">The identifier used as the name for the resource.</param>
         /// <param name="buffer">The raw bytes buffer of the file to add to this package.</param>
-        public void AddResource(int packageIndex, string identifier, byte[] buffer)
+        public unsafe void AddResource(int packageIndex, string identifier, byte[] buffer)
         {
             if (packageIndex < 0 || packageIndex >= packages.Count)
             {
@@ -67,12 +68,23 @@ namespace TwinspireCS
             }
 
             var package = packages[packageIndex];
+            int compSize = 0;
+            byte* compressed;
+
+            fixed (byte* ptr = buffer)
+            {
+                compressed = Raylib.CompressData(ptr, buffer.Length, &compSize);
+            }
+
+            Raylib.MemFree(compressed);
+
             package.FileCursor = package.FileBufferCount;
-            package.FileBufferCount += buffer.LongLength;
+            package.FileBufferCount += compSize;
             package.FileMapping.Add(identifier, new DataSegment()
             {
                 Cursor = package.FileCursor,
-                Size = buffer.LongLength,
+                Size = buffer.Length,
+                CompressedSize = compSize,
                 Data = buffer
             });
         }
@@ -84,7 +96,7 @@ namespace TwinspireCS
         /// <param name="packageIndex">The index of the package to access.</param>
         /// <param name="identifier">The identifier used as the name for the resource.</param>
         /// <param name="sourceFile">The file path to acquire the bytes.</param>
-        public void AddResource(int packageIndex, string identifier, string sourceFile)
+        public unsafe void AddResource(int packageIndex, string identifier, string sourceFile)
         {
             if (packageIndex < 0 || packageIndex >= packages.Count)
             {
@@ -93,13 +105,26 @@ namespace TwinspireCS
 
             var buffer = File.ReadAllBytes(sourceFile);
             var package = packages[packageIndex];
+            int compSize = 0;
+            byte* compressed;
+
+            fixed (byte* ptr = buffer)
+            {
+                compressed = Raylib.CompressData(ptr, buffer.Length, &compSize);
+            }
+
+            Raylib.MemFree(compressed);
+
+
             package.FileCursor = package.FileBufferCount;
-            package.FileBufferCount += buffer.LongLength;
+            package.FileBufferCount += compSize;
+            
             package.FileMapping.Add(identifier, new DataSegment()
             {
                 OriginalSourceFile = sourceFile,
                 Cursor = package.FileCursor,
-                Size = buffer.LongLength,
+                Size = buffer.Length,
+                CompressedSize = compSize,
                 FileExt = Path.GetExtension(sourceFile)
             });
         }
@@ -123,7 +148,7 @@ namespace TwinspireCS
         /// Write all the data for the given package.
         /// </summary>
         /// <param name="packageIndex">The package to write out to its source file.</param>
-        public void WriteAll(int packageIndex)
+        public unsafe void WriteAll(int packageIndex)
         {
             if (packageIndex < 0 || packageIndex >= packages.Count)
             {
@@ -138,50 +163,56 @@ namespace TwinspireCS
             var package = packages[packageIndex];
             using (var stream = new FileStream(Path.Combine(outdir, package.SourceFilePath), FileMode.Create))
             {
-                using (GZipStream zip = new GZipStream(stream, CompressionLevel.SmallestSize))
+                using (BinaryWriter writer = new BinaryWriter(stream))
                 {
-                    using (BinaryWriter writer = new BinaryWriter(stream))
+                    int headerSize = sizeof(int);
+                    headerSize += sizeof(int) * 2;
+
+                    foreach (var kv in package.FileMapping)
                     {
-                        int headerSize = sizeof(int);
-                        headerSize += sizeof(int) * 2;
+                        headerSize += sizeof(long) * 3;
+                        headerSize += kv.Key.Length + 1;
+                        headerSize += kv.Value.FileExt.Length + 1;
+                    }
 
-                        foreach (var kv in package.FileMapping)
+                    writer.Write(headerSize);
+                    writer.Write(package.Version);
+                    writer.Write(package.FileMapping.Count);
+
+                    foreach (var kv in package.FileMapping)
+                    {
+                        writer.Write(kv.Key);
+                        var data = kv.Value;
+                        writer.Write(data.FileExt);
+                        writer.Write(data.Cursor);
+                        writer.Write(data.Size);
+                        writer.Write(data.CompressedSize);
+                    }
+
+                    // end header data
+
+                    // write the contents
+                    foreach (var kv in package.FileMapping)
+                    {
+                        var data = kv.Value;
+                        if (data.Data == null || data.Data.Length == 0)
                         {
-                            headerSize += sizeof(long) * 2;
-                            headerSize += kv.Key.Length + 1;
-                            headerSize += kv.Value.FileExt.Length + 1;
-                        }
-
-                        writer.Write(headerSize);
-                        writer.Write(package.Version);
-                        writer.Write(package.FileMapping.Count);
-
-                        foreach (var kv in package.FileMapping)
-                        {
-                            writer.Write(kv.Key);
-                            var data = kv.Value;
-                            writer.Write(data.FileExt);
-                            writer.Write(data.Cursor);
-                            writer.Write(data.Size);
-                        }
-
-                        // end header data
-
-                        // write the contents
-                        foreach (var kv in package.FileMapping)
-                        {
-                            var data = kv.Value;
-                            if (data.Data == null || data.Data.Length == 0)
+                            var bytes = File.ReadAllBytes(data.OriginalSourceFile);
+                            fixed (byte* ptr = bytes)
                             {
-                                var bytes = File.ReadAllBytes(data.OriginalSourceFile);
-                                writer.Write(bytes);
+                                int dataSize = 0;
+                                var compressed = Raylib.CompressData(ptr, bytes.Length, &dataSize);
+                                var compressedBuffer = new byte[dataSize];
+                                for (int i = 0; i < dataSize; i++)
+                                    compressedBuffer[i] = compressed[i];
+
+                                writer.Write(compressedBuffer);
                             }
-                            else
-                            {
-                                writer.Write(data.Data);
-                                data.Data = null;
-                            }
-                            
+                        }
+                        else
+                        {
+                            writer.Write(data.Data);
+                            data.Data = null;
                         }
                     }
                 }
@@ -235,24 +266,22 @@ namespace TwinspireCS
                             goto SKIP_READING;
                         }
 
-                        using (GZipStream zip = new GZipStream(stream, CompressionMode.Decompress))
+                        using (BinaryReader reader = new BinaryReader(stream))
                         {
-                            using (BinaryReader reader = new BinaryReader(stream))
+                            package.HeaderSize = reader.ReadInt32();
+                            package.Version = reader.ReadInt32();
+                            var count = reader.ReadInt32();
+                            for (int j = 0; j < count; j++)
                             {
-                                package.HeaderSize = reader.ReadInt32();
-                                package.Version = reader.ReadInt32();
-                                var count = reader.ReadInt32();
-                                for (int j = 0; j < count; j++)
-                                {
-                                    var identifier = reader.ReadString();
-                                    var segment = new DataSegment();
-                                    segment.FileExt = reader.ReadString();
-                                    segment.Cursor = reader.ReadInt64();
-                                    segment.Size = reader.ReadInt64();
+                                var identifier = reader.ReadString();
+                                var segment = new DataSegment();
+                                segment.FileExt = reader.ReadString();
+                                segment.Cursor = reader.ReadInt64();
+                                segment.Size = reader.ReadInt64();
+                                segment.CompressedSize = reader.ReadInt64();
 
-                                    package.FileCursor = segment.Cursor + segment.Size;
-                                    package.FileMapping.Add(identifier, segment);
-                                }
+                                package.FileCursor = segment.Cursor + segment.Size;
+                                package.FileMapping.Add(identifier, segment);
                             }
                         }
 
@@ -294,21 +323,33 @@ namespace TwinspireCS
                 throw new Exception("Identifier could not be found. ID: " + identifier);
 
             var fullPath = Path.Combine(AssetDirectory, foundPackage?.SourceFilePath);
-            byte[] buffer = new byte[foundData.Size];
+            byte[] buffer = new byte[foundData.CompressedSize];
 
             using (FileStream stream = new(fullPath, FileMode.Open, FileAccess.Read))
             {
-                using GZipStream zip = new(stream, CompressionMode.Decompress);
                 using BinaryReader reader = new(stream);
 
                 var headerSize = reader.ReadInt32();
                 reader.ReadBytes((headerSize - sizeof(int)) + (int)foundData.Cursor);
-                reader.Read(buffer, 0, buffer.Length);
+                reader.Read(buffer, 0, (int)foundData.CompressedSize);
+            }
+
+            byte* decompressed;
+            int decompressedSize;
+            fixed (byte* ptr = buffer)
+            {
+                decompressed = Raylib.DecompressData(ptr, buffer.Length, &decompressedSize);
             }
 
             ext = foundData.FileExt;
-            size = buffer.Length;
-            return buffer;
+            size = decompressedSize;
+            byte[] result = new byte[size];
+            for (int i = 0; i < result.Length; i++)
+                result[i] = decompressed[i];
+
+            Raylib.MemFree(decompressed);
+
+            return result;
         }
 
         /// <summary>

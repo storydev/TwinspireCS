@@ -32,6 +32,7 @@ namespace TwinspireCS
         public string FileExt;
         public long Cursor;
         public long Size;
+        public long CompressedSize;
         public byte[] Data;
 
         public DataSegment()
@@ -40,6 +41,7 @@ namespace TwinspireCS
             FileExt = string.Empty;
             Cursor = 0;
             Size = 0;
+            CompressedSize = 0;
             Data = Array.Empty<byte>();
         }
 
