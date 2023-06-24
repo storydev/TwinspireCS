@@ -18,6 +18,7 @@ namespace TwinspireCS
         private Dictionary<string, Wave> waveCache;
         private Dictionary<string, Music> musicCache;
         private Dictionary<string, Texture2D> textureCache;
+        private Dictionary<string, RenderTexture2D> renderTextureCache;
 
         private List<DataPackage> packages;
         /// <summary>
@@ -38,6 +39,7 @@ namespace TwinspireCS
             waveCache = new Dictionary<string, Wave>();
             musicCache = new Dictionary<string, Music>();
             textureCache = new Dictionary<string, Texture2D>();
+            renderTextureCache = new Dictionary<string, RenderTexture2D>();
             AssetDirectory = string.Empty;
         }
 
@@ -142,6 +144,22 @@ namespace TwinspireCS
             }
 
             imageCache.Add(identifier , image);
+        }
+
+        /// <summary>
+        /// Add a RenderTexture to memory. Will be lost when the application exits.
+        /// </summary>
+        /// <param name="identifier">The name of the texture. Must be unique.</param>
+        /// <param name="texture">The texture resource to add.</param>
+        /// <exception cref="Exception"></exception>
+        public void AddResourceRenderTexture(string identifier, RenderTexture2D texture)
+        {
+            if (renderTextureCache.ContainsKey(identifier))
+            {
+                throw new Exception("Identifier with the name '" + identifier + "' already exists.");
+            }
+
+            renderTextureCache.Add(identifier, texture);
         }
 
         /// <summary>
@@ -420,6 +438,21 @@ namespace TwinspireCS
             }
 
             return new Texture2D();
+        }
+
+        /// <summary>
+        /// Gets a RenderTexture with the given identifier.
+        /// </summary>
+        /// <param name="identifier">The identifier of the image to get.</param>
+        /// <returns></returns>
+        public RenderTexture2D GetRenderTexture(string identifier)
+        {
+            if (renderTextureCache.ContainsKey(identifier))
+            {
+                return renderTextureCache[identifier];
+            }
+
+            return new RenderTexture2D();
         }
 
         /// <summary>
@@ -741,6 +774,16 @@ namespace TwinspireCS
             foreach (var kv in imageCache)
             {
                 Raylib.UnloadImage(kv.Value);
+            }
+
+            foreach (var kv in textureCache)
+            {
+                Raylib.UnloadTexture(kv.Value);
+            }
+
+            foreach (var kv in renderTextureCache)
+            {
+                Raylib.UnloadRenderTexture(kv.Value);
             }
         }
 

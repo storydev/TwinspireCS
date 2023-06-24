@@ -46,7 +46,7 @@ namespace TwinspireCS.Engine.GUI
         private int actualMouseY;
         private int backBufferWidth;
         private int backBufferHeight;
-
+        private RenderTexture2D backBuffer;
 
         private int currentGridIndex;
         private int currentCellIndex;
@@ -233,6 +233,11 @@ namespace TwinspireCS.Engine.GUI
         public void SetGameContext(GameContext context)
         {
             gameContext = context;
+        }
+
+        public void SetBackBuffer(RenderTexture2D backBuffer)
+        {
+            this.backBuffer = backBuffer;
         }
 
         public void AddBackgroundImage(string imageName)
@@ -1732,20 +1737,24 @@ namespace TwinspireCS.Engine.GUI
         #region Game Rendering
 
         private Vector2 lookingAtTile;
-        private RenderTexture2D mapBuffer;
         private bool mapBufferInited = false;
 
         public void BuildMapTexture(TileMap map, bool completeRebuild = false)
         {
+            RenderTexture2D mapBuffer;
             if (!mapBufferInited || completeRebuild)
             {
                 mapBuffer = Raylib.LoadRenderTexture(map.TilesX * map.TileSize, map.TilesY * map.TileSize);
+                Application.Instance.ResourceManager.AddResourceRenderTexture("TileMap_" + map.Name, mapBuffer);
+
+
                 mapBufferInited = true;
             }
 
+            mapBuffer = Application.Instance.ResourceManager.GetRenderTexture("TileMap_" + map.Name);
             Raylib.BeginTextureMode(mapBuffer);
             Raylib.ClearBackground(Color.BLACK);
-            
+
             foreach (var layer in map.Layers)
             {
                 for (int i = 0; i < layer.Tiles.Length; i++)
@@ -1766,47 +1775,28 @@ namespace TwinspireCS.Engine.GUI
                         Raylib.DrawTexturePro(texture,
                             new Rectangle((float)tilesetX, (float)tilesetY, tileset.TileSize, tileset.TileSize),
                             new Rectangle((float)x + tile.Offset.X, (float)y + tile.Offset.Y, map.TileSize, map.TileSize),
-                            new Vector2((float)x + tile.Offset.X + (map.TileSize / 2), (float)y + tile.Offset.Y + (map.TileSize / 2)),
+                            new Vector2(0, 0),
                             tile.Rotation, color);
                     }
                 }
             }
+
             Raylib.EndTextureMode();
         }
 
 
-        public void TileMap(TileMap map, Camera2D camera, TileMapRegion renderRegion)
+        public void TileMap(TileMap map)
         {
+            RenderTexture2D mapBuffer;
+
             if (!mapBufferInited)
             {
                 mapBuffer = Raylib.LoadRenderTexture(map.TilesX * map.TileSize, map.TilesY * map.TileSize);
+                Application.Instance.ResourceManager.AddResourceRenderTexture("TileMap_" + map.Name, mapBuffer);
                 mapBufferInited = true;
 
                 BuildMapTexture(map);
             }
-
-            // get tiles to render
-            var halfTile = map.TileSize / 2;
-            var tileX = (float)Math.Floor(camera.target.X / map.TileSize);
-            var tileY = (float)Math.Floor(camera.target.Y / map.TileSize);
-            var midX = (tileX * map.TileSize) + halfTile;
-            var midY = (tileY * map.TileSize) + halfTile;
-
-            lookingAtTile = new Vector2((float)Math.Floor(midX / map.TileSize), (float)Math.Floor(midY / map.TileSize));
-
-            var offsetX = camera.target.X - (renderRegion.RenderTilesX / 2 * map.TileSize);
-            var offsetY = camera.target.Y - (renderRegion.RenderTilesY / 2 * map.TileSize);
-
-            if (!renderRegion.AllowMapMoveOffBorders)
-            {
-                if (offsetX < 0)
-                    offsetX = 0;
-
-                if (offsetY < 0)
-                    offsetY = 0;
-            }
-
-            camera.offset = new Vector2(offsetX, offsetY);
 
             //var startTileX = lookingAtTile.X - (renderRegion.RenderTilesX / 2);
             //var startTileY = lookingAtTile.Y - (renderRegion.RenderTilesY / 2);
@@ -1839,9 +1829,11 @@ namespace TwinspireCS.Engine.GUI
             //    endTileY = lookaheadY;
             //}
 
-            Raylib.BeginMode2D(camera);
-            Raylib.DrawTexture(mapBuffer.texture, (int)camera.target.X, (int)camera.target.Y, Color.WHITE);
-            Raylib.EndMode2D();
+            mapBuffer = Application.Instance.ResourceManager.GetRenderTexture("TileMap_" + map.Name);
+            Raylib.DrawTexturePro(mapBuffer.texture,
+                new Rectangle(0, 0, mapBuffer.texture.width, -mapBuffer.texture.height),
+                new Rectangle(0, 0, mapBuffer.texture.width, mapBuffer.texture.height), 
+                new Vector2(0, 0), 0, Color.WHITE);
         }
 
 
