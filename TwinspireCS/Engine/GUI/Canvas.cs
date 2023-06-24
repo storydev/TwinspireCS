@@ -1729,6 +1729,124 @@ namespace TwinspireCS.Engine.GUI
 
         #endregion
 
+        #region Game Rendering
+
+        private Vector2 lookingAtTile;
+        private RenderTexture2D mapBuffer;
+        private bool mapBufferInited = false;
+
+        public void BuildMapTexture(TileMap map, bool completeRebuild = false)
+        {
+            if (!mapBufferInited || completeRebuild)
+            {
+                mapBuffer = Raylib.LoadRenderTexture(map.TilesX * map.TileSize, map.TilesY * map.TileSize);
+                mapBufferInited = true;
+            }
+
+            Raylib.BeginTextureMode(mapBuffer);
+            Raylib.ClearBackground(Color.BLACK);
+            
+            foreach (var layer in map.Layers)
+            {
+                for (int i = 0; i < layer.Tiles.Length; i++)
+                {
+                    var tile = layer.Tiles[i];
+                    var x = map.TileSize * Math.Floor((float)(i % map.TilesX));
+                    var y = map.TileSize * Math.Floor((float)(i / map.TilesY));
+
+                    if (tile.Index > -1 && tile.Opacity > 0.0f)
+                    {
+                        var color = Raylib.ColorAlpha(tile.Tint, tile.Opacity);
+                        var actualTileResult = TileSet.GetTileSetFromTileIndex(tile.Index);
+                        var tileset = TileSet.TileSets.ElementAt(actualTileResult.TileSetIndex);
+                        var texture = Application.Instance.ResourceManager.GetTexture(tileset.Image);
+                        var tilesetX = tileset.TileSize * Math.Floor((float)(actualTileResult.TileIndex % (texture.width / tileset.TileSize)));
+                        var tilesetY = tileset.TileSize * Math.Floor((float)(actualTileResult.TileIndex / (texture.width / tileset.TileSize)));
+
+                        Raylib.DrawTexturePro(texture,
+                            new Rectangle((float)tilesetX, (float)tilesetY, tileset.TileSize, tileset.TileSize),
+                            new Rectangle((float)x + tile.Offset.X, (float)y + tile.Offset.Y, map.TileSize, map.TileSize),
+                            new Vector2((float)x + tile.Offset.X + (map.TileSize / 2), (float)y + tile.Offset.Y + (map.TileSize / 2)),
+                            tile.Rotation, color);
+                    }
+                }
+            }
+            Raylib.EndTextureMode();
+        }
+
+
+        public void TileMap(TileMap map, Camera2D camera, TileMapRegion renderRegion)
+        {
+            if (!mapBufferInited)
+            {
+                mapBuffer = Raylib.LoadRenderTexture(map.TilesX * map.TileSize, map.TilesY * map.TileSize);
+                mapBufferInited = true;
+
+                BuildMapTexture(map);
+            }
+
+            // get tiles to render
+            var halfTile = map.TileSize / 2;
+            var tileX = (float)Math.Floor(camera.target.X / map.TileSize);
+            var tileY = (float)Math.Floor(camera.target.Y / map.TileSize);
+            var midX = (tileX * map.TileSize) + halfTile;
+            var midY = (tileY * map.TileSize) + halfTile;
+
+            lookingAtTile = new Vector2((float)Math.Floor(midX / map.TileSize), (float)Math.Floor(midY / map.TileSize));
+
+            var offsetX = camera.target.X - (renderRegion.RenderTilesX / 2 * map.TileSize);
+            var offsetY = camera.target.Y - (renderRegion.RenderTilesY / 2 * map.TileSize);
+
+            if (!renderRegion.AllowMapMoveOffBorders)
+            {
+                if (offsetX < 0)
+                    offsetX = 0;
+
+                if (offsetY < 0)
+                    offsetY = 0;
+            }
+
+            camera.offset = new Vector2(offsetX, offsetY);
+
+            //var startTileX = lookingAtTile.X - (renderRegion.RenderTilesX / 2);
+            //var startTileY = lookingAtTile.Y - (renderRegion.RenderTilesY / 2);
+            //if (startTileX < 0)
+            //    startTileX = 0;
+
+            //if (startTileY < 0)
+            //    startTileY = 0;
+
+            //var endTileX = lookingAtTile.X + (renderRegion.RenderTilesX / 2);
+            //var endTileY = lookingAtTile.Y + (renderRegion.RenderTilesY / 2);
+            //var lookaheadX = endTileX + 1;
+            //var lookaheadY = endTileY + 1;
+
+            //if (endTileX > map.TilesX)
+            //{
+            //    endTileX = map.TilesX;
+            //}
+            //else if (lookaheadX <= map.TilesX)
+            //{
+            //    endTileX = lookaheadX;
+            //}
+
+            //if (endTileY > map.TilesY)
+            //{
+            //    endTileY = map.TilesY;
+            //}
+            //else if (lookaheadY <= map.TilesY)
+            //{
+            //    endTileY = lookaheadY;
+            //}
+
+            Raylib.BeginMode2D(camera);
+            Raylib.DrawTexture(mapBuffer.texture, (int)camera.target.X, (int)camera.target.Y, Color.WHITE);
+            Raylib.EndMode2D();
+        }
+
+
+        #endregion
+
         protected Rectangle CalculateNextDimension(int elementIndex, string textOrImageName = "", bool includeImage = false)
         {
             var currentRowElements = elements.Where((e) => e.GridIndex == currentGridIndex && e.CellIndex == currentCellIndex && e.IsBaseElement);

@@ -63,5 +63,34 @@ namespace TwinspireCS.Engine.Graphics
             return tilesets.Count - 1;
         }
 
+        /// <summary>
+        /// Gets the index value of the tileset to use and the tile index relative to that tileset
+        /// based on a given global tile index value.
+        /// </summary>
+        /// <param name="tileIndex">The tile index relative to all tilesets.</param>
+        /// <returns></returns>
+        public static TileSetIndexResult GetTileSetFromTileIndex(int tileIndex)
+        {
+            var setIndex = 0;
+            var actualIndex = 0;
+            for (int i = 0; i < startIDs.Count; i++)
+            {
+                if (i + 1 < startIDs.Count)
+                {
+                    if (tileIndex >= startIDs[i] && tileIndex < startIDs[i + 1])
+                    {
+                        setIndex = i;
+                        actualIndex = tileIndex - startIDs[i];
+                    }
+                }
+                else
+                {
+                    setIndex = i;
+                    actualIndex = tileIndex - startIDs[i];
+                }
+            }
+            return new TileSetIndexResult(setIndex, actualIndex);
+        }
+
     }
 }
