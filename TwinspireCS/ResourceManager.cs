@@ -191,6 +191,7 @@ namespace TwinspireCS
                         headerSize += sizeof(long) * 3;
                         headerSize += kv.Key.Length + 1;
                         headerSize += kv.Value.FileExt.Length + 1;
+                        headerSize += kv.Value.OriginalSourceFile.Length + 1;
                     }
 
                     writer.Write(headerSize);
@@ -202,6 +203,7 @@ namespace TwinspireCS
                         writer.Write(kv.Key);
                         var data = kv.Value;
                         writer.Write(data.FileExt);
+                        writer.Write(data.OriginalSourceFile);
                         writer.Write(data.Cursor);
                         writer.Write(data.Size);
                         writer.Write(data.CompressedSize);
@@ -294,6 +296,7 @@ namespace TwinspireCS
                                 var identifier = reader.ReadString();
                                 var segment = new DataSegment();
                                 segment.FileExt = reader.ReadString();
+                                segment.OriginalSourceFile = reader.ReadString();
                                 segment.Cursor = reader.ReadInt64();
                                 segment.Size = reader.ReadInt64();
                                 segment.CompressedSize = reader.ReadInt64();

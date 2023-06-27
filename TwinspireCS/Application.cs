@@ -64,6 +64,16 @@ namespace TwinspireCS
             }
         }
 
+        private ConfigFlags windowConfig;
+        /// <summary>
+        /// Set the configuration flags for the window. Must be set before InitAll is used.
+        /// </summary>
+        public ConfigFlags WindowConfig
+        {
+            get => windowConfig;
+            set => windowConfig = value;
+        }
+
         private bool useImgui;
         /// <summary>
         /// Determines if the ImGui editor should be created
@@ -102,6 +112,7 @@ namespace TwinspireCS
             startingWidth = width;
             startingHeight = height;
             resourceManager = new ResourceManager();
+            windowConfig = ConfigFlags.FLAG_MSAA_4X_HINT | ConfigFlags.FLAG_VSYNC_HINT;
         }
 
         /// <summary>
@@ -144,13 +155,13 @@ namespace TwinspireCS
             HotKeys.Init();
             Animate.Init();
 
+            Raylib.SetConfigFlags(windowConfig);
             Raylib.InitWindow(startingWidth, startingHeight, windowTitle);
             if (!string.IsNullOrEmpty(IconPath))
             {
                 Raylib.SetWindowIcon(Raylib.LoadImage(IconPath));
             }
-
-            Raylib.SetConfigFlags(ConfigFlags.FLAG_VSYNC_HINT | ConfigFlags.FLAG_MSAA_4X_HINT);
+            
             Raylib.SetTargetFPS(TargetFPS);
         }
 
