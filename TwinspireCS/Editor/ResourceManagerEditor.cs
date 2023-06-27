@@ -20,6 +20,8 @@ namespace TwinspireCS.Editor
         static string[] packageNames;
         static int selectedPackage;
         static int lastSelectedPackage;
+        static List<int> selectedRows;
+
         static bool allowBack;
         static bool allowForward;
 
@@ -33,6 +35,7 @@ namespace TwinspireCS.Editor
             resources = new List<ResourceFile>();
             tableCells = Array.Empty<string>();
             resourcePackageName = string.Empty;
+            selectedRows = new List<int>();
 
             var rm = Application.Instance.ResourceManager;
             for (int i = 0; i < rm.Packages.Count(); i++)
@@ -146,7 +149,63 @@ namespace TwinspireCS.Editor
                         for (int i = 0; i < tableCells.Length; i++)
                         {
                             ImGui.TableNextColumn();
-                            ImGui.Text(tableCells[i]);
+                            int row = (int)Math.Floor((float)(i / 6));
+                            var isSelected = selectedRows.IndexOf(row) > -1;
+
+                            if (i % 6 == 0)
+                            {
+                                if (ImGui.Selectable(tableCells[i], isSelected, ImGuiSelectableFlags.SpanAllColumns))
+                                {
+                                    if (ImGui.GetIO().KeyCtrl)
+                                    {
+                                        if (!isSelected)
+                                            selectedRows.Add(row);
+                                        else
+                                            selectedRows.Remove(row);
+                                    }
+                                    else if (ImGui.GetIO().KeyShift)
+                                    {
+                                        if (selectedRows.Count > 0)
+                                        {
+                                            var last = selectedRows[^1];
+                                            if (row < last)
+                                            {
+                                                var temp = last - 1;
+                                                while (temp >= row)
+                                                {
+                                                    if (!selectedRows.Contains(temp))
+                                                        selectedRows.Add(temp);
+                                                    temp--;
+                                                }
+                                            }
+                                            else if (row > last)
+                                            {
+                                                var temp = last + 1;
+                                                while (temp <= row)
+                                                {
+                                                    if (!selectedRows.Contains(temp))
+                                                        selectedRows.Add(temp);
+
+                                                    temp++;
+                                                }
+                                            }
+                                        }
+                                        else if (!isSelected)
+                                        {
+                                            selectedRows.Add(row);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        selectedRows.Clear();
+                                        selectedRows.Add(row);
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                ImGui.Text(tableCells[i]);
+                            }
                         }
 
                         ImGui.EndTable();
@@ -156,7 +215,15 @@ namespace TwinspireCS.Editor
 
                     if (ImGui.BeginTabItem("Add Resources"))
                     {
+                        if (selectedPackage - 1 < 0)
+                        {
+                            ImGui.Text("Please select a package to add resources to.");
+                        }
+                        else
+                        {
+                            var packageIndex = selectedPackage - 1;
 
+                        }
 
                         ImGui.EndTabItem();
                     }
