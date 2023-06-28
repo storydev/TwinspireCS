@@ -278,7 +278,7 @@ namespace TwinspireCS.Engine.GUI
 
             currentElementIndex = -1;
 
-            HotKeys.DisableHotkeys(afterTransitionAnimateIndex > -1);
+            HotKeys.DisableHotkeys(afterTransitionAnimateIndex > -1 || ImGuiController.IsImGuiInteracted());
         }
 
         public int GetLastElementIndex()

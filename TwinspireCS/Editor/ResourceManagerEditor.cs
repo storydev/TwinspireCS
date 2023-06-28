@@ -277,15 +277,33 @@ namespace TwinspireCS.Editor
                                         if (complete)
                                         {
                                             file.IdentifierExists = Application.Instance.ResourceManager.DoesIdentifierExist(file.Identifier);
+                                            file.EditingIdentifier = false;
                                         }
                                     }
                                     ImGui.PopID();
                                 }
                                 else
                                 {
-                                    ImGui.PushStyleColor(ImGuiCol.Text, ImGui.ColorConvertFloat4ToU32(new Vector4(0, 0.7f, 0, 1f)));
-                                    ImGui.Text(file.Identifier);
-                                    ImGui.PopStyleColor();
+                                    if (!file.EditingIdentifier)
+                                    {
+                                        ImGui.PushStyleColor(ImGuiCol.Text, ImGui.ColorConvertFloat4ToU32(new Vector4(0, 0.7f, 0, 1f)));
+                                        ImGui.Text(file.Identifier);
+                                        ImGui.PopStyleColor();
+                                        ImGui.SameLine();
+                                        if (ImGui.Button("..##ResourceAddEditInput"))
+                                        {
+                                            file.EditingIdentifier = true;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        var complete = ImGui.InputText("##ResourceIdentifierEdit", ref file.Identifier, 512, ImGuiInputTextFlags.EnterReturnsTrue);
+                                        if (complete)
+                                        {
+                                            file.IdentifierExists = Application.Instance.ResourceManager.DoesIdentifierExist(file.Identifier);
+                                            file.EditingIdentifier = false;
+                                        }
+                                    }
                                 }
 
                                 ImGui.TableSetColumnIndex(2); // exists
