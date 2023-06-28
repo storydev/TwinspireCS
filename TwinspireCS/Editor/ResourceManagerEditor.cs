@@ -1,4 +1,5 @@
-﻿using ImGuiNET;
+﻿using Raylib_cs;
+using ImGuiNET;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,6 +22,7 @@ namespace TwinspireCS.Editor
         static int selectedPackage;
         static int lastSelectedPackage;
         static List<int> selectedRows;
+        static List<ResourceAddFile> addFiles;
 
         static bool allowBack;
         static bool allowForward;
@@ -36,6 +38,7 @@ namespace TwinspireCS.Editor
             tableCells = Array.Empty<string>();
             resourcePackageName = string.Empty;
             selectedRows = new List<int>();
+            addFiles = new List<ResourceAddFile>();
 
             var rm = Application.Instance.ResourceManager;
             for (int i = 0; i < rm.Packages.Count(); i++)
@@ -222,7 +225,82 @@ namespace TwinspireCS.Editor
                         else
                         {
                             var packageIndex = selectedPackage - 1;
+                            if (Raylib.IsFileDropped() && ImGuiController.IsImGuiInteracted())
+                            {
+                                var files = Raylib.GetDroppedFiles();
+                                AddFiles(files, packageIndex);
+                            }
 
+                            int errorCount = 0;
+                            foreach (var file in addFiles)
+                            {
+                                if (file.IdentifierExists && !file.ReplaceExisting)
+                                {
+                                    errorCount += 1;
+                                }
+                            }
+
+                            ImGui.BeginTable("ResourcesToAdd", 5);
+                            ImGui.TableSetupColumn("File Path", ImGuiTableColumnFlags.None, 300f);
+                            ImGui.TableSetupColumn("Identifier", ImGuiTableColumnFlags.None, 150f);
+                            ImGui.TableSetupColumn("Exists?", ImGuiTableColumnFlags.None, 120f);
+                            ImGui.TableSetupColumn("Replace?", ImGuiTableColumnFlags.None, 90f);
+                            ImGui.TableSetupScrollFreeze(0, 1);
+                            ImGui.TableHeadersRow();
+
+                            for (int i = 0; i < addFiles.Count; i++)
+                            {
+                                var file = addFiles[i];
+
+                                ImGui.TableNextRow();
+                                ImGui.TableSetColumnIndex(0); // file path
+                                ImGui.Text(file.FilePath);
+
+                                ImGui.TableSetColumnIndex(1); // identifier
+                                if (file.IdentifierExists && !file.ReplaceExisting)
+                                {
+                                    ImGui.PushID(i);
+                                    if (!file.EditingIdentifier)
+                                    {
+                                        ImGui.PushStyleColor(ImGuiCol.Text, ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 0, 0, 1f)));
+                                        ImGui.Text(file.Identifier);
+                                        ImGui.PopStyleColor();
+                                        ImGui.SameLine();
+                                        if (ImGui.Button("..##ResourceAddEditInput"))
+                                        {
+                                            file.EditingIdentifier = true;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        var complete = ImGui.InputText("##ResourceIdentifierEdit", ref file.Identifier, 512, ImGuiInputTextFlags.EnterReturnsTrue);
+                                        if (complete)
+                                        {
+                                            file.IdentifierExists = Application.Instance.ResourceManager.DoesIdentifierExist(file.Identifier);
+                                        }
+                                    }
+                                    ImGui.PopID();
+                                }
+                                else
+                                {
+                                    ImGui.PushStyleColor(ImGuiCol.Text, ImGui.ColorConvertFloat4ToU32(new Vector4(0, 0.7f, 0, 1f)));
+                                    ImGui.Text(file.Identifier);
+                                    ImGui.PopStyleColor();
+                                }
+
+                                ImGui.TableSetColumnIndex(2); // exists
+                                ImGui.Text(file.IdentifierExists ? "Identifier Conflicts" : "OK");
+
+                                ImGui.TableSetColumnIndex(3); // replace
+                                if (file.IdentifierExists)
+                                {
+                                    ImGui.PushID(i);
+                                    ImGui.Checkbox("##ResourceAddReplace", ref file.ReplaceExisting);
+                                    ImGui.PopID();
+                                }
+                            }
+
+                            ImGui.EndTable();
                         }
 
                         ImGui.EndTabItem();
@@ -232,6 +310,23 @@ namespace TwinspireCS.Editor
                 }
 
                 ImGui.End();
+            }
+        }
+
+        static void AddFiles(string[] files, int inPackage)
+        {
+            if (addFiles == null)
+                addFiles = new List<ResourceAddFile>();
+
+            for (int i = 0; i < files.Length; i++)
+            {
+                var file = files[i];
+                var identifier = Path.GetFileNameWithoutExtension(file);
+                var identifierExists = Application.Instance.ResourceManager.DoesIdentifierExist(identifier);
+                addFiles.Add(new ResourceAddFile(file, identifier, inPackage)
+                {
+                    IdentifierExists = identifierExists
+                });
             }
         }
 
