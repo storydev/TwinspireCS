@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 using System.Numerics;
+using TwinspireCS.Engine;
 
 namespace TwinspireCS.Editor
 {
@@ -14,6 +15,7 @@ namespace TwinspireCS.Editor
     {
 
         static bool isOpen;
+        static bool isWriting;
         static int maxItems;
         static int page;
         static List<ResourceFile> resources;
@@ -23,6 +25,7 @@ namespace TwinspireCS.Editor
         static int lastSelectedPackage;
         static List<int> selectedRows;
         static List<ResourceAddFile> addFiles;
+        static int writingAllProgressIndex;
 
         static bool allowBack;
         static bool allowForward;
@@ -39,6 +42,8 @@ namespace TwinspireCS.Editor
             resourcePackageName = string.Empty;
             selectedRows = new List<int>();
             addFiles = new List<ResourceAddFile>();
+            isWriting = false;
+            writingAllProgressIndex = Animate.Create();
 
             var rm = Application.Instance.ResourceManager;
             for (int i = 0; i < rm.Packages.Count(); i++)
@@ -65,6 +70,9 @@ namespace TwinspireCS.Editor
 
             if (ImGui.Begin("Resource Manager", ref isOpen))
             {
+                if (isWriting)
+                    ImGui.BeginDisabled();
+
                 ImGui.Text("Package:"); ImGui.SameLine();
                 ImGui.SetNextItemWidth(200f);
                 ImGui.Combo("##PackageList", ref selectedPackage, packageNames, packageNames.Length); ImGui.SameLine();
@@ -139,7 +147,7 @@ namespace TwinspireCS.Editor
                 {
                     if (ImGui.BeginTabItem("Resources"))
                     {
-                        ImGui.BeginTable("ResourceManagerFiles", 6);
+                        ImGui.BeginTable("ResourceManagerFiles", 6, ImGuiTableFlags.Borders, new Vector2(1000, 320));
                         ImGui.TableSetupColumn("Identifier", ImGuiTableColumnFlags.None, 250f);
                         ImGui.TableSetupColumn("Package", ImGuiTableColumnFlags.None, 150f);
                         ImGui.TableSetupColumn("Original Source File", ImGuiTableColumnFlags.DefaultHide, 300f);
@@ -319,12 +327,57 @@ namespace TwinspireCS.Editor
                             }
 
                             ImGui.EndTable();
+
+                            if (selectedPackage > 0 && addFiles.Count > 0)
+                            {
+                                if (errorCount > 0 || isWriting)
+                                    ImGui.BeginDisabled();
+
+                                if (ImGui.Button("Write Data"))
+                                {
+                                    var rm = Application.Instance.ResourceManager;
+                                    foreach (var file in addFiles)
+                                    {
+                                        rm.AddResource(selectedPackage - 1, file.Identifier, file.FilePath);
+                                    }
+
+                                    isWriting = true;
+                                    rm.WriteAllAsync(selectedPackage - 1, () =>
+                                    {
+                                        isWriting = false;
+                                        Animate.Reset(writingAllProgressIndex);
+
+                                    });
+                                }
+
+                                if (errorCount > 0 || isWriting)
+                                    ImGui.EndDisabled();
+                            }
                         }
 
                         ImGui.EndTabItem();
                     }
 
                     ImGui.EndTabBar();
+                }
+
+                if (isWriting)
+                {
+                    ImGui.EndDisabled();
+                    var ratio = 0.0f;
+                    var rm = Application.Instance.ResourceManager;
+                    if (rm.WriteItemsMax > 0)
+                    {
+                        ratio = rm.WriteItemsProgress / rm.WriteItemsMax;
+                    }
+
+                    ImGui.ProgressBar(ratio);
+                    var package = rm.Packages.ElementAt(selectedPackage - 1);
+                    if (rm.WriteItemsProgress >= 0 && rm.WriteItemsProgress < package.FileMapping.Count)
+                    {
+                        var fileMap = package.FileMapping.ElementAt(rm.WriteItemsProgress);
+                        ImGui.Text("Writing " + fileMap.Key + "...");
+                    }
                 }
 
                 ImGui.End();

@@ -234,10 +234,15 @@ namespace TwinspireCS
                             writer.Write(data.Data);
                             data.Data = null;
                         }
+
+                        WriteItemsProgress += 1;
                     }
                 }
             }
         }
+
+        public int WriteItemsProgress { get; private set; }
+        public int WriteItemsMax { get; private set; }
 
         /// <summary>
         /// Write all the data for the given package asynchronously.
@@ -245,12 +250,12 @@ namespace TwinspireCS
         /// <param name="packageIndex">The package to write out to its source file.</param>
         public async void WriteAllAsync(int packageIndex, Action ?complete = null)
         {
-            var task = new Task(() => WriteAll(packageIndex));
+            WriteItemsMax = packages[packageIndex].FileMapping.Count;
+            WriteItemsProgress = 0;
+
+            await Task.Run(() => WriteAll(packageIndex));
             if (complete != null)
-            {
-                task.GetAwaiter().OnCompleted(complete);
-            }
-            await task;
+                complete();
         }
 
         /// <summary>
@@ -301,7 +306,7 @@ namespace TwinspireCS
                                 segment.Size = reader.ReadInt64();
                                 segment.CompressedSize = reader.ReadInt64();
 
-                                package.FileCursor = segment.Cursor + segment.Size;
+                                package.FileCursor += segment.CompressedSize;
                                 package.FileMapping.Add(identifier, segment);
                             }
                         }
