@@ -649,6 +649,29 @@ namespace TwinspireCS
         }
 
         /// <summary>
+        /// Gets the package and file mapping index of the given identifier.
+        /// </summary>
+        /// <param name="identifier">The name of the resource to find.</param>
+        /// <returns></returns>
+        public ResourceIndex GetResourceIndex(string identifier)
+        {
+            for (int i = 0; i < packages.Count; i++)
+            {
+                var package = packages[i];
+                for (int j = 0; j < package.FileMapping.Count; j++)
+                {
+                    var key = package.FileMapping.ElementAt(j);
+                    if (key.Key == identifier)
+                    {
+                        return new ResourceIndex(i, j);
+                    }
+                }
+            }
+
+            return new ResourceIndex(-1, -1);
+        }
+
+        /// <summary>
         /// Loads a group of resources synchronously on the main thread. Use sparingly.
         /// </summary>
         /// <param name="group">The defined group containing the resources to load.</param>

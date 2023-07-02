@@ -30,6 +30,8 @@ namespace TwinspireCS.Editor
         static bool allowBack;
         static bool allowForward;
 
+        static bool isEditing;
+
 
         static string resourcePackageName;
 
@@ -44,6 +46,17 @@ namespace TwinspireCS.Editor
             addFiles = new List<ResourceAddFile>();
             isWriting = false;
             writingAllProgressIndex = Animate.Create();
+            isEditing = false;
+
+            RefreshResources();
+
+            ResetPackageNames();
+            ResetCellData();
+        }
+
+        static void RefreshResources()
+        {
+            resources.Clear();
 
             var rm = Application.Instance.ResourceManager;
             for (int i = 0; i < rm.Packages.Count(); i++)
@@ -59,9 +72,6 @@ namespace TwinspireCS.Editor
                     });
                 }
             }
-
-            ResetPackageNames();
-            ResetCellData();
         }
 
         public static void Render()
@@ -145,9 +155,16 @@ namespace TwinspireCS.Editor
 
                 if (ImGui.BeginTabBar("ResourceResults"))
                 {
+                    var offsetY = ImGui.GetCursorPosY();
+
                     if (ImGui.BeginTabItem("Resources"))
                     {
-                        ImGui.BeginTable("ResourceManagerFiles", 6, ImGuiTableFlags.Borders, new Vector2(1000, 320));
+                        var width = ImGui.GetWindowWidth() - (ImGui.GetStyle().WindowPadding.X * 2);
+                        var height = ImGui.GetWindowHeight() - offsetY - (ImGui.GetStyle().WindowPadding.Y * 2) - ImGui.GetTextLineHeight();
+
+                        //ImGui.BeginChild("BrowseResources", new Vector2(width, height), false);
+
+                        ImGui.BeginTable("ResourceManagerFiles", 6, ImGuiTableFlags.Borders, new Vector2(width - 5, height - 5));
                         ImGui.TableSetupColumn("Identifier", ImGuiTableColumnFlags.None, 250f);
                         ImGui.TableSetupColumn("Package", ImGuiTableColumnFlags.None, 150f);
                         ImGui.TableSetupColumn("Original Source File", ImGuiTableColumnFlags.DefaultHide, 300f);
@@ -220,6 +237,44 @@ namespace TwinspireCS.Editor
                         }
 
                         ImGui.EndTable();
+                        //ImGui.EndChild();
+
+                        if (selectedRows.Count == 0)
+                        {
+                            ImGui.BeginDisabled();
+                        }
+
+                        if (ImGui.Button("Edit##BrowseEditResources"))
+                        {
+                            ImGui.OpenPopup("Edit Resources");
+                        } ImGui.SameLine();
+
+                        if (ImGui.Button("Delete##BrowseDeleteResources"))
+                        {
+
+                        } ImGui.SameLine();
+
+                        if (selectedRows.Count == 0)
+                        {
+                            ImGui.EndDisabled();
+                        }
+
+                        if (selectedRows.Count != 1)
+                        {
+                            ImGui.BeginDisabled();
+                        }
+
+                        if (ImGui.Button("Preview##BrowsePreviewSelectedResource"))
+                        {
+
+                        } ImGui.SameLine();
+
+                        if (selectedRows.Count != 1)
+                        {
+                            ImGui.EndDisabled();
+                        }
+
+                        DrawEditPopup();
 
                         ImGui.EndTabItem();
                     }
@@ -346,7 +401,8 @@ namespace TwinspireCS.Editor
                                     {
                                         isWriting = false;
                                         Animate.Reset(writingAllProgressIndex);
-
+                                        page = 0;
+                                        ResetCellData();
                                     });
                                 }
 
@@ -368,7 +424,9 @@ namespace TwinspireCS.Editor
                     var rm = Application.Instance.ResourceManager;
                     if (rm.WriteItemsMax > 0)
                     {
-                        ratio = rm.WriteItemsProgress / rm.WriteItemsMax;
+                        // forced conversion to float to correct for
+                        // integer truncating by the compiler
+                        ratio = (float)((float)rm.WriteItemsProgress / (float)rm.WriteItemsMax);
                     }
 
                     ImGui.ProgressBar(ratio);
@@ -381,6 +439,104 @@ namespace TwinspireCS.Editor
                 }
 
                 ImGui.End();
+            }
+        }
+
+        static string editPrefix = string.Empty;
+        static string editSuffix = string.Empty;
+        static string editTitlePattern = string.Empty;
+
+        static void DrawEditPopup()
+        {
+            if (ImGui.BeginPopupModal("Edit Resources"))
+            {
+                ImGui.Text("Prefix:"); ImGui.SameLine();
+                ImGui.SetNextItemWidth(300f);
+                ImGui.InputText("##EditItemsPrefix", ref editPrefix, 128);
+
+                ImGui.Text("Suffix:"); ImGui.SameLine();
+                ImGui.SetNextItemWidth(300f);
+                ImGui.InputText("##EditItemsSuffix", ref editSuffix, 128);
+
+                editTitlePattern = string.Empty;
+                if (!string.IsNullOrWhiteSpace(editPrefix))
+                {
+                    editTitlePattern = editPrefix + "%[0]";
+                }
+
+                if (!string.IsNullOrWhiteSpace(editSuffix))
+                {
+                    editTitlePattern += "%" + editSuffix;
+                }
+
+                if (ImGui.Button("Change##BrowseItemsChange"))
+                {
+                    foreach (var index in selectedRows)
+                    {
+                        var item = tableCells[index * 6];
+                        var resourceIndex = Application.Instance.ResourceManager.GetResourceIndex(item);
+                        if (resourceIndex.PackageIndex == -1 || resourceIndex.FileIndex == -1)
+                            continue;
+
+                        var package = Application.Instance.ResourceManager.Packages.ElementAt(resourceIndex.PackageIndex);
+                        var resource = package.FileMapping.ElementAt(resourceIndex.FileIndex);
+                        var finalName = string.Empty;
+                        if (editTitlePattern.Contains('%'))
+                        {
+                            var isPrefix = true;
+                            var isSuffix = false;
+                            var isReplace = false;
+                            for (int i = 0; i < editTitlePattern.Length; i++)
+                            {
+                                if (editTitlePattern[i] != '%' && editTitlePattern[i] != '[' && editTitlePattern[i] != ']')
+                                {
+                                    if (isPrefix || isSuffix)
+                                    {
+                                        finalName += editTitlePattern[i];
+                                    }
+                                    else if (isReplace)
+                                    {
+                                        // we don't care what the number is at the moment, just print the name as is.
+                                        finalName += resource.Key;
+                                    }
+                                }
+                                else if (editTitlePattern[i] == '%')
+                                {
+                                    if (isPrefix)
+                                    {
+                                        isPrefix = false;
+                                        isReplace = true;
+                                    }
+                                    else if (isReplace)
+                                    {
+                                        isReplace = false;
+                                        isSuffix = true;
+                                    }
+                                }
+                            }
+                        }
+
+                        var temp = package.FileMapping[resource.Key];
+                        package.FileMapping.Remove(resource.Key);
+                        package.FileMapping[finalName] = temp;
+                    }
+
+                    RefreshResources();
+                    ResetCellData();
+                    isEditing = false;
+                    ImGui.CloseCurrentPopup();
+                }
+
+                if (ImGui.Button("Cancel##BrowseItemsCancel"))
+                {
+                    editPrefix = string.Empty;
+                    editSuffix = string.Empty;
+                    editTitlePattern = string.Empty;
+                    isEditing = false;
+                    ImGui.CloseCurrentPopup();
+                }
+
+                ImGui.EndPopup();
             }
         }
 
