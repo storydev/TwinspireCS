@@ -13,6 +13,8 @@ namespace TwinspireCS
     public class ResourceManager
     {
 
+        private List<int> currentlyOpen;
+
         private Dictionary<string, Font> fontCache;
         private Dictionary<string, Image> imageCache;
         private Dictionary<string, Wave> waveCache;
@@ -33,6 +35,7 @@ namespace TwinspireCS
 
         public ResourceManager()
         {
+            currentlyOpen = new List<int>();
             packages = new List<DataPackage>();
             fontCache = new Dictionary<string, Font>();
             imageCache = new Dictionary<string, Image>();
@@ -320,6 +323,63 @@ namespace TwinspireCS
         }
 
         /// <summary>
+        /// Re-writes the header information of a given package, without affecting
+        /// the content of the package.
+        /// </summary>
+        /// <param name="packageIndex">The index of the package to re-write.</param>
+        public void RewriteHeader(int packageIndex)
+        {
+            currentlyOpen.Add(packageIndex);
+            var package = packages[packageIndex];
+            var currentHeaderSize = package.HeaderSize;
+            int headerSize = sizeof(int);
+            headerSize += sizeof(int) * 2;
+
+            foreach (var kv in package.FileMapping)
+            {
+                headerSize += sizeof(long) * 3;
+                headerSize += kv.Key.Length + 1;
+                headerSize += kv.Value.FileExt.Length + 1;
+                headerSize += kv.Value.OriginalSourceFile.Length + 1;
+            }
+
+            var packageStream = File.OpenRead(Path.Combine(AssetDirectory, package.SourceFilePath));
+            var packageLength = packageStream.Length - currentHeaderSize;
+            var contentBytes = new byte[packageLength];
+            packageStream.Position = currentHeaderSize;
+            packageStream.Read(contentBytes, 0, (int)packageLength);
+            packageStream.Close();
+
+            using (var stream = new FileStream(Path.Combine(AssetDirectory, package.SourceFilePath), FileMode.Create))
+            {
+                using (BinaryWriter writer = new BinaryWriter(stream))
+                {
+                    writer.Write(headerSize);
+                    writer.Write(package.Version);
+                    writer.Write(package.FileMapping.Count);
+
+                    foreach (var kv in package.FileMapping)
+                    {
+                        writer.Write(kv.Key);
+                        var data = kv.Value;
+                        writer.Write(data.FileExt);
+                        writer.Write(data.OriginalSourceFile);
+                        writer.Write(data.Cursor);
+                        writer.Write(data.Size);
+                        writer.Write(data.CompressedSize);
+                    }
+
+                    // end header data
+
+                    // write the contents
+                    writer.Write(contentBytes);
+                }
+            }
+
+            currentlyOpen.Remove(packageIndex);
+        }
+
+        /// <summary>
         /// Read from a package the raw bytes of a given identifier.
         /// If the identifier could not be found among all known packages, this function
         /// throws an exception.
@@ -334,8 +394,13 @@ namespace TwinspireCS
             DataSegment foundData = null;
             DataPackage foundPackage = null;
             var found = false;
-            foreach (var package in packages)
+            for (int i = 0; i < packages.Count; i++)
             {
+                foreach (var open in currentlyOpen)
+                    if (open == i)
+                        Thread.Sleep(100);
+
+                var package = packages[i];
                 if (package.FileMapping.ContainsKey(identifier))
                 {
                     found = true;

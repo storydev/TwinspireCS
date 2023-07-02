@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Numerics;
 using TwinspireCS.Engine;
+using System.Reflection;
 
 namespace TwinspireCS.Editor
 {
@@ -246,7 +247,15 @@ namespace TwinspireCS.Editor
 
                         if (ImGui.Button("Edit##BrowseEditResources"))
                         {
-                            ImGui.OpenPopup("Edit Resources");
+                            if (selectedRows.Count > 1)
+                                ImGui.OpenPopup("Edit Resources");
+                            else if (selectedRows.Count == 1)
+                            {
+                                var selected = selectedRows[0];
+                                editItemName = tableCells[selected * 6];
+                                ImGui.OpenPopup("Edit Item");
+                            }
+
                         } ImGui.SameLine();
 
                         if (ImGui.Button("Delete##BrowseDeleteResources"))
@@ -275,6 +284,7 @@ namespace TwinspireCS.Editor
                         }
 
                         DrawEditPopup();
+                        DrawSingleEditPopup();
 
                         ImGui.EndTabItem();
                     }
@@ -446,6 +456,44 @@ namespace TwinspireCS.Editor
         static string editSuffix = string.Empty;
         static string editTitlePattern = string.Empty;
 
+        static string editItemName = string.Empty;
+
+        static void DrawSingleEditPopup()
+        {
+            if (ImGui.BeginPopupModal("Edit Item"))
+            {
+                ImGui.Text("Name:"); ImGui.SameLine();
+                ImGui.InputText("##EditItemName", ref editItemName, 512);
+
+                if (ImGui.Button("Submit##EditItemSubmit"))
+                {
+                    var index = selectedRows[0];
+                    var item = tableCells[index * 6];
+                    var resourceIndex = Application.Instance.ResourceManager.GetResourceIndex(item);
+                    var package = Application.Instance.ResourceManager.Packages.ElementAt(resourceIndex.PackageIndex);
+                    var resource = package.FileMapping.ElementAt(resourceIndex.FileIndex);
+                    var temp = package.FileMapping[resource.Key];
+                    package.FileMapping.Remove(resource.Key);
+                    package.FileMapping[editItemName] = temp;
+                    editItemName = string.Empty;
+                    SavePackageHeader(resourceIndex.PackageIndex);
+                    RefreshResources();
+                    ResetCellData();
+
+                    ImGui.CloseCurrentPopup();
+                }
+
+                ImGui.SameLine();
+
+                if (ImGui.Button("Cancel##EditItemCancel"))
+                {
+                    ImGui.CloseCurrentPopup();
+                }
+
+                ImGui.EndPopup();
+            }
+        }
+
         static void DrawEditPopup()
         {
             if (ImGui.BeginPopupModal("Edit Resources"))
@@ -471,12 +519,22 @@ namespace TwinspireCS.Editor
 
                 if (ImGui.Button("Change##BrowseItemsChange"))
                 {
+                    var packagesToSave = new List<int>();
+
                     foreach (var index in selectedRows)
                     {
                         var item = tableCells[index * 6];
                         var resourceIndex = Application.Instance.ResourceManager.GetResourceIndex(item);
                         if (resourceIndex.PackageIndex == -1 || resourceIndex.FileIndex == -1)
                             continue;
+
+                        var savePackageFound = false;
+                        foreach (var save in packagesToSave)
+                            if (save == resourceIndex.PackageIndex)
+                                savePackageFound = true;
+
+                        if (!savePackageFound)
+                            packagesToSave.Add(resourceIndex.PackageIndex);
 
                         var package = Application.Instance.ResourceManager.Packages.ElementAt(resourceIndex.PackageIndex);
                         var resource = package.FileMapping.ElementAt(resourceIndex.FileIndex);
@@ -523,9 +581,14 @@ namespace TwinspireCS.Editor
 
                     RefreshResources();
                     ResetCellData();
+                    foreach (var save in packagesToSave)
+                        SavePackageHeader(save);
+
                     isEditing = false;
                     ImGui.CloseCurrentPopup();
                 }
+
+                ImGui.SameLine();
 
                 if (ImGui.Button("Cancel##BrowseItemsCancel"))
                 {
@@ -648,6 +711,14 @@ namespace TwinspireCS.Editor
             }
 
             return result;
+        }
+
+        static async void SavePackageHeader(int packageIndex)
+        {
+            await Task.Run(() =>
+            {
+                Application.Instance.ResourceManager.RewriteHeader(packageIndex);
+            });
         }
 
     }
