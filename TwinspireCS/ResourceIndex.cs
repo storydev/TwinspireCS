@@ -17,6 +17,5 @@ namespace TwinspireCS
             PackageIndex = packageIndex;
             FileIndex = fileIndex;
         }
-
     }
 }

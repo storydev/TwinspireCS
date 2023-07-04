@@ -197,7 +197,8 @@ namespace TwinspireCS
                         headerSize += kv.Value.OriginalSourceFile.Length + 1;
                     }
 
-                    writer.Write(headerSize);
+                    package.HeaderSize = headerSize;
+                    writer.Write(package.HeaderSize);
                     writer.Write(package.Version);
                     writer.Write(package.FileMapping.Count);
 
@@ -354,7 +355,140 @@ namespace TwinspireCS
             {
                 using (BinaryWriter writer = new BinaryWriter(stream))
                 {
-                    writer.Write(headerSize);
+                    package.HeaderSize = headerSize;
+                    writer.Write(package.HeaderSize);
+                    writer.Write(package.Version);
+                    writer.Write(package.FileMapping.Count);
+
+                    foreach (var kv in package.FileMapping)
+                    {
+                        writer.Write(kv.Key);
+                        var data = kv.Value;
+                        writer.Write(data.FileExt);
+                        writer.Write(data.OriginalSourceFile);
+                        writer.Write(data.Cursor);
+                        writer.Write(data.Size);
+                        writer.Write(data.CompressedSize);
+                    }
+
+                    // end header data
+
+                    // write the contents
+                    writer.Write(contentBytes);
+                }
+            }
+
+            currentlyOpen.Remove(packageIndex);
+        }
+
+        /// <summary>
+        /// Requests a given identifier is deleted from the given package index.
+        /// If the identifier doesn't exist, false is returned.
+        /// </summary>
+        /// <param name="packageIndex"></param>
+        /// <param name="identifier"></param>
+        public bool DeleteItem(int packageIndex, string identifier)
+        {
+            var package = packages[packageIndex];
+
+            var result = package.FileMapping.ContainsKey(identifier);
+            if (result && package.ToDelete.FindIndex(s => s == identifier) == -1)
+                package.ToDelete.Add(identifier);
+
+            return result;
+        }
+
+        /// <summary>
+        /// Performs physical deletion of items that have previously been marked for
+        /// deletion from the given package index.
+        /// </summary>
+        /// <param name="packageIndex"></param>
+        public void DeleteItemsFromPackage(int packageIndex)
+        {
+            currentlyOpen.Add(packageIndex);
+            var package = packages[packageIndex];
+            var itemsToRemove = new List<int>();
+            foreach (var remove in package.ToDelete)
+            {
+                for (int i = 0; i < package.FileMapping.Count; i++)
+                {
+                    if (remove == package.FileMapping.Keys.ElementAt(i))
+                    {
+                        itemsToRemove.Add(i);
+                        break;
+                    }
+                }
+            }
+
+            itemsToRemove.Sort();
+
+            var index = 0;
+            var dataToDelete = 0L;
+
+            for (int i = 0; i < package.FileMapping.Count; i++)
+            {
+                if (itemsToRemove[index] == i)
+                {
+                    dataToDelete += package.FileMapping.ElementAt(i).Value.CompressedSize;
+                    if (index + 1 < itemsToRemove.Count)
+                        index += 1;
+                    else
+                        break;
+                }
+            }
+
+            index = 0;
+            var streamData = File.OpenRead(Path.Combine(AssetDirectory, package.SourceFilePath));
+            var newStreamSize = streamData.Length - package.HeaderSize - dataToDelete;
+            var contentBytes = new byte[newStreamSize];
+            var offset = 0L;
+            var currentTotalWritten = 0L;
+
+            for (int i = 0; i < package.FileMapping.Count; i++)
+            {
+                var map = package.FileMapping.ElementAt(i);
+                if (itemsToRemove[index] != i)
+                {
+                    streamData.Position = map.Value.Cursor + package.HeaderSize;
+                    streamData.Read(contentBytes, (int)currentTotalWritten, (int)map.Value.CompressedSize);
+                    currentTotalWritten += map.Value.CompressedSize;
+
+                    map.Value.Cursor -= offset;
+                }
+
+                if (itemsToRemove[index] == i)
+                {
+                    offset += map.Value.CompressedSize;
+                    index += 1;
+                }
+            }
+
+            streamData.Close();
+
+            foreach (var item in package.ToDelete)
+            {
+                package.FileMapping.Remove(item);
+            }
+
+            package.ToDelete.Clear();
+
+            int headerSize = sizeof(int);
+            headerSize += sizeof(int) * 2;
+
+            foreach (var kv in package.FileMapping)
+            {
+                headerSize += sizeof(long) * 3;
+                headerSize += kv.Key.Length + 1;
+                headerSize += kv.Value.FileExt.Length + 1;
+                headerSize += kv.Value.OriginalSourceFile.Length + 1;
+            }
+
+            using (var stream = new FileStream(Path.Combine(AssetDirectory, package.SourceFilePath), FileMode.Create))
+            {
+                using (BinaryWriter writer = new BinaryWriter(stream))
+                {
+                    package.HeaderSize = headerSize;
+                    writer.Write(package.HeaderSize);
                     writer.Write(package.Version);
                     writer.Write(package.FileMapping.Count);
 

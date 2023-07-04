@@ -12,6 +12,7 @@ namespace TwinspireCS
         public string SourceFilePath;
         public long FileBufferCount;
         public long FileCursor;
+        public List<string> ToDelete;
         public Dictionary<string, DataSegment> FileMapping;
         public int Version;
         public int HeaderSize;
@@ -20,6 +21,7 @@ namespace TwinspireCS
         {
             SourceFilePath = string.Empty;
             FileMapping = new Dictionary<string, DataSegment>();
+            ToDelete = new List<string>();
             Version = 0;
         }
 

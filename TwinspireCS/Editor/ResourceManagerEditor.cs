@@ -31,8 +31,6 @@ namespace TwinspireCS.Editor
         static bool allowBack;
         static bool allowForward;
 
-        static bool isEditing;
-
 
         static string resourcePackageName;
 
@@ -47,7 +45,6 @@ namespace TwinspireCS.Editor
             addFiles = new List<ResourceAddFile>();
             isWriting = false;
             writingAllProgressIndex = Animate.Create();
-            isEditing = false;
 
             RefreshResources();
 
@@ -260,7 +257,7 @@ namespace TwinspireCS.Editor
 
                         if (ImGui.Button("Delete##BrowseDeleteResources"))
                         {
-
+                            ImGui.OpenPopup("Confirm Delete Items");
                         } ImGui.SameLine();
 
                         if (selectedRows.Count == 0)
@@ -285,6 +282,7 @@ namespace TwinspireCS.Editor
 
                         DrawEditPopup();
                         DrawSingleEditPopup();
+                        DrawConfirmDeleteSelectionPopup();
 
                         ImGui.EndTabItem();
                     }
@@ -403,7 +401,8 @@ namespace TwinspireCS.Editor
                                     var rm = Application.Instance.ResourceManager;
                                     foreach (var file in addFiles)
                                     {
-                                        rm.AddResource(selectedPackage - 1, file.Identifier, file.FilePath);
+                                        if (!file.ReplaceExisting)
+                                            rm.AddResource(selectedPackage - 1, file.Identifier, file.FilePath);
                                     }
 
                                     isWriting = true;
@@ -412,6 +411,9 @@ namespace TwinspireCS.Editor
                                         isWriting = false;
                                         Animate.Reset(writingAllProgressIndex);
                                         page = 0;
+                                        addFiles.Clear();
+
+                                        RefreshResources();
                                         ResetCellData();
                                     });
                                 }
@@ -449,6 +451,44 @@ namespace TwinspireCS.Editor
                 }
 
                 ImGui.End();
+            }
+        }
+
+        static void DrawConfirmDeleteSelectionPopup()
+        {
+            if (ImGui.BeginPopupModal("Confirm Delete Items"))
+            {
+                ImGui.Text("Please confirm you would like to delete the current selection?");
+
+                if (ImGui.Button("Confirm##ConfirmDeleteResourceItems"))
+                {
+                    var packagesAffected = new List<int>();
+                    foreach (var selected in selectedRows)
+                    {
+                        var index = selected;
+                        var item = tableCells[index * 6];
+                        var resourceIndex = Application.Instance.ResourceManager.GetResourceIndex(item);
+
+                        var found = false;
+                        foreach (var package in packagesAffected)
+                            if (resourceIndex.PackageIndex == package)
+                                found = true;
+
+                        if (!found)
+                            packagesAffected.Add(resourceIndex.PackageIndex);
+
+                        Application.Instance.ResourceManager.DeleteItem(resourceIndex.PackageIndex, item);
+                    }
+
+                    foreach (var package in packagesAffected)
+                        PerformDeletion(package);
+
+                    RefreshResources();
+                    ResetCellData();
+                    ImGui.CloseCurrentPopup();
+                }
+
+                ImGui.EndPopup();
             }
         }
 
@@ -584,7 +624,6 @@ namespace TwinspireCS.Editor
                     foreach (var save in packagesToSave)
                         SavePackageHeader(save);
 
-                    isEditing = false;
                     ImGui.CloseCurrentPopup();
                 }
 
@@ -595,7 +634,6 @@ namespace TwinspireCS.Editor
                     editPrefix = string.Empty;
                     editSuffix = string.Empty;
                     editTitlePattern = string.Empty;
-                    isEditing = false;
                     ImGui.CloseCurrentPopup();
                 }
 
@@ -612,7 +650,7 @@ namespace TwinspireCS.Editor
             {
                 var file = files[i];
                 var identifier = Path.GetFileNameWithoutExtension(file);
-                var identifierExists = Application.Instance.ResourceManager.DoesIdentifierExist(identifier);
+                var identifierExists = Application.Instance.ResourceManager.DoesNameExist(identifier);
                 addFiles.Add(new ResourceAddFile(file, identifier, inPackage)
                 {
                     IdentifierExists = identifierExists
@@ -641,7 +679,7 @@ namespace TwinspireCS.Editor
         {
             var min = page * maxItems;
             var max = min + maxItems;
-            int total = resources.Count - 1;
+            int total = resources.Count;
 
             allowBack = min > 0;
             allowForward = resources.Count > max;
@@ -657,7 +695,7 @@ namespace TwinspireCS.Editor
             int index = min;
             while (index < max)
             {
-                if (index >= resources.Count - 1)
+                if (index >= resources.Count)
                     break;
 
                 var resource = resources[index];
@@ -719,6 +757,19 @@ namespace TwinspireCS.Editor
             {
                 Application.Instance.ResourceManager.RewriteHeader(packageIndex);
             });
+        }
+
+        static async void PerformDeletion(int packageIndex)
+        {
+            isWriting = true;
+            await Task.Run(() =>
+            {
+                Application.Instance.ResourceManager.DeleteItemsFromPackage(packageIndex);
+            });
+
+            RefreshResources();
+            ResetCellData();
+            isWriting = false;
         }
 
     }
