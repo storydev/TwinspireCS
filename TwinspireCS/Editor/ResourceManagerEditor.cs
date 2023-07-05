@@ -31,6 +31,8 @@ namespace TwinspireCS.Editor
         static bool allowBack;
         static bool allowForward;
 
+        static string[] resourceWriteErrorPaths;
+        static bool resourceWriteHasError;
 
         static string resourcePackageName;
 
@@ -41,6 +43,7 @@ namespace TwinspireCS.Editor
             resources = new List<ResourceFile>();
             tableCells = Array.Empty<string>();
             resourcePackageName = string.Empty;
+            resourceWriteErrorPaths = Array.Empty<string>();
             selectedRows = new List<int>();
             addFiles = new List<ResourceAddFile>();
             isWriting = false;
@@ -98,8 +101,7 @@ namespace TwinspireCS.Editor
                 if (ImGui.BeginPopup("AddResourcePackagePopup"))
                 {
                     ImGui.Text("Name:"); ImGui.SameLine();
-                    ImGui.InputText("##Name", ref resourcePackageName, 64);
-
+                    ImGui.InputText("##ResourcePackageName", ref resourcePackageName, 64);
 
                     if (ImGui.Button("Confirm##ConfirmAddResourcePackage"))
                     {
@@ -161,6 +163,13 @@ namespace TwinspireCS.Editor
                         var height = ImGui.GetWindowHeight() - offsetY - (ImGui.GetStyle().WindowPadding.Y * 2) - ImGui.GetTextLineHeight();
 
                         //ImGui.BeginChild("BrowseResources", new Vector2(width, height), false);
+
+                        // For some inexplicable reason, the flags cause a memory corruption error.
+                        // Until fixed, scrolling will have to be done within the window.
+                        //
+                        //var tableFlags = ImGuiTableFlags.NoHostExtendX |
+                          //  ImGuiTableFlags.SizingStretchSame | ImGuiTableFlags.RowBg |
+                          //  ImGuiTableFlags.ScrollX | ImGuiTableFlags.ScrollY;
 
                         ImGui.BeginTable("ResourceManagerFiles", 6, ImGuiTableFlags.Borders, new Vector2(width - 5, height - 5));
                         ImGui.TableSetupColumn("Identifier", ImGuiTableColumnFlags.None, 250f);
@@ -257,7 +266,23 @@ namespace TwinspireCS.Editor
 
                         if (ImGui.Button("Delete##BrowseDeleteResources"))
                         {
-                            ImGui.OpenPopup("Confirm Delete Items");
+                            var rm = Application.Instance.ResourceManager;
+                            var canDelete = true;
+                            foreach (var row in selectedRows)
+                            {
+                                var itemName = tableCells[row * 6];
+                                if (rm.DoesIdentifierExist(itemName))
+                                {
+                                    canDelete = false;
+                                    break;
+                                }
+                            }
+
+                            if (canDelete)
+                                ImGui.OpenPopup("Confirm Delete Items");
+                            else
+                                ImGui.OpenPopup("Delete Error");
+
                         } ImGui.SameLine();
 
                         if (selectedRows.Count == 0)
@@ -265,24 +290,25 @@ namespace TwinspireCS.Editor
                             ImGui.EndDisabled();
                         }
 
-                        if (selectedRows.Count != 1)
-                        {
-                            ImGui.BeginDisabled();
-                        }
+                        //if (selectedRows.Count != 1)
+                        //{
+                        //    ImGui.BeginDisabled();
+                        //}
 
-                        if (ImGui.Button("Preview##BrowsePreviewSelectedResource"))
-                        {
+                        //if (ImGui.Button("Preview##BrowsePreviewSelectedResource"))
+                        //{
 
-                        } ImGui.SameLine();
+                        //} ImGui.SameLine();
 
-                        if (selectedRows.Count != 1)
-                        {
-                            ImGui.EndDisabled();
-                        }
+                        //if (selectedRows.Count != 1)
+                        //{
+                        //    ImGui.EndDisabled();
+                        //}
 
                         DrawEditPopup();
                         DrawSingleEditPopup();
                         DrawConfirmDeleteSelectionPopup();
+                        DrawDeleteErrorPopup();
 
                         ImGui.EndTabItem();
                     }
@@ -292,6 +318,11 @@ namespace TwinspireCS.Editor
                         if (selectedPackage - 1 < 0)
                         {
                             ImGui.Text("Please select a package to add resources to.");
+                            // don't let dropped files go through to the next frame
+                            if (Raylib.IsFileDropped())
+                            {
+                                Raylib.GetDroppedFiles();
+                            }
                         }
                         else
                         {
@@ -415,6 +446,11 @@ namespace TwinspireCS.Editor
 
                                         RefreshResources();
                                         ResetCellData();
+                                    },
+                                    (paths) =>
+                                    {
+                                        resourceWriteErrorPaths = paths;
+                                        resourceWriteHasError = true;
                                     });
                                 }
 
@@ -426,12 +462,37 @@ namespace TwinspireCS.Editor
                         ImGui.EndTabItem();
                     }
 
+                    if (resourceWriteHasError)
+                    {
+                        if (ImGui.BeginTabItem("Errors##ResourceWriteErrors"))
+                        {
+                            if (ImGui.Button("Clear Errors##ClearResourceWriteErrors"))
+                            {
+                                resourceWriteHasError = false;
+                                resourceWriteErrorPaths = Array.Empty<string>();
+                            }
+
+                            foreach (var pathMissing in resourceWriteErrorPaths)
+                            {
+                                ImGui.TextColored(new Vector4(1f, 0f, 0f, 1f), "Path Missing: ");
+                                ImGui.SameLine();
+                                ImGui.Text(pathMissing);
+                            }
+
+                            ImGui.EndTabItem();
+                        }
+                    }
+
                     ImGui.EndTabBar();
                 }
 
                 if (isWriting)
                 {
                     ImGui.EndDisabled();
+                }
+
+                if (isWriting && selectedPackage > 0)
+                {
                     var ratio = 0.0f;
                     var rm = Application.Instance.ResourceManager;
                     if (rm.WriteItemsMax > 0)
@@ -451,6 +512,35 @@ namespace TwinspireCS.Editor
                 }
 
                 ImGui.End();
+            }
+        }
+
+        static void DrawDeleteErrorPopup()
+        {
+            if (ImGui.BeginPopupModal("Delete Error"))
+            {
+                ImGui.Text("You are attempting to delete files that are currently in use.");
+                ImGui.Text("You should unload the resources first.");
+                ImGui.Text("You may attempt to force unload below, but may cause graphics issues or crash the application.");
+
+                if (ImGui.Button("Force Unload##ForceUnloadResources"))
+                {
+                    var rm = Application.Instance.ResourceManager;
+                    foreach (var row in selectedRows)
+                    {
+                        var itemName = tableCells[row * 6];
+                        rm.Unload(itemName);
+                    }
+                    ImGui.CloseCurrentPopup();
+                }
+                ImGui.SameLine();
+
+                if (ImGui.Button("OK##DeleteErrorOK"))
+                {
+                    ImGui.CloseCurrentPopup();
+                }
+
+                ImGui.EndPopup();
             }
         }
 

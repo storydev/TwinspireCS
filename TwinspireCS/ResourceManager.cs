@@ -169,7 +169,7 @@ namespace TwinspireCS
         /// Write all the data for the given package.
         /// </summary>
         /// <param name="packageIndex">The package to write out to its source file.</param>
-        public unsafe void WriteAll(int packageIndex)
+        public unsafe void WriteAll(int packageIndex, Action<string[]> error = null)
         {
             if (packageIndex < 0 || packageIndex >= packages.Count)
             {
@@ -182,6 +182,23 @@ namespace TwinspireCS
                 Directory.CreateDirectory(outdir);
 
             var package = packages[packageIndex];
+            var canProceed = true;
+            var filePathsNotFound = new List<string>();
+            foreach (var kv in package.FileMapping)
+            {
+                if (!File.Exists(kv.Value.OriginalSourceFile))
+                {
+                    canProceed = false;
+                    filePathsNotFound.Add(kv.Value.OriginalSourceFile);
+                }
+            }
+
+            if (!canProceed)
+            {
+                error?.Invoke(filePathsNotFound.ToArray());
+                return;
+            }
+
             using (var stream = new FileStream(Path.Combine(outdir, package.SourceFilePath), FileMode.Create))
             {
                 using (BinaryWriter writer = new BinaryWriter(stream))
@@ -252,12 +269,12 @@ namespace TwinspireCS
         /// Write all the data for the given package asynchronously.
         /// </summary>
         /// <param name="packageIndex">The package to write out to its source file.</param>
-        public async void WriteAllAsync(int packageIndex, Action ?complete = null)
+        public async void WriteAllAsync(int packageIndex, Action ?complete = null, Action<string[]> ?error = null)
         {
             WriteItemsMax = packages[packageIndex].FileMapping.Count;
             WriteItemsProgress = 0;
 
-            await Task.Run(() => WriteAll(packageIndex));
+            await Task.Run(() => WriteAll(packageIndex, error));
             if (complete != null)
                 complete();
         }
@@ -625,6 +642,23 @@ namespace TwinspireCS
         }
 
         /// <summary>
+        /// Unloads the specified identifier, assuming its an image.
+        /// </summary>
+        /// <param name="identifier">The identifier to scan for.</param>
+        /// <returns>Returns true if successful.</returns>
+        public bool UnloadImage(string identifier)
+        {
+            if (imageCache.ContainsKey(identifier))
+            {
+                Raylib.UnloadImage(GetImage(identifier));
+                imageCache.Remove(identifier);
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Gets a texture from an image with the given identifier. The respective image must be loaded before it is retrieved.
         /// </summary>
         /// <param name="identifier">The identifier of the image to get.</param>
@@ -648,6 +682,23 @@ namespace TwinspireCS
         }
 
         /// <summary>
+        /// Unloads the specified identifier, assuming its a texture.
+        /// </summary>
+        /// <param name="identifier">The identifier to scan for.</param>
+        /// <returns>Returns true if successful.</returns>
+        public bool UnloadTexture(string identifier)
+        {
+            if (textureCache.ContainsKey(identifier))
+            {
+                Raylib.UnloadTexture(textureCache[identifier]);
+                textureCache.Remove(identifier);
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Gets a RenderTexture with the given identifier.
         /// </summary>
         /// <param name="identifier">The identifier of the image to get.</param>
@@ -660,6 +711,23 @@ namespace TwinspireCS
             }
 
             return new RenderTexture2D();
+        }
+
+        /// <summary>
+        /// Unloads the specified identifier, assuming its a render texture.
+        /// </summary>
+        /// <param name="identifier">The identifier to scan for.</param>
+        /// <returns>Returns true if successful.</returns>
+        public bool UnloadRenderTexture(string identifier)
+        {
+            if (renderTextureCache.ContainsKey(identifier))
+            {
+                Raylib.UnloadRenderTexture(renderTextureCache[identifier]);
+                renderTextureCache.Remove(identifier);
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -708,6 +776,23 @@ namespace TwinspireCS
         }
 
         /// <summary>
+        /// Unloads the specified identifier, assuming its music.
+        /// </summary>
+        /// <param name="identifier">The identifier to scan for.</param>
+        /// <returns>Returns true if successful.</returns>
+        public bool UnloadMusic(string identifier)
+        {
+            if (musicCache.ContainsKey(identifier))
+            {
+                Raylib.UnloadMusicStream(GetMusic(identifier));
+                musicCache.Remove(identifier);
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Loads an audio file from a given identifier. This method will scan all known
         /// packages for the given identifier until a name has been found.
         /// 
@@ -749,6 +834,23 @@ namespace TwinspireCS
             }
 
             return new Wave();
+        }
+
+        /// <summary>
+        /// Unloads the specified identifier, assuming its a wave.
+        /// </summary>
+        /// <param name="identifier">The identifier to scan for.</param>
+        /// <returns>Returns true if successful.</returns>
+        public bool UnloadWave(string identifier)
+        {
+            if (waveCache.ContainsKey(identifier))
+            {
+                Raylib.UnloadWave(GetWave(identifier));
+                waveCache.Remove(identifier);
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -800,6 +902,23 @@ namespace TwinspireCS
         }
 
         /// <summary>
+        /// Unloads the specified identifier, assuming its a font.
+        /// </summary>
+        /// <param name="identifier">The identifier to scan for.</param>
+        /// <returns>Returns true if successful.</returns>
+        public bool UnloadFont(string identifier)
+        {
+            if (fontCache.ContainsKey(identifier))
+            {
+                Raylib.UnloadFont(GetFont(identifier));
+                fontCache.Remove(identifier);
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Checks all packages to determine if the given identifier exists.
         /// </summary>
         /// <param name="identifier">The identifier to check.</param>
@@ -836,7 +955,17 @@ namespace TwinspireCS
             if (result)
                 return result;
 
-            result = fontCache.ContainsKey(identifier);
+            // special case for font cache, as we may not know
+            // the specific size to look for.
+            foreach (var key in fontCache.Keys)
+            { 
+                if (key.StartsWith(identifier))
+                {
+                    result = true;
+                    break;
+                }
+            }
+
             if (result)
                 return result;
 
@@ -924,6 +1053,50 @@ namespace TwinspireCS
         public async Task LoadGroupAsync(ResourceGroup group)
         {
             await new Task(() => LoadGroup(group));
+        }
+
+        /// <summary>
+        /// Requests to unload the specified identifier, irrespective of its actual
+        /// format, and removes it from the cache within which its contained. When
+        /// unloading a font by an identifier without its size specified, all fonts
+        /// relating to the same identifier is unloaded, regardless of size.
+        /// </summary>
+        /// <param name="identifier">The identifier to scan for.</param>
+        public void Unload(string identifier)
+        {
+            bool success;
+            if (identifier.Contains(':'))
+            {
+                success = UnloadFont(identifier);
+            }
+            else
+            {
+                var toRemove = new List<string>();
+                foreach (var key in fontCache.Keys)
+                {
+                    if (key.StartsWith(identifier))
+                    {
+                        toRemove.Add(key);
+                    }
+                }
+
+                success = toRemove.Count > 0;
+                if (success)
+                {
+
+                }
+            }
+
+            if (!success)
+                success = UnloadImage(identifier);
+            if (!success)
+                success = UnloadMusic(identifier);
+            if (!success)
+                success = UnloadRenderTexture(identifier);
+            if (!success)
+                success = UnloadTexture(identifier);
+            if (!success)
+                UnloadWave(identifier);
         }
 
         /// <summary>
