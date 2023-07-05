@@ -20,6 +20,8 @@ namespace TwinspireCS.Engine.GUI
 
         private GameContext gameContext;
         private List<Grid> layouts;
+        private IDictionary<string, DynamicGrid> dynamicLayouts;
+        private int currentDynamicLayout;
         private List<Element> elements;
         private List<string> elementsToAdd;
         private IDictionary<string, int[]> elementIdCache;
@@ -120,6 +122,8 @@ namespace TwinspireCS.Engine.GUI
             tweensRunning = new List<bool>();
             activeElement = 0;
             elementsChanged = true;
+
+            dynamicLayouts = new Dictionary<string, DynamicGrid>();
 
             previousAfterTransitionAnimateIndex = -1;
             afterTransitionAnimateIndex = -1;
@@ -1401,6 +1405,27 @@ namespace TwinspireCS.Engine.GUI
 
             return ElementState.Idle;
         }
+
+        #region UI Element Layouts
+
+        public bool BeginTable(string id, Rectangle dimension)
+        {
+            var layout = new DynamicGrid();
+            layout.Dimension = dimension;
+            layout.StartElement = elements.Count - 1;
+
+            dynamicLayouts.Add(id, layout);
+            currentDynamicLayout = dynamicLayouts.Count - 1;
+
+            return true;
+        }
+
+        public void TableColumn(string name, float initialWidth)
+        {
+
+        }
+
+        #endregion
 
         #region Drawing Utilities
 
