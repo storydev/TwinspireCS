@@ -1218,7 +1218,7 @@ namespace TwinspireCS.Engine.GUI
 
                 var imageTexture = Application.Instance.ResourceManager.GetTexture(imageName);
                 Raylib.DrawTexturePro(imageTexture, new Rectangle(0, 0, imageTexture.width, imageTexture.height), 
-                    new Rectangle(imageElement.Dimension.x, imageElement.Dimension.y, imageSize.X, imageSize.Y), new Vector2(0, 0), 0, Color.WHITE);
+                    new Rectangle(imageElement.Dimension.x, imageElement.Dimension.y, imageElement.Dimension.width, imageElement.Dimension.height), new Vector2(0, 0), 0, Color.WHITE);
 
                 if (imageFormat == ButtonImageFormat.ImageAndText)
                 {
@@ -1312,10 +1312,10 @@ namespace TwinspireCS.Engine.GUI
                             else if (imageAlignment == ImageAlignment.AfterText)
                             {
                                 ContentAlignment againstAlignment = ContentAlignment.Right;
-                                if (alignment == ContentAlignment.Bottom || alignment == ContentAlignment.BottomLeft || alignment == ContentAlignment.BottomRight)
+                                if (alignment == ContentAlignment.Bottom || alignment == ContentAlignment.BottomLeft || alignment == ContentAlignment.BottomRight || alignment == ContentAlignment.Right)
                                 {
-                                    // if alignment at bottom, set image alignment first, then label
-                                    build[i].Dimension = CalculateDimension(build[0].Dimension, new Vector2(childInnerPadding, childInnerPadding), new Vector2(build[i].Dimension.width, build[i].Dimension.height), alignment);
+                                    // if alignment at bottom or right, set image alignment first, then label
+                                    build[i].Dimension = CalculateDimension(build[0].Dimension, new Vector2(childInnerPadding, childInnerPadding), imageSize, alignment);
                                     if (alignment == ContentAlignment.Bottom)
                                     {
                                         build[i + 1].Dimension = CalculateDimension(build[0].Dimension, new Vector2(childInnerPadding, childInnerPadding), textInfo.ContentSize, ContentAlignment.Top);
@@ -1328,18 +1328,18 @@ namespace TwinspireCS.Engine.GUI
                                     {
                                         build[i + 1].Dimension = CalculateDimension(build[0].Dimension, new Vector2(childInnerPadding, childInnerPadding), textInfo.ContentSize, ContentAlignment.TopRight);
                                     }
+                                    else if (alignment == ContentAlignment.Right)
+                                    {
+                                        build[i + 1].Dimension = CalculateDimension(new Vector2(childInnerPadding, childInnerPadding), textInfo.ContentSize, ContentAlignment.Left, build[i].Dimension, true);
+                                    }
                                 }
                                 else
                                 {
                                     // if alignment elsewhere, set label alignment first, then image
-                                    build[i + 1].Dimension = CalculateDimension(build[0].Dimension, new Vector2(childInnerPadding, childInnerPadding), imageSize, alignment);
+                                    build[i + 1].Dimension = CalculateDimension(build[0].Dimension, new Vector2(childInnerPadding, childInnerPadding), textInfo.ContentSize, alignment);
                                     if (alignment == ContentAlignment.Center)
                                     {
                                         againstAlignment = ContentAlignment.Bottom;
-                                    }
-                                    else if (alignment == ContentAlignment.Right)
-                                    {
-                                        againstAlignment = ContentAlignment.BottomRight;
                                     }
                                     else if (alignment == ContentAlignment.Top)
                                     {
@@ -1349,7 +1349,11 @@ namespace TwinspireCS.Engine.GUI
                                     {
                                         againstAlignment = ContentAlignment.BottomRight;
                                     }
-                                    build[i].Dimension = CalculateDimension(new Vector2(childInnerPadding, childInnerPadding), textInfo.ContentSize, againstAlignment, build[0].Dimension, true);
+                                    else if (alignment == ContentAlignment.TopLeft)
+                                    {
+                                        againstAlignment = ContentAlignment.BottomLeft;
+                                    }
+                                    build[i].Dimension = CalculateDimension(new Vector2(childInnerPadding, childInnerPadding), imageSize, againstAlignment, build[i + 1].Dimension, true);
                                 }
                             }
                         }
@@ -1358,6 +1362,8 @@ namespace TwinspireCS.Engine.GUI
                             build[i].Dimension = CalculateDimension(build[0].Dimension, new Vector2(childInnerPadding, childInnerPadding), imageSize, alignment);
                             build[i + 1].Visible = false;
                         }
+
+                        build[i].Dimension = ConformToRec(build[0].Dimension, build[i].Dimension);
                     }
 
                     elements.Add(build[i]);
@@ -1379,6 +1385,13 @@ namespace TwinspireCS.Engine.GUI
                         elements.Add(toolTipElement);
                     }
                 }
+
+                var tween = new Tween();
+                tween.Duration = 0.25f;
+                tween.From = Theme.Default.Styles[Theme.BUTTON];
+                tween.To = Theme.Default.Styles[Theme.BUTTON_HOVER];
+                AddTween(id + ":hover", tween);
+                StartTween(id + ":hover");
             }
             else
             {
@@ -1565,6 +1578,49 @@ namespace TwinspireCS.Engine.GUI
                     result.y = against.y - measure.Y - offset.Y;
                 }
             }
+            return result;
+        }
+
+        protected Rectangle ConformToRec(Rectangle constraits, Rectangle obj)
+        {
+            var result = new Rectangle(obj.x, obj.y, obj.width, obj.height);
+            // check top-left
+            if (obj.x < constraits.x)
+            {
+                result.x = constraits.x + childInnerPadding;
+            }
+
+            if (obj.y < constraits.y)
+            {
+                result.y = constraits.y + childInnerPadding;
+            }
+
+            float ratio = 1.0f;
+            float aspectRatio = obj.height / obj.width;
+            // check bottom-right
+            if (result.x + obj.width > constraits.x + constraits.width)
+            {
+                result.width = (result.x + obj.width) - (constraits.x + constraits.width) - childInnerPadding;
+                ratio = result.width / obj.width;
+            }
+
+            if (aspectRatio == 1.0f)
+            {
+                result.height = ratio * result.width;
+            }
+            else
+            {
+                result.height = aspectRatio * result.width;
+            }
+
+            var lastHeight = result.height;
+            if (result.y + result.height > constraits.y + constraits.height)
+            {
+                result.height = (result.y + result.height) - (constraits.y + constraits.height) - childInnerPadding;
+                ratio = result.height / lastHeight;
+                result.width = ratio * result.width;
+            }
+
             return result;
         }
 
