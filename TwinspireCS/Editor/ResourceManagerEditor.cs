@@ -12,31 +12,31 @@ using System.Reflection;
 
 namespace TwinspireCS.Editor
 {
-    public class ResourceManagerEditor
+    public class ResourceManagerEditor : IExtension
     {
 
-        static bool isOpen;
-        static bool isWriting;
-        static int maxItems;
-        static int page;
-        static List<ResourceFile> resources;
-        static string[] tableCells;
-        static string[] packageNames;
-        static int selectedPackage;
-        static int lastSelectedPackage;
-        static List<int> selectedRows;
-        static List<ResourceAddFile> addFiles;
-        static int writingAllProgressIndex;
+        bool isOpen;
+        bool isWriting;
+        int maxItems;
+        int page;
+        List<ResourceFile> resources;
+        string[] tableCells;
+        string[] packageNames;
+        int selectedPackage;
+        int lastSelectedPackage;
+        List<int> selectedRows;
+        List<ResourceAddFile> addFiles;
+        int writingAllProgressIndex;
 
-        static bool allowBack;
-        static bool allowForward;
+        bool allowBack;
+        bool allowForward;
 
-        static string[] resourceWriteErrorPaths;
-        static bool resourceWriteHasError;
+        string[] resourceWriteErrorPaths;
+        bool resourceWriteHasError;
 
-        static string resourcePackageName;
+        string resourcePackageName;
 
-        public static void Init()
+        public void Init()
         {
             maxItems = 100;
             page = 0;
@@ -55,7 +55,7 @@ namespace TwinspireCS.Editor
             ResetCellData();
         }
 
-        static void RefreshResources()
+        void RefreshResources()
         {
             resources.Clear();
 
@@ -75,7 +75,7 @@ namespace TwinspireCS.Editor
             }
         }
 
-        public static void Render()
+        public void Render()
         {
             ImGui.SetNextWindowSize(new Vector2(1100, 500), ImGuiCond.Always);
 
@@ -515,7 +515,7 @@ namespace TwinspireCS.Editor
             }
         }
 
-        static void DrawDeleteErrorPopup()
+        void DrawDeleteErrorPopup()
         {
             if (ImGui.BeginPopupModal("Delete Error"))
             {
@@ -544,7 +544,7 @@ namespace TwinspireCS.Editor
             }
         }
 
-        static void DrawConfirmDeleteSelectionPopup()
+        void DrawConfirmDeleteSelectionPopup()
         {
             if (ImGui.BeginPopupModal("Confirm Delete Items"))
             {
@@ -582,13 +582,13 @@ namespace TwinspireCS.Editor
             }
         }
 
-        static string editPrefix = string.Empty;
-        static string editSuffix = string.Empty;
-        static string editTitlePattern = string.Empty;
+        string editPrefix = string.Empty;
+        string editSuffix = string.Empty;
+        string editTitlePattern = string.Empty;
 
-        static string editItemName = string.Empty;
+        string editItemName = string.Empty;
 
-        static void DrawSingleEditPopup()
+        void DrawSingleEditPopup()
         {
             if (ImGui.BeginPopupModal("Edit Item"))
             {
@@ -624,7 +624,7 @@ namespace TwinspireCS.Editor
             }
         }
 
-        static void DrawEditPopup()
+        void DrawEditPopup()
         {
             if (ImGui.BeginPopupModal("Edit Resources"))
             {
@@ -731,7 +731,7 @@ namespace TwinspireCS.Editor
             }
         }
 
-        static void AddFiles(string[] files, int inPackage)
+        void AddFiles(string[] files, int inPackage)
         {
             if (addFiles == null)
                 addFiles = new List<ResourceAddFile>();
@@ -748,7 +748,7 @@ namespace TwinspireCS.Editor
             }
         }
 
-        static void ResetPackageNames()
+        void ResetPackageNames()
         {
             var rm = Application.Instance.ResourceManager;
             packageNames = new string[rm.Packages.Count() + 1];
@@ -765,7 +765,7 @@ namespace TwinspireCS.Editor
             }
         }
 
-        static void ResetCellData()
+        void ResetCellData()
         {
             var min = page * maxItems;
             var max = min + maxItems;
@@ -814,7 +814,7 @@ namespace TwinspireCS.Editor
 
         }
 
-        static string ConvertBytesToString(long bytes)
+        string ConvertBytesToString(long bytes)
         {
             var result = string.Empty;
             var temp = "" + bytes;
@@ -841,7 +841,7 @@ namespace TwinspireCS.Editor
             return result;
         }
 
-        static async void SavePackageHeader(int packageIndex)
+        async void SavePackageHeader(int packageIndex)
         {
             await Task.Run(() =>
             {
@@ -849,7 +849,7 @@ namespace TwinspireCS.Editor
             });
         }
 
-        static async void PerformDeletion(int packageIndex)
+        async void PerformDeletion(int packageIndex)
         {
             isWriting = true;
             await Task.Run(() =>

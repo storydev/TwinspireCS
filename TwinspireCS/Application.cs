@@ -151,6 +151,8 @@ namespace TwinspireCS
         /// </summary>
         public void InitAll()
         {
+            Editor.Editor.AddWrapper(new Editor.ResourceManagerWrapper(new Editor.ResourceManagerEditor()));
+
             InitDefaultUI();
             HotKeys.Init();
             Animate.Init();
