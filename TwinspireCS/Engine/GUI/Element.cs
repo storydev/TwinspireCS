@@ -15,6 +15,7 @@ namespace TwinspireCS.Engine.GUI
         public ElementType Type;
         public int GridIndex;
         public int CellIndex;
+        public DrawContext DrawContext;
         public bool IsBaseElement;
         public bool Rendered;
         public bool Visible;

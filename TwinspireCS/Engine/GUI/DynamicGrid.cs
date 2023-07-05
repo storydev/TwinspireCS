@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Raylib_cs;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,6 +12,7 @@ namespace TwinspireCS.Engine.GUI
 
         public int StartElement;
         public int EndElement;
+        public RenderTexture2D BackBuffer;
 
         public DynamicGrid()
         {

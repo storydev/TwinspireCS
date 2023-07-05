@@ -22,6 +22,11 @@ namespace TwinspireCS.Engine.GUI
         private List<Grid> layouts;
         private IDictionary<string, DynamicGrid> dynamicLayouts;
         private int currentDynamicLayout;
+        private DrawContext currentDrawContext;
+
+        private IDictionary<string, TableDefinition> tables;
+        private int currentTable;
+
         private List<Element> elements;
         private List<string> elementsToAdd;
         private IDictionary<string, int[]> elementIdCache;
@@ -109,6 +114,7 @@ namespace TwinspireCS.Engine.GUI
 
         public Canvas()
         {
+            currentDrawContext = DrawContext.CommonLayouts;
             layouts = new List<Grid>();
             elements = new List<Element>();
             elementIdCache = new Dictionary<string, int[]>();
@@ -481,6 +487,11 @@ namespace TwinspireCS.Engine.GUI
             currentGridIndex = gridIndex;
             currentCellIndex = cellIndex;
             currentLayoutFlags = flags;
+        }
+
+        protected void SetDrawContext(DrawContext context)
+        {
+            currentDrawContext = context;
         }
 
         public void SetFlowDirection(FlowDirection direction)
@@ -1408,20 +1419,114 @@ namespace TwinspireCS.Engine.GUI
 
         #region UI Element Layouts
 
-        public bool BeginTable(string id, Rectangle dimension)
+        public bool BeginTable(string id, int columns, Rectangle dimension, bool borders = false, bool buffered = false)
         {
             var layout = new DynamicGrid();
             layout.Dimension = dimension;
             layout.StartElement = elements.Count - 1;
 
+            if (buffered)
+            {
+                layout.BackBuffer = Raylib.LoadRenderTexture((int)dimension.width, (int)dimension.height);
+                Raylib.BeginTextureMode(layout.BackBuffer);
+                Raylib.ClearBackground(Color.WHITE);
+                Raylib.EndTextureMode();
+            }
+
             dynamicLayouts.Add(id, layout);
             currentDynamicLayout = dynamicLayouts.Count - 1;
+
+            var table = new TableDefinition();
+            table.Columns = new string[columns];
+            table.ColumnWidths = new float[columns];
+            table.ColumnInitialWidths = new float[columns];
+            table.Borders = borders;
+
+            tables.Add(id, table);
+            currentTable = tables.Count - 1;
 
             return true;
         }
 
         public void TableColumn(string name, float initialWidth)
         {
+            if (currentDynamicLayout < 0 || currentDynamicLayout > dynamicLayouts.Count - 1 || currentTable < 0 || currentTable > tables.Count - 1)
+            {
+                throw new Exception("TableColumn being used outside the context of a table.");
+            }
+
+            var layout = dynamicLayouts.ElementAt(currentDynamicLayout);
+            var table = tables.ElementAt(currentTable);
+            if (table.Value.CurrentColumn > table.Value.Columns.Length - 1)
+            {
+                throw new Exception("TableColumn exceeds the number of columns in the table.");
+            }
+
+            layout.Value.SetColumnWidth(table.Value.CurrentColumn, (int)initialWidth);
+
+            table.Value.Columns[table.Value.CurrentColumn] = name;
+            table.Value.ColumnInitialWidths[table.Value.CurrentColumn] = initialWidth;
+            table.Value.ColumnWidths[table.Value.CurrentColumn] = initialWidth;
+
+            table.Value.CurrentColumn += 1;
+        }
+
+        public Grid TableGetLayout()
+        {
+            if (currentDynamicLayout < 0 || currentDynamicLayout > dynamicLayouts.Count - 1)
+            {
+                throw new Exception("TableColumn being used outside the context of a table.");
+            }
+
+            return dynamicLayouts.ElementAt(currentDynamicLayout).Value;
+        }
+
+        public void TableNextCell(LayoutFlags layoutFlags = LayoutFlags.DynamicColumns | LayoutFlags.DynamicRows)
+        {
+            if (currentTable < 0 || currentTable > tables.Count - 1)
+            {
+                throw new Exception("TableColumn being used outside the context of a table.");
+            }
+
+            var table = tables.ElementAt(currentTable);
+            if (table.Value.LookAtColumn + 1 > table.Value.Columns.Length - 1)
+            {
+                table.Value.LookAtColumn = 0;
+                table.Value.LookAtRow += 1;
+            }
+            else
+            {
+                table.Value.LookAtColumn += 1;
+            }
+
+            var cell = table.Value.LookAtColumn + table.Value.LookAtRow * table.Value.Columns.Length;
+            DrawTo(currentDynamicLayout, cell, layoutFlags);
+            SetDrawContext(DrawContext.DynamicLayouts);
+        }
+
+        public void EndTable()
+        {
+            if (currentDynamicLayout < 0 || currentDynamicLayout > dynamicLayouts.Count - 1 || currentTable < 0 || currentTable > tables.Count - 1)
+            {
+                throw new Exception("TableColumn being used outside the context of a table.");
+            }
+
+            var layout = dynamicLayouts.ElementAt(currentDynamicLayout);
+            var table = tables.ElementAt(currentTable);
+            var lastElement = elements.Count - 1;
+
+            if (requestRebuild || firstBuild)
+            {
+                layout.Value.Rows = new float[table.Value.LookAtRow + 1];
+                for (int col = 0; col < layout.Value.Columns.Length; col++)
+                {
+                    var columnWidth = 0.0f;
+                    for (int r = 0; r < table.Value.LookAtRow + 1; r++)
+                    {
+                        
+                    }
+                }
+            }
 
         }
 
@@ -1922,7 +2027,7 @@ namespace TwinspireCS.Engine.GUI
 
         protected Rectangle CalculateNextDimension(int elementIndex, string textOrImageName = "", bool includeImage = false)
         {
-            var currentRowElements = elements.Where((e) => e.GridIndex == currentGridIndex && e.CellIndex == currentCellIndex && e.IsBaseElement);
+            var currentRowElements = elements.Where((e) => e.GridIndex == currentGridIndex && e.CellIndex == currentCellIndex && e.IsBaseElement && e.DrawContext == currentDrawContext);
 
             Image imageToUse = new Image();
             bool usingImage = false;
@@ -1947,7 +2052,11 @@ namespace TwinspireCS.Engine.GUI
                 textOrImageName = textOrImageName[..startImageIndex];
             }
 
-            var gridContentDim = layouts[currentGridIndex].GetContentDimension(currentCellIndex);
+            Rectangle gridContentDim = layouts[currentGridIndex].GetContentDimension(currentCellIndex);
+            if (currentDrawContext == DrawContext.DynamicLayouts)
+            {
+                gridContentDim = dynamicLayouts.ElementAt(currentGridIndex).Value.GetContentDimension(currentCellIndex);
+            }
             var remainingWidth = gridContentDim.width;
             var xToBecome = 0.0f;
             var yToBecome = 0.0f;
@@ -2321,100 +2430,111 @@ namespace TwinspireCS.Engine.GUI
 
             for (int i = 0; i < layouts.Count; i++)
             {
-                RenderLayout(i);
+                var grid = layouts[i];
+                int cells = grid.Columns.Length * grid.Rows.Length;
+
+                for (int j = 0; j < cells; j++)
+                {
+                    var cellDim = grid.GetCellDimension(j);
+                    DrawLayout(grid, cellDim, i, j);
+                }
+            }
+
+            for (int i = 0; i < dynamicLayouts.Count; i++)
+            {
+                var grid = dynamicLayouts.ElementAt(i).Value;
+                int cells = grid.Columns.Length * grid.Rows.Length;
+
+                for (int j = 0; j < cells; j++)
+                {
+                    var cellDim = grid.GetCellDimension(j);
+                    DrawLayout(grid, cellDim, i, j);
+                }
             }
         }
 
-        public unsafe void RenderLayout(int gridIndex)
+        private unsafe void DrawLayout(Grid grid, Rectangle cellDim, int gridIndex, int i)
         {
-            var grid = layouts[gridIndex];
-            int cells = grid.Columns.Length * grid.Rows.Length;
-
-            for (int i = 0; i < cells; i++)
+            if (!Equals(grid.Shadows[i], Shadow.Empty))
             {
-                var cellDim = grid.GetCellDimension(i);
-
-                if (!Equals(grid.Shadows[i], Shadow.Empty))
+                var name = Name + "_Grid_" + gridIndex + "_Cell_" + i + "_Shadow";
+                if (!Application.Instance.ResourceManager.DoesIdentifierExist(name))
                 {
-                    var name = Name + "_Grid_" + gridIndex + "_Cell_" + i + "_Shadow";
-                    if (!Application.Instance.ResourceManager.DoesIdentifierExist(name))
-                    {
-                        var shadowImage = Raylib.GenImageColor((int)cellDim.width + (grid.Shadows[i].BlurRadius * 2), (int)cellDim.height + (grid.Shadows[i].BlurRadius * 2), Color.WHITE);
-                        Raylib.ImageDrawRectangle(ref shadowImage, grid.Shadows[i].BlurRadius, grid.Shadows[i].BlurRadius,
-                            (int)(cellDim.width - grid.Shadows[i].BlurRadius), (int)(cellDim.height - grid.Shadows[i].BlurRadius), grid.Shadows[i].Color);
-                        Raylib.ImageBlurGaussian(&shadowImage, grid.Shadows[i].BlurRadius);
-                        Application.Instance.ResourceManager.AddResourceImage(name, shadowImage);
-                    }
-                    else
-                    {
-                        var shadowTexture = Application.Instance.ResourceManager.GetTexture(name);
-                        Raylib.DrawTexture(shadowTexture, (int)grid.Shadows[i].OffsetX + (int)cellDim.x, (int)grid.Shadows[i].OffsetY + (int)cellDim.y, Color.WHITE);
-                    }
-                }
-                
-                if (!string.IsNullOrEmpty(grid.BackgroundImages[i]))
-                {
-                    if (!preloadedAll)
-                        Application.Instance.ResourceManager.LoadImage(grid.BackgroundImages[i]);
-
-                    var bgImageTexture = Application.Instance.ResourceManager.GetTexture(grid.BackgroundImages[i]);
-                    Raylib.DrawTexturePro(bgImageTexture,
-                        new Rectangle(0, 0, bgImageTexture.width, bgImageTexture.height),
-                        new Rectangle(cellDim.x + grid.Offsets[i].X, cellDim.y + grid.Offsets[i].Y, cellDim.width, cellDim.height),
-                        new Vector2(0, 0), 0, Color.WHITE);
+                    var shadowImage = Raylib.GenImageColor((int)cellDim.width + (grid.Shadows[i].BlurRadius * 2), (int)cellDim.height + (grid.Shadows[i].BlurRadius * 2), Color.WHITE);
+                    Raylib.ImageDrawRectangle(ref shadowImage, grid.Shadows[i].BlurRadius, grid.Shadows[i].BlurRadius,
+                        (int)(cellDim.width - grid.Shadows[i].BlurRadius), (int)(cellDim.height - grid.Shadows[i].BlurRadius), grid.Shadows[i].Color);
+                    Raylib.ImageBlurGaussian(&shadowImage, grid.Shadows[i].BlurRadius);
+                    Application.Instance.ResourceManager.AddResourceImage(name, shadowImage);
                 }
                 else
                 {
-                    int cellItemIndex = i * 4;
-                    var hasRadiusCorners = grid.RadiusCorners[i] > 0.0f;
-                    if (hasRadiusCorners)
+                    var shadowTexture = Application.Instance.ResourceManager.GetTexture(name);
+                    Raylib.DrawTexture(shadowTexture, (int)grid.Shadows[i].OffsetX + (int)cellDim.x, (int)grid.Shadows[i].OffsetY + (int)cellDim.y, Color.WHITE);
+                }
+            }
+
+            if (!string.IsNullOrEmpty(grid.BackgroundImages[i]))
+            {
+                if (!preloadedAll)
+                    Application.Instance.ResourceManager.LoadImage(grid.BackgroundImages[i]);
+
+                var bgImageTexture = Application.Instance.ResourceManager.GetTexture(grid.BackgroundImages[i]);
+                Raylib.DrawTexturePro(bgImageTexture,
+                    new Rectangle(0, 0, bgImageTexture.width, bgImageTexture.height),
+                    new Rectangle(cellDim.x + grid.Offsets[i].X, cellDim.y + grid.Offsets[i].Y, cellDim.width, cellDim.height),
+                    new Vector2(0, 0), 0, Color.WHITE);
+            }
+            else
+            {
+                int cellItemIndex = i * 4;
+                var hasRadiusCorners = grid.RadiusCorners[i] > 0.0f;
+                if (hasRadiusCorners)
+                {
+                    // cannot use gradient colours with background rectangles using radius corners.
+                    // defaults to using first solid colour input
+                    var backgroundColor = grid.BackgroundColors[i].Colors[0];
+                    Raylib.DrawRectangleRounded(new Rectangle(cellDim.x, cellDim.y, cellDim.width, cellDim.height),
+                        grid.RadiusCorners[i], (int)(grid.RadiusCorners[i] * Math.PI), backgroundColor);
+                }
+                else
+                {
+                    if (grid.BackgroundColors[i].Colors == null)
+                        goto DRAW_BORDERS;
+
+                    if (grid.BackgroundColors[i].Type == Extras.ColorType.Solid)
                     {
-                        // cannot use gradient colours with background rectangles using radius corners.
-                        // defaults to using first solid colour input
-                        var backgroundColor = grid.BackgroundColors[i].Colors[0];
-                        Raylib.DrawRectangleRounded(new Rectangle(cellDim.x, cellDim.y, cellDim.width, cellDim.height),
-                            grid.RadiusCorners[i], (int)(grid.RadiusCorners[i] * Math.PI), backgroundColor);
+                        Raylib.DrawRectangle((int)cellDim.x, (int)cellDim.y, (int)cellDim.width, (int)cellDim.height, grid.BackgroundColors[i].Colors[0]);
                     }
-                    else
+                    else if (grid.BackgroundColors[i].Type == Extras.ColorType.GradientHorizontal)
                     {
-                        if (grid.BackgroundColors[i].Colors == null)
-                            goto DRAW_BORDERS;
+                        Raylib.DrawRectangleGradientH((int)cellDim.x, (int)cellDim.y, (int)cellDim.width, (int)cellDim.height, grid.BackgroundColors[i].Colors[0], grid.BackgroundColors[i].Colors[1]);
+                    }
+                    else if (grid.BackgroundColors[i].Type == Extras.ColorType.GradientVertical)
+                    {
+                        Raylib.DrawRectangleGradientV((int)cellDim.x, (int)cellDim.y, (int)cellDim.width, (int)cellDim.height, grid.BackgroundColors[i].Colors[0], grid.BackgroundColors[i].Colors[1]);
+                    }
 
-                        if (grid.BackgroundColors[i].Type == Extras.ColorType.Solid)
-                        {
-                            Raylib.DrawRectangle((int)cellDim.x, (int)cellDim.y, (int)cellDim.width, (int)cellDim.height, grid.BackgroundColors[i].Colors[0]);
-                        }
-                        else if (grid.BackgroundColors[i].Type == Extras.ColorType.GradientHorizontal)
-                        {
-                            Raylib.DrawRectangleGradientH((int)cellDim.x, (int)cellDim.y, (int)cellDim.width, (int)cellDim.height, grid.BackgroundColors[i].Colors[0], grid.BackgroundColors[i].Colors[1]);
-                        }
-                        else if (grid.BackgroundColors[i].Type == Extras.ColorType.GradientVertical)
-                        {
-                            Raylib.DrawRectangleGradientV((int)cellDim.x, (int)cellDim.y, (int)cellDim.width, (int)cellDim.height, grid.BackgroundColors[i].Colors[0], grid.BackgroundColors[i].Colors[1]);
-                        }
+                DRAW_BORDERS:
 
-                        DRAW_BORDERS:
+                    // draw borders
+                    if (grid.Borders[cellItemIndex]) // top
+                    {
+                        Raylib.DrawLineEx(new Vector2(cellDim.x, cellDim.y), new Vector2(cellDim.x + cellDim.width, cellDim.y), grid.BorderThicknesses[cellItemIndex], grid.BorderColors[cellItemIndex]);
+                    }
 
-                        // draw borders
-                        if (grid.Borders[cellItemIndex]) // top
-                        {
-                            Raylib.DrawLineEx(new Vector2(cellDim.x, cellDim.y), new Vector2(cellDim.x + cellDim.width, cellDim.y), grid.BorderThicknesses[cellItemIndex], grid.BorderColors[cellItemIndex]);
-                        }
+                    if (grid.Borders[cellItemIndex + 1]) // left
+                    {
+                        Raylib.DrawLineEx(new Vector2(cellDim.x, cellDim.y), new Vector2(cellDim.x, cellDim.y + cellDim.height), grid.BorderThicknesses[cellItemIndex + 1], grid.BorderColors[cellItemIndex + 1]);
+                    }
 
-                        if (grid.Borders[cellItemIndex + 1]) // left
-                        {
-                            Raylib.DrawLineEx(new Vector2(cellDim.x, cellDim.y), new Vector2(cellDim.x, cellDim.y + cellDim.height), grid.BorderThicknesses[cellItemIndex + 1], grid.BorderColors[cellItemIndex + 1]);
-                        }
+                    if (grid.Borders[cellItemIndex + 2]) // right
+                    {
+                        Raylib.DrawLineEx(new Vector2(cellDim.x + cellDim.width, cellDim.y), new Vector2(cellDim.x + cellDim.width, cellDim.y + cellDim.height), grid.BorderThicknesses[cellItemIndex + 2], grid.BorderColors[cellItemIndex + 2]);
+                    }
 
-                        if (grid.Borders[cellItemIndex + 2]) // right
-                        {
-                            Raylib.DrawLineEx(new Vector2(cellDim.x + cellDim.width, cellDim.y), new Vector2(cellDim.x + cellDim.width, cellDim.y + cellDim.height), grid.BorderThicknesses[cellItemIndex + 2], grid.BorderColors[cellItemIndex + 2]);
-                        }
-
-                        if (grid.Borders[cellItemIndex + 3]) // bottom
-                        {
-                            Raylib.DrawLineEx(new Vector2(cellDim.x, cellDim.y + cellDim.height), new Vector2(cellDim.x + cellDim.width, cellDim.y + cellDim.height), grid.BorderThicknesses[cellItemIndex + 3], grid.BorderColors[cellItemIndex + 3]);
-                        }
+                    if (grid.Borders[cellItemIndex + 3]) // bottom
+                    {
+                        Raylib.DrawLineEx(new Vector2(cellDim.x, cellDim.y + cellDim.height), new Vector2(cellDim.x + cellDim.width, cellDim.y + cellDim.height), grid.BorderThicknesses[cellItemIndex + 3], grid.BorderColors[cellItemIndex + 3]);
                     }
                 }
             }
