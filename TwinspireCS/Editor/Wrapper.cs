@@ -33,9 +33,28 @@ namespace TwinspireCS.Editor
         /// </summary>
         public IExtension Extension { get; private set; }
 
+        private List<SubMenuItem> subMenuItems;
+        public IEnumerable<SubMenuItem> SubMenuItems { get { return subMenuItems; } }
+
         public Wrapper(IExtension extension)
         {
             Extension = extension;
+            subMenuItems = new List<SubMenuItem>();
+        }
+
+        /// <summary>
+        /// Add an item selectable by the user while this module is active.
+        /// When the item is selected, call the given action.
+        /// </summary>
+        /// <param name="name">The name to give this option.</param>
+        /// <param name="onSelected">The callback method to call when this item is selected.</param>
+        protected void AddSubmenu(string name, Action onSelected)
+        {
+            subMenuItems.Add(new SubMenuItem()
+            {
+                Name = name,
+                OnSelected = onSelected
+            });
         }
 
     }

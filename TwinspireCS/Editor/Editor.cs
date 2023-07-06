@@ -18,6 +18,13 @@ namespace TwinspireCS.Editor
         private static bool showMessages;
         private static List<Wrapper> wrappers;
         private static int activeWrapper;
+        private static int lastActiveWrapper = -1;
+
+        private static IEnumerable<SubMenuItem> currentMenuItems;
+        private static int selectedSubMenuItem;
+        private static int lastSelectedSubMenuItem = -1;
+        private static string[] submenuItemNames;
+        private static Action[] submenuItemActions;
 
         static string[] wrapperNames;
         static string[] wrapperAuthors;
@@ -95,6 +102,39 @@ namespace TwinspireCS.Editor
                 ImGui.SetNextItemWidth(175f);
                 ImGui.Combo("##EditorExtensionsList", ref activeWrapper, wrapperNames, wrapperNames.Length);
                 ImGui.Text("Author: " + wrapperAuthors[activeWrapper]);
+
+                if (lastActiveWrapper != activeWrapper)
+                {
+                    currentMenuItems = wrappers[activeWrapper].SubMenuItems;
+                    submenuItemNames = new string[currentMenuItems.Count()];
+                    submenuItemActions = new Action[currentMenuItems.Count()];
+
+                    for (int i = 0; i < submenuItemNames.Length; i++)
+                    {
+                        submenuItemNames[i] = currentMenuItems.ElementAt(i).Name;
+                        submenuItemActions[i] = currentMenuItems.ElementAt(i).OnSelected;
+                    }
+
+                    lastSelectedSubMenuItem = -1;
+                    selectedSubMenuItem = -1;
+
+                    lastActiveWrapper = activeWrapper;
+                }
+
+                if (activeWrapper > -1)
+                {
+                    if (submenuItemNames.Length > 0)
+                    {
+                        ImGui.Text("Sub Menu:"); ImGui.SameLine();
+                        ImGui.SetNextItemWidth(175f);
+                        ImGui.Combo("##EditorSubMenu", ref selectedSubMenuItem, submenuItemNames, submenuItemNames.Length);
+                        if (lastSelectedSubMenuItem != selectedSubMenuItem)
+                        {
+                            submenuItemActions[selectedSubMenuItem].Invoke();
+                            lastSelectedSubMenuItem = selectedSubMenuItem;
+                        }
+                    }
+                }
 
                 ImGui.End();
             }
