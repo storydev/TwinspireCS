@@ -245,6 +245,11 @@ namespace TwinspireCS.Engine.GUI
             gameContext = context;
         }
 
+        public GameContext GetCurrentGameContext()
+        {
+            return gameContext;
+        }
+
         public void SetBackBuffer(RenderTexture2D backBuffer)
         {
             this.backBuffer = backBuffer;
