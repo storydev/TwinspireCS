@@ -10,7 +10,7 @@ namespace TwinspireCS.Engine
     public class Animate
     {
 
-        public static int Max;
+        public static int Max = 1000;
         private static float[]? animateTicks;
         private static float[]? animateTicksDelays;
         private static bool[]? animateTickReset;

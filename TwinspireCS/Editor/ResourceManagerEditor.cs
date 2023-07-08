@@ -108,7 +108,7 @@ namespace TwinspireCS.Editor
                         if (!resourcePackageName.EndsWith(".dat"))
                             resourcePackageName += ".dat";
 
-                        var validPath = Utils.ValidateFilePath(Path.Combine(Application.Instance.ResourceManager.AssetDirectory, resourcePackageName), true, true);
+                        var validPath = Utils.ValidateFilePath(Path.Combine(Application.Instance.ResourceManager.AssetDirectory, resourcePackageName), true, true, true);
                         if (validPath && !File.Exists(resourcePackageName))
                         {
                             Application.Instance.ResourceManager.CreatePackage(resourcePackageName);

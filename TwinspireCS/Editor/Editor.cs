@@ -30,6 +30,24 @@ namespace TwinspireCS.Editor
         static string[] wrapperAuthors;
 
         /// <summary>
+        /// Gets a Vector2 of the top-left position below
+        /// the current navigation pane.
+        /// </summary>
+        public static Vector2 LocationBelowNavigation
+        {
+            get; private set;
+        }
+
+        /// <summary>
+        /// Gets a Vector2 of the top-left position to the right
+        /// of the current navigation pane.
+        /// </summary>
+        public static Vector2 LocationRightNavigation
+        {
+            get; private set;
+        }
+
+        /// <summary>
         /// Adds a wrapper to an extension.
         /// </summary>
         /// <param name="wrapper">The wrapper to add to the editor.</param>
@@ -71,7 +89,11 @@ namespace TwinspireCS.Editor
         internal static void ExecuteExtensionAssemblies()
         {
             var localAppPath = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
-            var files = Directory.GetFiles(Path.Combine(localAppPath, "Extensions"), "*.dll");
+            var extensionsPath = Path.Combine(localAppPath, "Extensions");
+            if (!Directory.Exists(extensionsPath))
+                return;
+
+            var files = Directory.GetFiles(extensionsPath, "*.dll");
             foreach (var file in files)
             {
                 var assembly = Assembly.LoadFrom(file);
@@ -94,6 +116,7 @@ namespace TwinspireCS.Editor
         /// </summary>
         public static void Render()
         {
+            Vector2 navSize = new Vector2(0, 0);
             ImGui.SetNextWindowPos(new Vector2(3, 3));
             if (ImGui.Begin("##EditorNavigator", ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoResize
                 | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoTitleBar))
@@ -136,8 +159,15 @@ namespace TwinspireCS.Editor
                     }
                 }
 
+                navSize = ImGui.GetWindowSize();
                 ImGui.End();
             }
+
+            var navPosX = 3;
+            var navPosY = 3;
+
+            LocationBelowNavigation = new Vector2(navPosX, navSize.Y + navPosY + 3);
+            LocationRightNavigation = new Vector2(navPosX + navSize.X + 3, navPosY);
 
             if (showMessages)
             {
@@ -166,6 +196,11 @@ namespace TwinspireCS.Editor
                 }
             }
 
+            RenderWrapper();
+        }
+
+        public static void RenderWrapper()
+        {
             if (activeWrapper > -1 && activeWrapper < wrappers.Count)
             {
                 wrappers[activeWrapper].Extension.Render();

@@ -19,7 +19,7 @@ namespace TwinspireCS
         /// <param name="IncludeFileName"></param>
         /// <param name="RequireFileName"></param>
         /// <returns></returns>
-        public static bool ValidateFilePath(string path, bool IncludeFileName, bool RequireFileName = false)
+        public static bool ValidateFilePath(string path, bool IncludeFileName, bool RequireFileName = false, bool relativePath = false)
         {
             if (string.IsNullOrEmpty(path)) { return false; }
             string root = null;
@@ -43,7 +43,7 @@ namespace TwinspireCS
             }
 
             // null if path is null, or an empty string if path does not contain root directory information
-            if (string.IsNullOrEmpty(root)) { return false; }
+            if (string.IsNullOrEmpty(root) && !relativePath) { return false; }
 
             // null if path denotes a root directory or is null. Returns String.Empty if path does not contain directory information
             if (string.IsNullOrEmpty(directory)) { return false; }
