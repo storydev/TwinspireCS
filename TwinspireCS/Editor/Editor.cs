@@ -48,6 +48,14 @@ namespace TwinspireCS.Editor
         }
 
         /// <summary>
+        /// Get the size of the navigation area.
+        /// </summary>
+        public static Vector2 NavigationSize
+        {
+            get; private set;
+        }
+
+        /// <summary>
         /// Adds a wrapper to an extension.
         /// </summary>
         /// <param name="wrapper">The wrapper to add to the editor.</param>
@@ -166,6 +174,7 @@ namespace TwinspireCS.Editor
             var navPosX = 3;
             var navPosY = 3;
 
+            NavigationSize = new Vector2(navSize.X, navSize.Y);
             LocationBelowNavigation = new Vector2(navPosX, navSize.Y + navPosY + 3);
             LocationRightNavigation = new Vector2(navPosX + navSize.X + 3, navPosY);
 

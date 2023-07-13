@@ -27,6 +27,13 @@ namespace TwinspireCS.Engine.Graphics
             get => tilesets;
         }
 
+        public static void AddTileSet(TileSet set)
+        {
+            tilesets ??= new List<TileSet>();
+            tilesets.Add(set);
+        }
+
+
         /// <summary>
         /// Create a TileSet with the given image and size of the tiles.
         /// </summary>

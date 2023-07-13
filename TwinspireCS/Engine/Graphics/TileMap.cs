@@ -20,8 +20,21 @@ namespace TwinspireCS.Engine.Graphics
             Name = string.Empty;
             Layers = new List<TileLayer>();
             TileSize = 48;
-            TilesX = 25;
-            TilesY = 25;
+            TilesX = 15;
+            TilesY = 15;
+        }
+
+        private static List<TileMap> maps;
+        public static IEnumerable<TileMap> Maps => maps ??= new List<TileMap>();
+
+        /// <summary>
+        /// Add a TileMap to the global map stack.
+        /// </summary>
+        /// <param name="map">The tile map to add.</param>
+        public static void AddMap(TileMap map)
+        {
+            maps ??= new List<TileMap>();
+            maps.Add(map);
         }
 
     }
