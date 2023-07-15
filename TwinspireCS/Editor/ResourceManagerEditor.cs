@@ -462,6 +462,20 @@ namespace TwinspireCS.Editor
                         ImGui.EndTabItem();
                     }
 
+                    if (ImGui.BeginTabItem("Encryption##ResourcesEncryptionOptions"))
+                    {
+                        for (int i = 0; i < packageNames.Length; i++)
+                        {
+                            ImGui.PushID(i);
+                            ImGui.Text(packageNames[i]); ImGui.SameLine();
+                            
+
+                            ImGui.PopID();
+                        }
+
+                        ImGui.EndTabItem();
+                    }
+
                     if (resourceWriteHasError)
                     {
                         if (ImGui.BeginTabItem("Errors##ResourceWriteErrors"))

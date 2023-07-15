@@ -23,6 +23,7 @@ namespace TwinspireCS
         private Dictionary<string, RenderTexture2D> renderTextureCache;
 
         private List<DataPackage> packages;
+        private List<bool> packagesEncrypted;
         /// <summary>
         /// Gets the packages that exist in this resource manager.
         /// </summary>
@@ -37,6 +38,7 @@ namespace TwinspireCS
         {
             currentlyOpen = new List<int>();
             packages = new List<DataPackage>();
+            packagesEncrypted = new List<bool>();
             fontCache = new Dictionary<string, Font>();
             imageCache = new Dictionary<string, Image>();
             waveCache = new Dictionary<string, Wave>();
@@ -55,6 +57,7 @@ namespace TwinspireCS
             var package = new DataPackage();
             package.SourceFilePath = sourceFile;
             packages.Add(package);
+            packagesEncrypted.Add(false);
             return packages.Count - 1;
         }
 
@@ -176,6 +179,11 @@ namespace TwinspireCS
                 return;
             }
 
+            if (packagesEncrypted[packageIndex])
+            {
+                throw new Exception("The package you are attempting to write to is encrypted.");
+            }
+
             var outdir = AssetDirectory;
 
             if (!Directory.Exists(outdir))
@@ -275,8 +283,39 @@ namespace TwinspireCS
             WriteItemsProgress = 0;
 
             await Task.Run(() => WriteAll(packageIndex, error));
-            if (complete != null)
-                complete();
+            complete?.Invoke();
+        }
+
+        /// <summary>
+        /// Encrypt the contents of the selected package. Once in an encrypted state, it cannot be written
+        /// to until decrypted. If encryption has already been performed, this method exits immediately.
+        /// </summary>
+        /// <param name="packageIndex"></param>
+        /// <param name="cryptKey"></param>
+        /// <param name="authKey"></param>
+        /// <remarks>
+        /// Encryption can take a while to perform. This method is best not used outside of the Resource Manager
+        /// editor.
+        /// </remarks>
+        public async void EncryptAsync(int packageIndex, byte[] cryptKey, byte[] authKey, Action? complete = null)
+        {
+            if (packagesEncrypted[packageIndex])
+                return;
+
+            await Task.Run(() => Encrypt(packageIndex, cryptKey, authKey));
+            packagesEncrypted[packageIndex] = true;
+            var encPath = Path.Combine(AssetDirectory, packages[packageIndex].SourceFilePath, ".enc");
+
+            File.WriteAllText(encPath, "1");
+            File.SetAttributes(encPath, FileAttributes.Hidden | FileAttributes.ReadOnly | FileAttributes.NotContentIndexed);
+
+            complete?.Invoke();
+        }
+
+        private void Encrypt(int packageIndex, byte[] cryptKey, byte[] authKey)
+        {
+            var package = packages[packageIndex];
+            
         }
 
         /// <summary>
@@ -285,6 +324,10 @@ namespace TwinspireCS
         /// must be used for reading before loading in any files.
         /// </summary>
         /// <param name="files">The file paths (without their directories) to check.</param>
+        /// <remarks>
+        /// If a file is encrypted, it will use any supplied encryption keys. If the keys
+        /// are not supplied, or the the keys are invalid, the headers will not be read.
+        /// </remarks>
         public void ReadHeaders(params string[] files)
         {
             for (int i = 0; i < files.Length; i++)
@@ -335,6 +378,8 @@ namespace TwinspireCS
                     SKIP_READING:
                         { }
                     }
+
+                    packagesEncrypted.Add(false);
                     packages.Add(package);
                 }
             }
@@ -604,6 +649,9 @@ namespace TwinspireCS
         /// <param name="identifier">The name of the resource to find.</param>
         public unsafe void LoadImage(string identifier)
         {
+            if (string.IsNullOrEmpty(identifier))
+                return;
+
             if (imageCache.ContainsKey(identifier))
             {
                 return;
@@ -740,6 +788,9 @@ namespace TwinspireCS
         /// <param name="identifier">The name of the resource to find.</param>
         public unsafe void LoadMusic(string identifier)
         {
+            if (string.IsNullOrEmpty(identifier))
+                return;
+
             if (musicCache.ContainsKey(identifier))
             {
                 return;
@@ -802,6 +853,9 @@ namespace TwinspireCS
         /// <param name="identifier">The name of the resource to find.</param>
         public unsafe void LoadWave(string identifier)
         {
+            if (string.IsNullOrEmpty(identifier))
+                return;
+
             if (waveCache.ContainsKey(identifier))
             {
                 return;
@@ -865,6 +919,9 @@ namespace TwinspireCS
         /// <param name="fontChars">The characters to be included from the font file. Pass null to include the default character set.</param>
         public unsafe void LoadFont(string identifier, int fontSize, int[] fontChars = null)
         {
+            if (string.IsNullOrEmpty(identifier))
+                return;
+
             if (fontCache.ContainsKey(identifier))
             {
                 return;
@@ -942,6 +999,9 @@ namespace TwinspireCS
         /// <returns></returns>
         public bool DoesIdentifierExist(string identifier)
         {
+            if (string.IsNullOrEmpty(identifier))
+                return false;
+
             var result = false;
             result = imageCache.ContainsKey(identifier);
             if (result)
@@ -1083,7 +1143,10 @@ namespace TwinspireCS
                 success = toRemove.Count > 0;
                 if (success)
                 {
-
+                    foreach (var rem in toRemove)
+                    {
+                        fontCache.Remove(rem);
+                    }
                 }
             }
 
