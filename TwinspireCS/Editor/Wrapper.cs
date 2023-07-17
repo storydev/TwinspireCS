@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Tracing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -23,6 +24,11 @@ namespace TwinspireCS.Editor
         public string Name { get; protected set; }
 
         /// <summary>
+        /// A short version of the name.
+        /// </summary>
+        public string Keyword { get; protected set; }
+
+        /// <summary>
         /// The name of the author publishing this extension.
         /// </summary>
         public string Author { get; protected set; }
@@ -35,6 +41,13 @@ namespace TwinspireCS.Editor
 
         private List<SubMenuItem> subMenuItems;
         public IEnumerable<SubMenuItem> SubMenuItems { get { return subMenuItems; } }
+
+        /// <summary>
+        /// Gets a value determining if the extension should render without needing
+        /// to be in the editor. Must be called with <c>Editor.Render</c> somewhere in your
+        /// rendering routine.
+        /// </summary>
+        public bool RequireForcedRendering { get; protected set; }
 
         public Wrapper(IExtension extension)
         {
@@ -55,6 +68,15 @@ namespace TwinspireCS.Editor
                 Name = name,
                 OnSelected = onSelected
             });
+        }
+
+        /// <summary>
+        /// A rendering routine that does not perform anything.
+        /// Should be overridden in an inherited class to perform any rendering that this wrapper might require.
+        /// </summary>
+        public virtual void Render()
+        {
+
         }
 
     }

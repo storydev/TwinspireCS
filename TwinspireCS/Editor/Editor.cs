@@ -56,6 +56,14 @@ namespace TwinspireCS.Editor
         }
 
         /// <summary>
+        /// Gets or sets a value determining if the editor should show.
+        /// </summary>
+        public static bool Show
+        {
+            get; set;
+        }
+
+        /// <summary>
         /// Adds a wrapper to an extension.
         /// </summary>
         /// <param name="wrapper">The wrapper to add to the editor.</param>
@@ -63,6 +71,42 @@ namespace TwinspireCS.Editor
         {
             wrappers ??= new List<Wrapper>();
             wrappers.Add(wrapper);
+        }
+
+        /// <summary>
+        /// Gets a wrapper by the given name or keyword.
+        /// </summary>
+        /// <param name="nameOrKeyword">The name or keyword to look for.</param>
+        /// <returns></returns>
+        public static Wrapper? GetWrapper(string nameOrKeyword)
+        {
+            foreach (var wrapper in wrappers)
+            {
+                if (wrapper.Keyword == nameOrKeyword || wrapper.Name == nameOrKeyword)
+                {
+                    return wrapper;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Gets a wrapper by a given type.
+        /// </summary>
+        /// <typeparam name="T">A type derived from the <c>Wrapper</c> class.</typeparam>
+        /// <returns></returns>
+        public static T? GetWrapper<T>() where T : Wrapper
+        {
+            foreach (var wrapper in wrappers)
+            {
+                if (wrapper.GetType() == typeof(T))
+                {
+                    return (T)wrapper;
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -82,6 +126,8 @@ namespace TwinspireCS.Editor
             }
 
             messages = new List<string>();
+
+            Show = false;
         }
 
         /// <summary>
@@ -124,6 +170,18 @@ namespace TwinspireCS.Editor
         /// </summary>
         public static void Render()
         {
+            foreach (var wrapper in wrappers)
+            {
+                if (wrapper.RequireForcedRendering)
+                {
+                    wrapper.Render();
+                }
+            }
+
+            if (!Show)
+                return;
+            
+
             Vector2 navSize = new Vector2(0, 0);
             ImGui.SetNextWindowPos(new Vector2(3, 3));
             if (ImGui.Begin("##EditorNavigator", ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoResize

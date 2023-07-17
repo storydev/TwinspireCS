@@ -12,7 +12,7 @@ using System.Reflection;
 
 namespace TwinspireCS.Editor
 {
-    public class ResourceManagerEditor : IExtension
+    internal class ResourceManagerEditor : IExtension
     {
 
         bool isOpen;
@@ -529,6 +529,45 @@ namespace TwinspireCS.Editor
             }
         }
 
+        public bool IsQuickSearching { get; private set; }
+
+        public string QuickSearchAssetName
+        {
+            get => quickSearchAssetName;
+        }
+
+        private string[] quickSearchAssetNames;
+        private int[] quickSearchAssetResultIndices;
+        private string quickSearchAssetName;
+
+
+        public void QuickSearch(string filters, string assetName)
+        {
+            IsQuickSearching = true;
+            quickSearchAssetName = assetName;
+
+            var rm = Application.Instance.ResourceManager;
+            var tempSearchNames = new List<string>();
+            foreach (var package in rm.Packages)
+            {
+                foreach (var map in package.FileMapping)
+                {
+                    if (filters.Contains(map.Value.FileExt))
+                    {
+                        tempSearchNames.Add(map.Key);
+                    }
+                }
+            }
+
+            quickSearchAssetNames = tempSearchNames.ToArray();
+            quickSearchAssetResultIndices = Array.Empty<int>();
+        }
+
+        internal void RenderQuickSearch()
+        {
+
+        }
+
         void DrawDeleteErrorPopup()
         {
             if (ImGui.BeginPopupModal("Delete Error"))
@@ -747,8 +786,7 @@ namespace TwinspireCS.Editor
 
         void AddFiles(string[] files, int inPackage)
         {
-            if (addFiles == null)
-                addFiles = new List<ResourceAddFile>();
+            addFiles ??= new List<ResourceAddFile>();
 
             for (int i = 0; i < files.Length; i++)
             {
