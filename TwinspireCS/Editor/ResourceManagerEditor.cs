@@ -538,13 +538,16 @@ namespace TwinspireCS.Editor
 
         private string[] quickSearchAssetNames;
         private int[] quickSearchAssetResultIndices;
+        private bool quickSearchSubmit;
         private string quickSearchAssetName;
-
+        private string quickSearchText;
+        private int quickSearchItemSelected;
 
         public void QuickSearch(string filters, string assetName)
         {
             IsQuickSearching = true;
             quickSearchAssetName = assetName;
+            quickSearchText = string.Empty;
 
             var rm = Application.Instance.ResourceManager;
             var tempSearchNames = new List<string>();
@@ -565,7 +568,110 @@ namespace TwinspireCS.Editor
 
         internal void RenderQuickSearch()
         {
+            if (!IsQuickSearching)
+                return;
 
+            if (ImGui.Begin("Quick Search##RMQuickSearch", ImGuiWindowFlags.AlwaysAutoResize))
+            {
+                ImGui.Text("Search:"); ImGui.SameLine();
+                if (ImGui.InputText("##RMQSSearchText", ref quickSearchText, 512, ImGuiInputTextFlags.EnterReturnsTrue))
+                {
+                    if (string.IsNullOrEmpty(quickSearchText))
+                    {
+                        quickSearchAssetResultIndices = Array.Empty<int>();
+                        quickSearchSubmit = false;
+                        goto FINALISE_SEARCH;
+                    }
+
+                    var indices = new List<int>();
+                    for (int i = 0; i < quickSearchAssetNames.Length; i++)
+                    {
+                        var name = quickSearchAssetNames[i];
+                        if (quickSearchText.StartsWith('%') && quickSearchText.EndsWith('%'))
+                        {
+                            if (name.Contains(quickSearchText[1..^1]))
+                            {
+                                indices.Add(i);
+                            }
+                        }
+                        else if (quickSearchText.StartsWith('%'))
+                        {
+                            if (name.EndsWith(quickSearchText[1..]))
+                            {
+                                indices.Add(i);
+                            }
+                        }
+                        else if (quickSearchText.EndsWith('%'))
+                        {
+                            if (name.StartsWith(quickSearchText[..^1]))
+                            {
+                                indices.Add(i);
+                            }
+                        }
+                        else
+                        {
+                            if (quickSearchText == name)
+                            {
+                                indices.Add(i);
+                            }
+                        }
+                    }
+
+                    quickSearchAssetResultIndices = indices.ToArray();
+                    quickSearchSubmit = true;
+
+                    FINALISE_SEARCH:
+                    quickSearchItemSelected = -1;
+                }
+                ImGui.SameLine();
+
+                if (quickSearchItemSelected == -1)
+                {
+                    ImGui.BeginDisabled();
+                }
+
+                if (ImGui.Button("Select##RMQSSelectItem"))
+                {
+                    quickSearchAssetName = quickSearchAssetNames[quickSearchItemSelected];
+                    IsQuickSearching = false;
+                }
+
+                if (quickSearchItemSelected == -1)
+                {
+                    ImGui.EndDisabled();
+                }
+
+
+                ImGui.Separator();
+                ImGui.BeginChild("QuickSearchList", new Vector2(350, 500));
+
+                if (quickSearchAssetResultIndices.Length > 0 || quickSearchSubmit)
+                {
+                    foreach (var index in quickSearchAssetResultIndices)
+                    {
+                        var name = quickSearchAssetNames[index];
+                        if (ImGui.Selectable(name, quickSearchItemSelected == index))
+                        {
+                            quickSearchItemSelected = index;
+                        }
+                    }
+                }
+                else
+                {
+                    for (int i = 0; i < quickSearchAssetNames.Length; i++)
+                    {
+                        var name = quickSearchAssetNames[i];
+                        if (ImGui.Selectable(name, quickSearchItemSelected == i))
+                        {
+                            quickSearchItemSelected = i;
+                        }
+                    }
+                }
+
+                ImGui.EndChild();
+
+                ImGui.End();
+            }
         }
 
         void DrawDeleteErrorPopup()
