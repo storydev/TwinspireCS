@@ -165,10 +165,22 @@ namespace TwinspireCS.Editor
         }
 
         /// <summary>
+        /// Call this within Raylib context. This could be part of a custom back buffer.
+        /// This should be called before <c>RenderImGui</c> is used.
+        /// </summary>
+        public static void RenderRaylib()
+        {
+            if (activeWrapper > -1)
+            {
+                wrappers[activeWrapper].Extension.RenderRaylib();
+            }
+        }
+
+        /// <summary>
         /// Call this during your main rendering routine as the last thing performed
         /// before requesting the ImGui draw calls.
         /// </summary>
-        public static void Render()
+        public static void RenderImGui()
         {
             foreach (var wrapper in wrappers)
             {
@@ -270,7 +282,7 @@ namespace TwinspireCS.Editor
         {
             if (activeWrapper > -1 && activeWrapper < wrappers.Count)
             {
-                wrappers[activeWrapper].Extension.Render();
+                wrappers[activeWrapper].Extension.RenderImGui();
             }
         }
 

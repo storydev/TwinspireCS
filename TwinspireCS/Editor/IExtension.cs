@@ -10,7 +10,8 @@ namespace TwinspireCS.Editor
     {
 
         void Init();
-        void Render();
+        void RenderImGui();
+        void RenderRaylib();
 
     }
 }

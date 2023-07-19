@@ -75,7 +75,7 @@ namespace TwinspireCS.Editor
             }
         }
 
-        public void Render()
+        public void RenderImGui()
         {
             ImGui.SetNextWindowSize(new Vector2(1100, 500), ImGuiCond.Always);
 
@@ -1018,6 +1018,11 @@ namespace TwinspireCS.Editor
             RefreshResources();
             ResetCellData();
             isWriting = false;
+        }
+
+        public void RenderRaylib()
+        {
+            // empty function to implement from the interface
         }
 
     }

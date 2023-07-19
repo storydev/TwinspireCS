@@ -32,6 +32,10 @@ namespace TwinspireCS.Engine.GUI
         private IDictionary<string, int[]> elementIdCache;
         private IDictionary<int, TextDim> elementTexts;
         private int currentElementIndex;
+        private bool customElementDrawing;
+        private Rectangle customElementDrawingDim;
+        private bool customElementDrawWrapping;
+
         private bool elementsChanged;
         private int forceChangeElementIndex;
         private ElementState forceChangeElementStateTo;
@@ -71,6 +75,7 @@ namespace TwinspireCS.Engine.GUI
 
         private bool preloadedAll;
         private bool requestRebuild;
+        private bool forcingRebuild;
 
         private bool firstBuild;
 
@@ -128,6 +133,7 @@ namespace TwinspireCS.Engine.GUI
             tweensRunning = new List<bool>();
             activeElement = 0;
             elementsChanged = true;
+            customElementDrawing = false;
 
             dynamicLayouts = new Dictionary<string, DynamicGrid>();
 
@@ -255,6 +261,16 @@ namespace TwinspireCS.Engine.GUI
             this.backBuffer = backBuffer;
         }
 
+        public int GetBufferWidth()
+        {
+            return backBufferWidth;
+        }
+
+        public int GetBufferHeight()
+        {
+            return backBufferHeight;
+        }
+
         public void AddBackgroundImage(string imageName)
         {
             backgroundImages.Add(imageName);
@@ -262,6 +278,12 @@ namespace TwinspireCS.Engine.GUI
 
         public void Begin()
         {
+            if (forcingRebuild)
+            {
+                requestRebuild = true;
+                forcingRebuild = false;
+            }    
+
             if (!requestRebuild)
             {
                 foreach (var element in elements)
@@ -294,6 +316,53 @@ namespace TwinspireCS.Engine.GUI
             currentElementIndex = -1;
 
             HotKeys.DisableHotkeys(afterTransitionAnimateIndex > -1 || ImGuiController.IsImGuiInteracted());
+        }
+
+        /// <summary>
+        /// Requests that the entire canvas be rebuilt. Best used after <c>End</c> and before <c>Begin</c>.
+        /// </summary>
+        public void ForceRebuild()
+        {
+            forcingRebuild = true;
+        }
+
+        /// <summary>
+        /// Starts a custom drawing canvas, allowing for the free creation of elements.
+        /// This is best used when the number of types of elements are too large to warrant
+        /// creating pre-defined elements from the <c>InterfaceBuilder</c>.
+        /// </summary>
+        /// <remarks>
+        /// Unless specified, all routines using custom context ignores event simulation and should
+        /// not be used for event handling within Canvas context. You can, on the other hand, use
+        /// custom context to build more specific event handling use cases.
+        /// </remarks>
+        /// <param name="dim">The dimension for this custom canvas.</param>
+        /// <param name="wrap">Forces the custom context to be wrapped and its content clipped within the given dimension.</param>
+        /// <returns></returns>
+        public bool BeginCustom(Rectangle dim, bool wrap = false)
+        {
+            customElementDrawing = true;
+            customElementDrawingDim = dim;
+            customElementDrawWrapping = wrap;
+
+            if (wrap)
+            {
+                Raylib.BeginScissorMode((int)dim.x, (int)dim.y, (int)dim.width, (int)dim.height);
+            }
+            return customElementDrawing;
+        }
+
+        /// <summary>
+        /// End the drawing of a custom canvas.
+        /// </summary>
+        public void EndCustom()
+        {
+            customElementDrawing = false;
+            if (customElementDrawWrapping)
+            {
+                Raylib.EndScissorMode();
+            }
+
         }
 
         public int GetLastElementIndex()
@@ -1922,6 +1991,176 @@ namespace TwinspireCS.Engine.GUI
         }
 
         #endregion
+
+        #endregion
+
+        #region Custom Drawing
+
+        private Vector2 customMouseOverGridCell;
+        private Vector2 customMouseDownGridCell;
+        private Vector2 customMouseReleasedGridCell;
+        private Rectangle customGridConstraints = new Rectangle(0, 0, 0, 0);
+
+        public void CustomSetNextGridConstraints(Rectangle constraints)
+        {
+            customGridConstraints = constraints;
+        }
+
+        /// <summary>
+        /// Create a fixed grid within custom context.
+        /// </summary>
+        /// <param name="cellSize">The size that each cell within the grid should be (drawn as a square).</param>
+        /// <param name="dim">The initial dimension of the grid. This dimension does not change unless the canvas is rebuilt.</param>
+        /// <param name="offset">The offset of the grid. This does not affect the physical dimension of the grid, and as such, events will still simulate even if the mouse
+        /// is not actually within the grid lines.</param>
+        /// <param name="lineColor">The color the lines within the grid should be.</param>
+        /// <returns></returns>
+        /// <exception cref="Exception">Fails if the given cellSize does not divide into the width or height of the given dimension.</exception>
+        public ElementState CustomFixedGrid(int cellSize, Rectangle dim, Vector2 offset, Color lineColor)
+        {
+            if (dim.width % cellSize != 0)
+            {
+                throw new Exception("Width of the grid does not divide exactly into cellSize.");
+            }
+
+            if (dim.height % cellSize != 0)
+            {
+                throw new Exception("Height of the grid does not divide exactly into cellSize.");
+            }
+
+            if (afterTransitionComplete && afterTransitionAnimateIndex > -1)
+                return ElementState.Idle;
+
+            var generatedName = "FixedGrid_" + cellSize + "_" + dim.ToString(true);
+
+            if (!requestRebuild && elementIdCache.ContainsKey(generatedName))
+            {
+                var index = elementIdCache[generatedName];
+                var element = elements[index[0]];
+                
+                var rows = (int)Math.Floor(element.Dimension.height / cellSize);
+                var columns = (int)Math.Floor(element.Dimension.width / cellSize);
+                if (customGridConstraints.width > 0 && customGridConstraints.height > 0)
+                {
+                    Raylib.BeginScissorMode((int)customGridConstraints.x, (int)customGridConstraints.y, (int)customGridConstraints.width, (int)customGridConstraints.height);
+                }
+
+                for (int y = 0; y < rows + 1; y++)
+                {
+                    for (int x = 0; x < columns + 1; x++)
+                    {
+                        var startX = (x * cellSize) + element.Dimension.x + offset.X;
+                        var startY = (y * cellSize) + element.Dimension.y + offset.Y;
+                        Raylib.DrawLineEx(new Vector2((int)startX, (int)startY), new Vector2((int)startX + (int)element.Dimension.x, (int)startY), 
+                            2.0f, lineColor);
+                        Raylib.DrawLineEx(new Vector2((int)startX, (int)startY), new Vector2((int)startX, (int)startY + (int)element.Dimension.y),
+                            2.0f, lineColor);
+                    }
+                }
+
+                if (customGridConstraints.width > 0 && customGridConstraints.height > 0)
+                {
+                    Raylib.EndScissorMode();
+                }
+
+                var mousePos = GetMousePosition();
+                var actualFinalState = element.State;
+                if (!Raylib.CheckCollisionPointRec(mousePos, customGridConstraints))
+                {
+                    actualFinalState = ElementState.Inactive;
+                }
+
+                var relPos = new Vector2(mousePos.X - (element.Dimension.x + offset.X), mousePos.Y - (element.Dimension.y + offset.Y));
+                var relColumn = (int)Math.Floor(relPos.X / cellSize);
+                var relRow = (int)Math.Floor(relPos.Y / cellSize);
+
+                if (element.State == ElementState.Hovered)
+                {
+                    customMouseOverGridCell = new Vector2(relColumn, relRow);
+                }
+                else if (element.State == ElementState.Active)
+                {
+                    customMouseDownGridCell = new Vector2(relColumn, relRow);
+                }
+                else if (element.State == ElementState.Clicked)
+                {
+                    customMouseReleasedGridCell = new Vector2(relColumn, relRow);
+                }
+
+                return actualFinalState;
+            }
+            else if (requestRebuild)
+            {
+                var element = new Element();
+                element.IsBaseElement = true;
+                element.Shape = ComponentShape.Rectangle;
+                element.Type = ElementType.Interactive;
+                element.DrawContext = DrawContext.CommonLayouts;
+                element.Visible = true;
+                element.Dimension = new Rectangle(dim.x, dim.y, dim.width, dim.height);
+
+                elements.Add(element);
+                elementIdCache.Add(generatedName, new int[] { elements.Count - 1, 1 });
+            }
+            else
+            {
+                elementsChanged = true;
+                elementsToAdd.Add(generatedName);
+            }
+
+            return ElementState.Idle;
+        }
+
+        public Vector2 CustomGetFixedGridMouseOverCell()
+        {
+            return new Vector2(customMouseOverGridCell.X, customMouseOverGridCell.Y);
+        }
+
+        public Vector2 CustomGetFixedGridMouseDownCell()
+        {
+            return new Vector2(customMouseDownGridCell.X, customMouseDownGridCell.Y);
+        }
+
+        public Vector2 CustomGetFixedGridMouseReleasedCell()
+        {
+            return new Vector2(customMouseReleasedGridCell.X, customMouseReleasedGridCell.Y);
+        }
+
+        /// <summary>
+        /// Draw an image within custom context at the given dimension, stretching if required.
+        /// </summary>
+        /// <remarks>
+        /// Obeys any custom constraint rules and offsets accordingly.
+        /// </remarks>
+        /// <param name="texture">The texture to draw.</param>
+        /// <param name="dim">The dimension to use for drawing. Stretches if the dimension is larger or smaller than the source image size.</param>
+        public void CustomDrawImage(Texture2D texture, Rectangle dim)
+        {
+            if (!customElementDrawing)
+            {
+                throw new Exception("Must be within custom context to draw custom non-element items.");
+            }
+
+            if (HasCustomConstraints())
+            {
+                Raylib.BeginScissorMode((int)customGridConstraints.x, (int)customGridConstraints.y, (int)customGridConstraints.width, (int)customGridConstraints.height);
+            }
+
+            Raylib.DrawTexturePro(texture, new Rectangle(0, 0, texture.width, texture.height), 
+                new Rectangle(customGridConstraints.x + dim.x, customGridConstraints.y + dim.y, dim.width, dim.height),
+                new Vector2(0, 0), 0f, Color.WHITE);
+
+            if (HasCustomConstraints())
+            {
+                Raylib.EndScissorMode();
+            }
+        }
+
+        private bool HasCustomConstraints()
+        {
+            return customGridConstraints.x > 0 || customGridConstraints.y > 0
+                || customGridConstraints.width > 0 || customGridConstraints.height > 0;
+        }
 
         #endregion
 
