@@ -11,10 +11,16 @@ namespace TwinspireCS.Engine.Graphics
 
         public string Image;
         public int TileSize;
+        public bool[] EntranceDirections;
+        public bool[] ExitDirections;
+        public uint[] Flags;
 
         public TileSet()
         {
             Image = string.Empty;
+            EntranceDirections = Array.Empty<bool>();
+            ExitDirections = Array.Empty<bool>();
+            Flags = Array.Empty<uint>();
         }
 
         private static List<int> startIDs;
@@ -55,6 +61,24 @@ namespace TwinspireCS.Engine.Graphics
             var tileset = new TileSet();
             tileset.Image = imageName;
             tileset.TileSize = tileSize;
+            var actualImage = Application.Instance.ResourceManager.GetImage(imageName);
+            if (actualImage.width % tileSize != 0)
+            {
+                throw new Exception("The width of the image for this tileset does not divide into the given tile size.");
+            }
+
+            if (actualImage.height % tileSize != 0)
+            {
+                throw new Exception("The height of the image for this tileset does not divide into the given tile size.");
+            }
+
+            var numColumns = Math.Floor((float)(actualImage.width / tileSize));
+            var numRows = Math.Floor((float)(actualImage.height / tileSize));
+            int cellCount = (int)numColumns * (int)numRows * 4;
+            tileset.EntranceDirections = new bool[cellCount];
+            tileset.ExitDirections = new bool[cellCount];
+            tileset.Flags = new uint[cellCount];
+
             tilesets.Add(tileset);
             if (!firstTileset)
             {
