@@ -153,6 +153,22 @@ namespace TwinspireCS
         }
 
         /// <summary>
+        /// Add a Texture2D to memory. Will be lost when the application exits.
+        /// </summary>
+        /// <param name="identifier">The name of the texture. Must be unique.</param>
+        /// <param name="texture">The texture resource to add.</param>
+        /// <exception cref="Exception"></exception>
+        public void AddResourceTexture(string identifier, Texture2D texture)
+        {
+            if (textureCache.ContainsKey(identifier))
+            {
+                throw new Exception("Identifier with the name '" + identifier + "' already exists.");
+            }
+
+            textureCache.Add(identifier, texture);
+        }
+
+        /// <summary>
         /// Add a RenderTexture to memory. Will be lost when the application exits.
         /// </summary>
         /// <param name="identifier">The name of the texture. Must be unique.</param>
