@@ -593,14 +593,12 @@ namespace TwinspireCS
 
         /// <summary>
         /// Read from a package the raw bytes of a given identifier.
-        /// If the identifier could not be found among all known packages, this function
-        /// throws an exception.
+        /// If the identifier could not be found among all known packages, success returns <c>false</c>.
         /// </summary>
         /// <param name="identifier">The name of the resource to find.</param>
-        /// <param name="ext">A reference to a pointer of <c>sbyte</c> to obtain the file extension of the subject resource.</param>
+        /// <param name="ext">A reference to a string to obtain the file extension of the subject resource.</param>
         /// <param name="size">A reference to an integer determining the size of the resource.</param>
         /// <returns></returns>
-        /// <exception cref="Exception">Throws if an identifier could not be found.</exception>
         public unsafe byte[] GetBytesFromMemory(string identifier, ref string ext, ref int size, out bool success)
         {
             DataSegment foundData = null;
@@ -657,6 +655,18 @@ namespace TwinspireCS
 
             success = true;
             return result;
+        }
+
+        /// <summary>
+        /// Loads an image from a given identifier. This method will scan all known
+        /// packages for the given identifier until a name has been found.
+        /// 
+        /// Any errors are discarded. See the secondary overload for more information.
+        /// </summary>
+        /// <param name="identifier">The name of the resource to find.</param>
+        public void LoadImage(string identifier)
+        {
+            LoadImage(identifier, out bool _);
         }
 
         /// <summary>
@@ -811,6 +821,18 @@ namespace TwinspireCS
         /// Loads an audio file from a given identifier. This method will scan all known
         /// packages for the given identifier until a name has been found.
         /// 
+        /// Any errors are discarded. See the secondary overload for more information.
+        /// </summary>
+        /// <param name="identifier">The name of the resource to find.</param>
+        public void LoadMusic(string identifier)
+        {
+            LoadMusic(identifier, out bool _);
+        }
+
+        /// <summary>
+        /// Loads an audio file from a given identifier. This method will scan all known
+        /// packages for the given identifier until a name has been found.
+        /// 
         /// If the name of the identifier gives anything but an Music, or the name
         /// could not be found, success is <c>false</c>.
         /// </summary>
@@ -883,6 +905,18 @@ namespace TwinspireCS
         /// Loads an audio file from a given identifier. This method will scan all known
         /// packages for the given identifier until a name has been found.
         /// 
+        /// Any errors are discarded. See the secondary overload for more information.
+        /// </summary>
+        /// <param name="identifier">The name of the resource to find.</param>
+        public void LoadWave(string identifier)
+        {
+            LoadWave(identifier, out bool _);
+        }
+
+        /// <summary>
+        /// Loads an audio file from a given identifier. This method will scan all known
+        /// packages for the given identifier until a name has been found.
+        /// 
         /// If the name of the identifier gives anything but a Wave, or the name
         /// could not be found, success is <c>false</c>.
         /// </summary>
@@ -949,6 +983,20 @@ namespace TwinspireCS
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Loads a font from a given identifier. This method will scan all known
+        /// packages for the given identifier until a name has been found.
+        /// 
+        /// Any errors are discarded. See the secondary overload for more information.
+        /// </summary>
+        /// <param name="identifier">The name of the resource to find.</param>
+        /// <param name="fontSize">The size of the font when it loads.</param>
+        /// <param name="fontChars">The characters to be included from the font file. Pass null to include the default character set.</param>
+        public void LoadFont(string identifier, int fontSize, int[] fontChars = null)
+        {
+            LoadFont(identifier, fontSize, out bool _, fontChars);
         }
 
         /// <summary>
