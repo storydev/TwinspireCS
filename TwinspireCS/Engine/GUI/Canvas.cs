@@ -2,13 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.Reflection;
-using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using Raylib_cs;
-using System.Xml.Linq;
 using TwinspireCS.Engine.Render;
 using TwinspireCS.Engine.Graphics;
 using TwinspireCS.Engine.Input;
@@ -1999,9 +1996,14 @@ namespace TwinspireCS.Engine.GUI
         private Vector2 customMouseOverGridCell;
         private Vector2 customMouseDownGridCell;
         private Vector2 customMouseReleasedGridCell;
+        private int customFixedGridColumnCount;
+        private int customFixedGridRowCount;
+        private int customFixedGridCellSize;
+        private Rectangle customFixedGridDimension;
+        private Vector2 customFixedGridOffset;
         private Rectangle customGridConstraints = new Rectangle(0, 0, 0, 0);
 
-        public void CustomSetNextGridConstraints(Rectangle constraints)
+        public void CustomSetGridConstraints(Rectangle constraints)
         {
             customGridConstraints = constraints;
         }
@@ -2032,6 +2034,9 @@ namespace TwinspireCS.Engine.GUI
                 return ElementState.Idle;
 
             var generatedName = "FixedGrid_" + cellSize + "_" + dim.ToString(true);
+            customFixedGridDimension = new Rectangle(dim.x, dim.y, dim.width, dim.height);
+            customFixedGridCellSize = cellSize;
+            customFixedGridOffset = offset;
 
             if (!requestRebuild && elementIdCache.ContainsKey(generatedName))
             {
@@ -2040,14 +2045,17 @@ namespace TwinspireCS.Engine.GUI
                 
                 var rows = (int)Math.Floor(element.Dimension.height / cellSize);
                 var columns = (int)Math.Floor(element.Dimension.width / cellSize);
+                customFixedGridColumnCount = columns;
+                customFixedGridRowCount = rows;
+
                 if (customGridConstraints.width > 0 && customGridConstraints.height > 0)
                 {
                     Raylib.BeginScissorMode((int)customGridConstraints.x, (int)customGridConstraints.y, (int)customGridConstraints.width, (int)customGridConstraints.height);
                 }
 
-                for (int y = 0; y < rows + 1; y++)
+                for (int y = 0; y < rows; y++)
                 {
-                    for (int x = 0; x < columns + 1; x++)
+                    for (int x = 0; x < columns; x++)
                     {
                         var startX = (x * cellSize) + element.Dimension.x + offset.X;
                         var startY = (y * cellSize) + element.Dimension.y + offset.Y;
@@ -2111,6 +2119,52 @@ namespace TwinspireCS.Engine.GUI
             return ElementState.Idle;
         }
 
+        /// <summary>
+        /// Sets a specific cell within a recently created fixed grid with the given line color.
+        /// </summary>
+        /// <param name="index">The index within the grid of the cell.</param>
+        /// <param name="lineColor">The color of the line.</param>
+        /// <param name="lineThickness">(Optional) The thickness of the line.</param>
+        public void CustomFixedGridHighlightCell(int index, Color lineColor, float lineThickness = 1f)
+        {
+            var posX = (int)Math.Floor((float)index % CustomGetFixedGridColumnCount());
+            var posY = (int)Math.Floor((float)index / CustomGetFixedGridColumnCount());
+            CustomFixedGridHighlightCell(new Vector2(posX, posY), lineColor, lineThickness);
+        }
+
+        /// <summary>
+        /// Sets a specific cell within a recently created fixed grid with the given line color.
+        /// </summary>
+        /// <param name="position">The position, as a Vector2 (row and column), of the cell.</param>
+        /// <param name="lineColor">The color of the line.</param>
+        /// <param name="lineThickness">(Optional) The thickness of the line.</param>
+        /// <exception cref="Exception"></exception>
+        public void CustomFixedGridHighlightCell(Vector2 position, Color lineColor, float lineThickness = 1f)
+        {
+            if (!customElementDrawing)
+            {
+                throw new Exception("Must be within custom context to draw custom non-element items.");
+            }
+
+            if (HasCustomConstraints())
+            {
+                Raylib.BeginScissorMode((int)customGridConstraints.x, (int)customGridConstraints.y, (int)customGridConstraints.width, (int)customGridConstraints.height);
+            }
+
+            var rectangle = new Rectangle(position.X * customFixedGridCellSize + (lineThickness / 2), 
+                position.Y * customFixedGridCellSize + (lineThickness / 2), 
+                customFixedGridCellSize - (lineThickness * 1.5f), customFixedGridCellSize - (lineThickness * 1.5f));
+            rectangle.x += customFixedGridDimension.x + customFixedGridOffset.X;
+            rectangle.y += customFixedGridDimension.y + customFixedGridOffset.Y;
+
+            Raylib.DrawRectangleLinesEx(rectangle, lineThickness, lineColor);
+
+            if (HasCustomConstraints())
+            {
+                Raylib.EndScissorMode();
+            }
+        }
+
         public Vector2 CustomGetFixedGridMouseOverCell()
         {
             return new Vector2(customMouseOverGridCell.X, customMouseOverGridCell.Y);
@@ -2124,6 +2178,16 @@ namespace TwinspireCS.Engine.GUI
         public Vector2 CustomGetFixedGridMouseReleasedCell()
         {
             return new Vector2(customMouseReleasedGridCell.X, customMouseReleasedGridCell.Y);
+        }
+
+        public int CustomGetFixedGridColumnCount()
+        {
+            return customFixedGridColumnCount;
+        }
+
+        public int CustomGetFixedGridRowCount()
+        {
+            return customFixedGridRowCount;
         }
 
         /// <summary>
