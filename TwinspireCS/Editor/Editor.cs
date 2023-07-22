@@ -192,7 +192,6 @@ namespace TwinspireCS.Editor
 
             if (!Show)
                 return;
-            
 
             Vector2 navSize = new Vector2(0, 0);
             ImGui.SetNextWindowPos(new Vector2(3, 3));

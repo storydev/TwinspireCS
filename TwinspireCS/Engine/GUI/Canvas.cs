@@ -615,7 +615,7 @@ namespace TwinspireCS.Engine.GUI
                 {
                     if (!string.IsNullOrEmpty(layout.BackgroundImages[i]) && Application.Instance.ResourceManager.DoesNameExist(layout.BackgroundImages[0]))
                     {
-                        Application.Instance.ResourceManager.LoadImage(layout.BackgroundImages[i]);
+                        Application.Instance.ResourceManager.LoadImage(layout.BackgroundImages[i], out bool _);
                     }
                 }
             }
@@ -1849,7 +1849,7 @@ namespace TwinspireCS.Engine.GUI
             }
             else if (!string.IsNullOrEmpty(style.BackgroundImage))
             {
-                Application.Instance.ResourceManager.LoadImage(style.BackgroundImage);
+                Application.Instance.ResourceManager.LoadImage(style.BackgroundImage, out bool _);
 
                 var bgImageTexture = Application.Instance.ResourceManager.GetTexture(style.BackgroundImage);
                 var color = new Color(255, 255, 255, (int)(style.Opacity * 255));
@@ -2658,7 +2658,7 @@ namespace TwinspireCS.Engine.GUI
             foreach (var image in backgroundImages)
             {
                 if (!preloadedAll)
-                    Application.Instance.ResourceManager.LoadImage(image);
+                    Application.Instance.ResourceManager.LoadImage(image, out bool _);
 
                 var textureBG = Application.Instance.ResourceManager.GetTexture(image);
                 Raylib.DrawTexturePro(textureBG,
@@ -2720,7 +2720,7 @@ namespace TwinspireCS.Engine.GUI
             if (!string.IsNullOrEmpty(grid.BackgroundImages[i]))
             {
                 if (!preloadedAll)
-                    Application.Instance.ResourceManager.LoadImage(grid.BackgroundImages[i]);
+                    Application.Instance.ResourceManager.LoadImage(grid.BackgroundImages[i], out bool _);
 
                 var bgImageTexture = Application.Instance.ResourceManager.GetTexture(grid.BackgroundImages[i]);
                 Raylib.DrawTexturePro(bgImageTexture,

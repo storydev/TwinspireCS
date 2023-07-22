@@ -601,7 +601,7 @@ namespace TwinspireCS
         /// <param name="size">A reference to an integer determining the size of the resource.</param>
         /// <returns></returns>
         /// <exception cref="Exception">Throws if an identifier could not be found.</exception>
-        public unsafe byte[] GetBytesFromMemory(string identifier, ref string ext, ref int size)
+        public unsafe byte[] GetBytesFromMemory(string identifier, ref string ext, ref int size, out bool success)
         {
             DataSegment foundData = null;
             DataPackage foundPackage = null;
@@ -623,7 +623,10 @@ namespace TwinspireCS
             }
 
             if (!found)
-                throw new Exception("Identifier could not be found. ID: " + identifier);
+            {
+                success = false;
+                return null;
+            }
 
             var fullPath = Path.Combine(AssetDirectory, foundPackage?.SourceFilePath);
             byte[] buffer = new byte[foundData.CompressedSize];
@@ -652,6 +655,7 @@ namespace TwinspireCS
 
             Raylib.MemFree(decompressed);
 
+            success = true;
             return result;
         }
 
@@ -660,33 +664,42 @@ namespace TwinspireCS
         /// packages for the given identifier until a name has been found.
         /// 
         /// If the name of the identifier gives anything but an Image, or the name
-        /// could not be found, an exception is thrown.
+        /// could not be found, success is <c>false</c>.
         /// </summary>
         /// <param name="identifier">The name of the resource to find.</param>
-        public unsafe void LoadImage(string identifier)
+        /// <param name="success">A value determining if this method succeeded.</param>
+        public unsafe void LoadImage(string identifier, out bool success)
         {
             if (string.IsNullOrEmpty(identifier))
+            {
+                success = false;
                 return;
+            }
 
             if (imageCache.ContainsKey(identifier))
             {
+                success = false;
                 return;
             }
 
             string fileType = null;
             int size = 0;
-            var data = GetBytesFromMemory(identifier, ref fileType, ref size);
+            var data = GetBytesFromMemory(identifier, ref fileType, ref size, out success);
+            if (!success)
+            {
+                return;
+            }
+
             fixed (byte* ptrData = data.AsSpan())
             {
-                try
+                var result = Raylib.LoadImageFromMemory(fileType, data);
+                if (result.data == (void*)0)
                 {
-                    var result = Raylib.LoadImageFromMemory(fileType, data);
-                    imageCache.Add(identifier, result);
+                    success = false;
+                    return;
                 }
-                catch
-                {
-                    throw new Exception("Unable to get image from identifier. Format from binary file is incorrect.");
-                }
+
+                imageCache.Add(identifier, result);
             }
         }
 
@@ -799,32 +812,39 @@ namespace TwinspireCS
         /// packages for the given identifier until a name has been found.
         /// 
         /// If the name of the identifier gives anything but an Music, or the name
-        /// could not be found, an exception is thrown.
+        /// could not be found, success is <c>false</c>.
         /// </summary>
         /// <param name="identifier">The name of the resource to find.</param>
-        public unsafe void LoadMusic(string identifier)
+        /// <param name="success">A value determining if this method succeeded.</param>
+        public unsafe void LoadMusic(string identifier, out bool success)
         {
             if (string.IsNullOrEmpty(identifier))
+            {
+                success = false;
                 return;
+            }
 
             if (musicCache.ContainsKey(identifier))
             {
+                success = false;
                 return;
             }
 
             string fileType = null;
             int size = 0;
-            var data = GetBytesFromMemory(identifier, ref fileType, ref size);
-            try
+            var data = GetBytesFromMemory(identifier, ref fileType, ref size, out success);
+            if (!success)
             {
-                var result = Raylib.LoadMusicStreamFromMemory(fileType, data);
-                musicCache.Add(identifier, result);
+                return;
             }
-            catch
+
+            var result = Raylib.LoadMusicStreamFromMemory(fileType, data);
+            if (result.ctxData == (void*)0)
             {
-                throw new Exception("Unable to get music data from identifier. Format from binary file is incorrect.");
+                success = false;
+                return;
             }
-            
+            musicCache.Add(identifier, result);
         }
 
         /// <summary>
@@ -864,31 +884,39 @@ namespace TwinspireCS
         /// packages for the given identifier until a name has been found.
         /// 
         /// If the name of the identifier gives anything but a Wave, or the name
-        /// could not be found, an exception is thrown.
+        /// could not be found, success is <c>false</c>.
         /// </summary>
         /// <param name="identifier">The name of the resource to find.</param>
-        public unsafe void LoadWave(string identifier)
+        /// <param name="success">A value determining if this method succeeded.</param>
+        public unsafe void LoadWave(string identifier, out bool success)
         {
             if (string.IsNullOrEmpty(identifier))
+            {
+                success = false;
                 return;
+            }
 
             if (waveCache.ContainsKey(identifier))
             {
+                success = false;
                 return;
             }
 
             string fileType = null;
             int size = 0;
-            var data = GetBytesFromMemory(identifier, ref fileType, ref size);
-            try
+            var data = GetBytesFromMemory(identifier, ref fileType, ref size, out success);
+            if (!success)
             {
-                var result = Raylib.LoadWaveFromMemory(fileType, data);
-                waveCache.Add(identifier, result);
+                return;
             }
-            catch
+
+            var result = Raylib.LoadWaveFromMemory(fileType, data);
+            if (result.data == (void*)0)
             {
-                throw new Exception("Unable to get wave data from identifier. Format from binary file is incorrect.");
+                success = false;
+                return;
             }
+            waveCache.Add(identifier, result);
         }
 
         /// <summary>
@@ -928,35 +956,42 @@ namespace TwinspireCS
         /// packages for the given identifier until a name has been found.
         /// 
         /// If the name of the identifier gives anything but a Font, or the name
-        /// could not be found, an exception is thrown.
+        /// could not be found, success is <c>false</c>.
         /// </summary>
         /// <param name="identifier">The name of the resource to find.</param>
         /// <param name="fontSize">The size of the font when it loads.</param>
+        /// <param name="success">A value determining if this method succeeded.</param>
         /// <param name="fontChars">The characters to be included from the font file. Pass null to include the default character set.</param>
-        public unsafe void LoadFont(string identifier, int fontSize, int[] fontChars = null)
+        public unsafe void LoadFont(string identifier, int fontSize, out bool success, int[] fontChars = null)
         {
             if (string.IsNullOrEmpty(identifier))
+            {
+                success = false;
                 return;
+            }
 
             if (fontCache.ContainsKey(identifier))
             {
+                success = false;
                 return;
             }
 
             string fileType = null;
             int size = 0;
 
-            var data = GetBytesFromMemory(identifier, ref fileType, ref size);
+            var data = GetBytesFromMemory(identifier, ref fileType, ref size, out success);
+            if (!success)
+            {
+                return;
+            }
 
-            try
+            var result = Raylib.LoadFontFromMemory(fileType, data, fontSize, fontChars, fontChars == null ? 0 : fontChars.Length);
+            if (result.texture.id == 0)
             {
-                var result = Raylib.LoadFontFromMemory(fileType, data, fontSize, fontChars, fontChars == null ? 0 : fontChars.Length);
-                fontCache.Add(identifier + ":" + fontSize, result);
+                success = false;
+                return;
             }
-            catch
-            {
-                throw new Exception("Unable to get font from identifier. Format from binary file is incorrect.");
-            }
+            fontCache.Add(identifier + ":" + fontSize, result);
         }
 
         /// <summary>
@@ -1092,7 +1127,7 @@ namespace TwinspireCS
                         continue;
                     }
 
-                    LoadFont(splitted[0], int.Parse(splitted[1]));
+                    LoadFont(splitted[0], int.Parse(splitted[1]), out bool _);
                 }
             }
 
@@ -1100,7 +1135,7 @@ namespace TwinspireCS
             {
                 foreach (var image in group.RequestedImages)
                 {
-                    LoadImage(image);
+                    LoadImage(image, out bool _);
                 }
             }
 
@@ -1108,7 +1143,7 @@ namespace TwinspireCS
             {
                 foreach (var music in group.RequestedMusic)
                 {
-                    LoadMusic(music);
+                    LoadMusic(music, out bool _);
                 }
             }
 
@@ -1116,7 +1151,7 @@ namespace TwinspireCS
             {
                 foreach (var wave in group.RequestedWaves)
                 {
-                    LoadWave(wave);
+                    LoadWave(wave, out bool _);
                 }
             }
         }
@@ -1128,7 +1163,21 @@ namespace TwinspireCS
         /// <returns>The loaded resources.</returns>
         public async Task LoadGroupAsync(ResourceGroup group)
         {
-            await new Task(() => LoadGroup(group));
+            await new Task(CreateLoadGroupAsyncMethod(group), group);
+        }
+
+        private Action<object?> CreateLoadGroupAsyncMethod(ResourceGroup group)
+        {
+            var action = new Action<object?>(LoadGroupAsync_);
+            return action;
+        }
+
+        private void LoadGroupAsync_(object? group)
+        {
+            if (group != null)
+            {
+                LoadGroup((ResourceGroup)group);
+            }
         }
 
         /// <summary>
