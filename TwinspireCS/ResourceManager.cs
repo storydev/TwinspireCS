@@ -34,6 +34,13 @@ namespace TwinspireCS
         /// </summary>
         public string AssetDirectory { get; set; }
 
+        private List<string> altDirectories;
+        private List<DirectoryScope> altDirectoryScopes;
+        /// <summary>
+        /// A list of alternative directories this Resource Manager has access to.
+        /// </summary>
+        public IEnumerable<string> AltDirectories { get => altDirectories; }
+
         public ResourceManager()
         {
             currentlyOpen = new List<int>();
@@ -46,16 +53,149 @@ namespace TwinspireCS
             textureCache = new Dictionary<string, Texture2D>();
             renderTextureCache = new Dictionary<string, RenderTexture2D>();
             AssetDirectory = string.Empty;
+            altDirectories = new List<string>();
+            altDirectoryScopes = new List<DirectoryScope>();
         }
 
         /// <summary>
-        /// Create a package from which a binary file is read.
+        /// Adds a path to the Documents of the user and returns the full absolute path.
+        /// 
+        /// If the given path does not exist, a directory will be created.
+        /// </summary>
+        /// <param name="path">The local path to add.</param>
+        /// <param name="success"><c>False</c> if the directory could not be created.</param>
+        /// <returns>The full absolute path.</returns>
+        public string AddLocalDirectory(string path, out bool success)
+        {
+            var fullPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), path);
+            try
+            {
+                Directory.CreateDirectory(fullPath);
+                altDirectories.Add(fullPath);
+                altDirectoryScopes.Add(DirectoryScope.Local);
+                success = true;
+                return fullPath;
+            }
+            catch
+            {
+                success = false;
+                return string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// Adds a path to a Common directory accessible by all users on the system, and returns the full absolute path.
+        /// 
+        /// If the given path does not exist, a directory will be created.
+        /// </summary>
+        /// <param name="path">The common path to add.</param>
+        /// <param name="success"><c>False</c> if the directory could not be created.</param>
+        /// <returns>The full absolute path.</returns>
+        public string AddCommonDirectory(string path, out bool success)
+        {
+            var fullPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), path);
+            try
+            {
+                Directory.CreateDirectory(fullPath);
+                altDirectories.Add(fullPath);
+                altDirectoryScopes.Add(DirectoryScope.Common);
+                success = true;
+                return fullPath;
+            }
+            catch
+            {
+                success = false;
+                return string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// Adds a path to a directory held by this Application, accessible by the current user, and returns the full absolute path.
+        /// 
+        /// If the given path does not exist, a directory will be created.
+        /// </summary>
+        /// <param name="path">The application directory to add.</param>
+        /// <param name="success"><c>False</c> if the directory could not be created.</param>
+        /// <returns>The full absolute path.</returns>
+        public string AddApplicationDirectory(string path, out bool success)
+        {
+            var fullPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), path);
+            try
+            {
+                Directory.CreateDirectory(fullPath);
+                altDirectories.Add(fullPath);
+                altDirectoryScopes.Add(DirectoryScope.Application);
+                success = true;
+                return fullPath;
+            }
+            catch
+            {
+                success = false;
+                return string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// Adds a path onto the default network for this Application, accessible by the current user, and returns the full absolute path.
+        /// 
+        /// If the given path does not exist, a directory will be created.
+        /// </summary>
+        /// <param name="path">The application directory to add.</param>
+        /// <param name="success"><c>False</c> if the directory could not be created.</param>
+        /// <returns>The full absolute path.</returns>
+        public string AddNetworkDirectory(string path, out bool success)
+        {
+            var fullPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), path);
+            try
+            {
+                Directory.CreateDirectory(fullPath);
+                altDirectories.Add(fullPath);
+                altDirectoryScopes.Add(DirectoryScope.Network);
+                success = true;
+                return fullPath;
+            }
+            catch
+            {
+                success = false;
+                return string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// Gets the path referring to the specific scope.
+        /// </summary>
+        /// <param name="scope">The scope to find. If Assets is specified, return <c>AssetDirectory</c>.</param>
+        /// <returns></returns>
+        public string GetPath(DirectoryScope scope)
+        {
+            if (scope == DirectoryScope.Assets)
+                return AssetDirectory;
+
+            var index = altDirectoryScopes.FindIndex((s) => s == scope);
+            if (index > -1)
+                return altDirectories[index];
+            else
+                return string.Empty;
+        }
+
+        /// <summary>
+        /// Create a package from which a binary file is read in the default Asset directory.
         /// </summary>
         /// <param name="sourceFile">The binary source file to read from.</param>
+        /// <returns></returns>
         public int CreatePackage(string sourceFile)
         {
+            return CreatePackage(sourceFile, DirectoryScope.Assets);
+        }
+
+        /// <summary>
+        /// Create a package from which a binary file is read using the given scope.
+        /// </summary>
+        /// <param name="sourceFile">The binary source file to read from.</param>
+        public int CreatePackage(string sourceFile, DirectoryScope scope)
+        {
             var package = new DataPackage();
-            package.SourceFilePath = sourceFile;
+            package.SourceFilePath = Path.Combine(GetPath(scope), sourceFile);
             packages.Add(package);
             packagesEncrypted.Add(false);
             return packages.Count - 1;
@@ -200,11 +340,6 @@ namespace TwinspireCS
                 throw new Exception("The package you are attempting to write to is encrypted.");
             }
 
-            var outdir = AssetDirectory;
-
-            if (!Directory.Exists(outdir))
-                Directory.CreateDirectory(outdir);
-
             var package = packages[packageIndex];
             var canProceed = true;
             var filePathsNotFound = new List<string>();
@@ -223,7 +358,7 @@ namespace TwinspireCS
                 return;
             }
 
-            using (var stream = new FileStream(Path.Combine(outdir, package.SourceFilePath), FileMode.Create))
+            using (var stream = new FileStream(package.SourceFilePath, FileMode.Create))
             {
                 using (BinaryWriter writer = new BinaryWriter(stream))
                 {
@@ -342,7 +477,7 @@ namespace TwinspireCS
         /// <param name="files">The file paths (without their directories) to check.</param>
         /// <remarks>
         /// If a file is encrypted, it will use any supplied encryption keys. If the keys
-        /// are not supplied, or the the keys are invalid, the headers will not be read.
+        /// are not supplied, or the keys are invalid, the headers will not be read.
         /// </remarks>
         public void ReadHeaders(params string[] files)
         {
@@ -353,7 +488,11 @@ namespace TwinspireCS
 
                 foreach (var package in packages)
                 {
-                    if (package.SourceFilePath == files[i])
+                    var fileName = Path.GetFileName(package.SourceFilePath);
+                    var dir = Path.GetDirectoryName(package.SourceFilePath);
+                    var absoluteAssetPath = Path.GetFullPath(AssetDirectory);
+
+                    if (fileName == files[i] && dir == absoluteAssetPath)
                     {
                         found = true;
                         break;
