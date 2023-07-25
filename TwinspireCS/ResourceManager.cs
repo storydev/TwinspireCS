@@ -1,12 +1,14 @@
 ﻿using Raylib_cs;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Formats.Asn1.AsnWriter;
 
 namespace TwinspireCS
 {
@@ -21,6 +23,7 @@ namespace TwinspireCS
         private Dictionary<string, Music> musicCache;
         private Dictionary<string, Texture2D> textureCache;
         private Dictionary<string, RenderTexture2D> renderTextureCache;
+        private Dictionary<string, Blob> blobCache;
 
         private List<DataPackage> packages;
         private List<bool> packagesEncrypted;
@@ -52,6 +55,7 @@ namespace TwinspireCS
             musicCache = new Dictionary<string, Music>();
             textureCache = new Dictionary<string, Texture2D>();
             renderTextureCache = new Dictionary<string, RenderTexture2D>();
+            blobCache = new Dictionary<string, Blob>();
             AssetDirectory = string.Empty;
             altDirectories = new List<string>();
             altDirectoryScopes = new List<DirectoryScope>();
@@ -192,10 +196,26 @@ namespace TwinspireCS
         /// Create a package from which a binary file is read using the given scope.
         /// </summary>
         /// <param name="sourceFile">The binary source file to read from.</param>
+        /// <param name="scope">The directory path to find from alternative directories.</param>
         public int CreatePackage(string sourceFile, DirectoryScope scope)
         {
             var package = new DataPackage();
             package.SourceFilePath = Path.Combine(GetPath(scope), sourceFile);
+            packages.Add(package);
+            packagesEncrypted.Add(false);
+            return packages.Count - 1;
+        }
+
+        /// <summary>
+        /// Create a package from which a binary file is read using the given scope.
+        /// </summary>
+        /// <param name="sourceFile">The binary source file to read from.</param>
+        /// <param name="absoluteDir">The full absolute path to a directory.</param>
+        /// <returns></returns>
+        public int CreatePackage(string sourceFile, string absoluteDir)
+        {
+            var package = new DataPackage();
+            package.SourceFilePath = Path.Combine(absoluteDir, sourceFile);
             packages.Add(package);
             packagesEncrypted.Add(false);
             return packages.Count - 1;
@@ -322,6 +342,21 @@ namespace TwinspireCS
             }
 
             renderTextureCache.Add(identifier, texture);
+        }
+
+        /// <summary>
+        /// Add a Blob to memory. Will be lost when the application exits.
+        /// </summary>
+        /// <param name="identifier">The name of the blob. Must be unique.</param>
+        /// <param name="blob">The blob resource to add.</param>
+        public void AddResourceBlob(string identifier, Blob blob)
+        {
+            if (blobCache.ContainsKey(identifier))
+            {
+                throw new Exception("Identifier with the name '" + identifier + "' already exists.");
+            }
+
+            blobCache.Add(identifier, blob);
         }
 
         /// <summary>
@@ -469,6 +504,26 @@ namespace TwinspireCS
             
         }
 
+        private string readFromDirectory;
+
+        /// <summary>
+        /// Read the headers of a given package. This is a convenience method over
+        /// reading headers from a series of files, assuming the package is being created
+        /// at runtime.
+        /// </summary>
+        /// <param name="packageIndex">The index of the package to read from.</param>
+        public void ReadHeaders(int packageIndex)
+        {
+            if (packageIndex < 0 || packageIndex > packages.Count - 1)
+                return;
+
+            readFromDirectory = Path.GetDirectoryName(packages[packageIndex].SourceFilePath);
+            var fileName = Path.GetFileName(packages[packageIndex].SourceFilePath);
+            ReadHeaders(fileName);
+            readFromDirectory = AssetDirectory;
+        }
+
+
         /// <summary>
         /// Use this method to read the headers of the given files. If any one of the
         /// files headers have already been processed, it will be ignored. This method
@@ -481,62 +536,76 @@ namespace TwinspireCS
         /// </remarks>
         public void ReadHeaders(params string[] files)
         {
+            if (string.IsNullOrEmpty(readFromDirectory))
+                readFromDirectory = AssetDirectory;
+
             for (int i = 0; i < files.Length; i++)
             {
-                var path = Path.Combine(AssetDirectory, files[i]);
-                var found = false;
+                var found = -1;
 
-                foreach (var package in packages)
+                for (int j = 0; j < packages.Count; j++)
                 {
+                    var package = packages[j];
                     var fileName = Path.GetFileName(package.SourceFilePath);
                     var dir = Path.GetDirectoryName(package.SourceFilePath);
                     var absoluteAssetPath = Path.GetFullPath(AssetDirectory);
 
                     if (fileName == files[i] && dir == absoluteAssetPath)
                     {
-                        found = true;
+                        found = j;
                         break;
                     }
                 }
 
-                if (!found)
+                if (found == -1)
                 {
                     var package = new DataPackage();
                     package.SourceFilePath = files[i];
-                    using (FileStream stream = new FileStream(path, FileMode.Open, FileAccess.Read))
-                    {
-                        if (stream.Length == 0) // empty file
-                        {
-                            goto SKIP_READING;
-                        }
-
-                        using (BinaryReader reader = new BinaryReader(stream))
-                        {
-                            package.HeaderSize = reader.ReadInt32();
-                            package.Version = reader.ReadInt32();
-                            var count = reader.ReadInt32();
-                            for (int j = 0; j < count; j++)
-                            {
-                                var identifier = reader.ReadString();
-                                var segment = new DataSegment();
-                                segment.FileExt = reader.ReadString();
-                                segment.OriginalSourceFile = reader.ReadString();
-                                segment.Cursor = reader.ReadInt64();
-                                segment.Size = reader.ReadInt64();
-                                segment.CompressedSize = reader.ReadInt64();
-
-                                package.FileCursor += segment.CompressedSize;
-                                package.FileMapping.Add(identifier, segment);
-                            }
-                        }
-
-                    SKIP_READING:
-                        { }
-                    }
+                    ReadHeader_(package);
 
                     packagesEncrypted.Add(false);
                     packages.Add(package);
                 }
+                else
+                {
+                    var package = packages[found];
+                    if (package.FileMapping.Count == 0)
+                        ReadHeader_(package);
+                }
+            }
+        }
+
+        private void ReadHeader_(DataPackage package)
+        {
+            using (FileStream stream = new FileStream(package.SourceFilePath, FileMode.Open, FileAccess.Read))
+            {
+                if (stream.Length == 0) // empty file
+                {
+                    goto SKIP_READING;
+                }
+
+                using (BinaryReader reader = new BinaryReader(stream))
+                {
+                    package.HeaderSize = reader.ReadInt32();
+                    package.Version = reader.ReadInt32();
+                    var count = reader.ReadInt32();
+                    for (int j = 0; j < count; j++)
+                    {
+                        var identifier = reader.ReadString();
+                        var segment = new DataSegment();
+                        segment.FileExt = reader.ReadString();
+                        segment.OriginalSourceFile = reader.ReadString();
+                        segment.Cursor = reader.ReadInt64();
+                        segment.Size = reader.ReadInt64();
+                        segment.CompressedSize = reader.ReadInt64();
+
+                        package.FileCursor += segment.CompressedSize;
+                        package.FileMapping.Add(identifier, segment);
+                    }
+                }
+
+            SKIP_READING:
+                { }
             }
         }
 
@@ -1214,6 +1283,73 @@ namespace TwinspireCS
         }
 
         /// <summary>
+        /// Loads a blob from a given identifier.
+        /// 
+        /// If the name of the identifier gives anything but a Blob, or the name
+        /// could not be found, success is <c>false</c>.
+        /// </summary>
+        /// <param name="identifier">The name of the resource to find.</param>
+        /// <param name="success">A value determining if this method succeeded.</param>
+        public unsafe void LoadBlob(string identifier, out bool success)
+        {
+            if (string.IsNullOrEmpty(identifier))
+            {
+                success = false;
+                return;
+            }
+
+            if (fontCache.ContainsKey(identifier))
+            {
+                success = false;
+                return;
+            }
+
+            string fileType = null;
+            int size = 0;
+
+            var data = GetBytesFromMemory(identifier, ref fileType, ref size, out success);
+            if (!success)
+            {
+                return;
+            }
+
+            var result = new Blob();
+            result.LoadFromMemory(data);
+            blobCache.Add(identifier, result);
+        }
+
+        /// <summary>
+        /// Get a blob with an identifier. Must be loaded before retrieved.
+        /// </summary>
+        /// <param name="identifier">The identifier of the blob to get.</param>
+        /// <returns>The blob, if found. Returns <c>null</c> if not found.</returns>
+        public Blob? GetBlob(string identifier)
+        {
+            if (blobCache.ContainsKey(identifier))
+            {
+                return blobCache[identifier];
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Unloads the specified identifier, assuming its a blob.
+        /// </summary>
+        /// <param name="identifier">The identifier to scan for.</param>
+        /// <returns>Returns true if successful.</returns>
+        public bool UnloadBlob(string identifier)
+        {
+            if (blobCache.ContainsKey(identifier))
+            {
+                blobCache.Remove(identifier);
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Checks all packages to determine if the given identifier exists.
         /// </summary>
         /// <param name="identifier">The identifier to check.</param>
@@ -1270,6 +1406,8 @@ namespace TwinspireCS
             result = textureCache.ContainsKey(identifier);
             if (result)
                 return result;
+
+            result = blobCache.ContainsKey(identifier);
 
             return result;
         }
@@ -1339,6 +1477,14 @@ namespace TwinspireCS
                 foreach (var wave in group.RequestedWaves)
                 {
                     LoadWave(wave, out bool _);
+                }
+            }
+
+            if (group.RequestedBlobs.Count > 0)
+            {
+                foreach (var blob in group.RequestedBlobs)
+                {
+                    LoadBlob(blob, out bool _);
                 }
             }
         }
@@ -1411,7 +1557,9 @@ namespace TwinspireCS
             if (!success)
                 success = UnloadTexture(identifier);
             if (!success)
-                UnloadWave(identifier);
+                success = UnloadWave(identifier);
+            if (!success)
+                UnloadBlob(identifier);
         }
 
         /// <summary>
@@ -1467,6 +1615,17 @@ namespace TwinspireCS
                     }
                 }
             }
+
+            if (resources.RequestedBlobs.Count > 0)
+            {
+                foreach (var blob in resources.RequestedBlobs)
+                {
+                    if (blobCache.ContainsKey(blob))
+                    {
+                        blobCache.Remove(blob);
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -1478,31 +1637,39 @@ namespace TwinspireCS
             {
                 Raylib.UnloadFont(kv.Value);
             }
+            fontCache.Clear();
 
             foreach (var kv in musicCache)
             {
                 Raylib.UnloadMusicStream(kv.Value);
             }
+            musicCache.Clear();
 
             foreach (var kv in waveCache)
             {
                 Raylib.UnloadWave(kv.Value);
             }
+            waveCache.Clear();
 
             foreach (var kv in imageCache)
             {
                 Raylib.UnloadImage(kv.Value);
             }
+            imageCache.Clear();
 
             foreach (var kv in textureCache)
             {
                 Raylib.UnloadTexture(kv.Value);
             }
+            textureCache.Clear();
 
             foreach (var kv in renderTextureCache)
             {
                 Raylib.UnloadRenderTexture(kv.Value);
             }
+            renderTextureCache.Clear();
+
+            blobCache.Clear();
         }
 
     }

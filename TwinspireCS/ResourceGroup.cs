@@ -18,12 +18,15 @@ namespace TwinspireCS
 
         public List<string> RequestedImages { get; private set; }
 
+        public List<string> RequestedBlobs { get; private set; }
+
         public ResourceGroup()
         {
             RequestedFonts = new List<string>();
             RequestedImages = new List<string>();
             RequestedMusic = new List<string>();
             RequestedWaves = new List<string>();
+            RequestedBlobs = new List<string>();
         }
 
     }
