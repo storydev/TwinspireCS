@@ -205,10 +205,10 @@ namespace TwinspireCS
         /// </summary>
         /// <param name="text">The text to convert to a blob.</param>
         /// <returns></returns>
-        public static Blob FromString(string text)
+        public static Blob FromString(string text, Encoding? encoding = null)
         {
             var blob = new Blob();
-            blob.LoadFromMemory(text);
+            blob.LoadFromMemory(text, encoding);
             return blob;
         }
 

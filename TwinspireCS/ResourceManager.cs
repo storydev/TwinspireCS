@@ -222,6 +222,27 @@ namespace TwinspireCS
         }
 
         /// <summary>
+        /// Get the package index for the given file name. If there are more than one
+        /// of the same file name across different directories, the first one found
+        /// will be returned.
+        /// </summary>
+        /// <param name="fileName">The file name to look for. Does not require the file extension.</param>
+        /// <returns>Returns <c>-1</c> if nothing found, otherwise the index of the package.</returns>
+        public int GetPackageIndex(string fileName)
+        {
+            for (int i = 0; i < packages.Count; i++)
+            {
+                var sourceFile = Path.GetFileNameWithoutExtension(packages[i].SourceFilePath);
+                if (sourceFile == Path.GetFileNameWithoutExtension(fileName))
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        /// <summary>
         /// Add the raw bytes of a binary file into a package at the given package
         /// index and identifier. Identifiers should be unique across all packages.
         /// </summary>
@@ -380,7 +401,7 @@ namespace TwinspireCS
             var filePathsNotFound = new List<string>();
             foreach (var kv in package.FileMapping)
             {
-                if (!File.Exists(kv.Value.OriginalSourceFile))
+                if (!File.Exists(kv.Value.OriginalSourceFile) && kv.Value.Data == null)
                 {
                     canProceed = false;
                     filePathsNotFound.Add(kv.Value.OriginalSourceFile);
@@ -446,7 +467,17 @@ namespace TwinspireCS
                         }
                         else
                         {
-                            writer.Write(data.Data);
+                            fixed (byte* ptr = data.Data)
+                            {
+                                int dataSize = 0;
+                                var compressed = Raylib.CompressData(ptr, data.Data.Length, &dataSize);
+                                var compressedBuffer = new byte[dataSize];
+                                for (int i = 0; i < dataSize; i++)
+                                    compressedBuffer[i] = compressed[i];
+
+                                writer.Write(compressedBuffer);
+                            }
+
                             data.Data = null;
                         }
 
@@ -834,7 +865,7 @@ namespace TwinspireCS
                 return null;
             }
 
-            var fullPath = Path.Combine(AssetDirectory, foundPackage?.SourceFilePath);
+            var fullPath = foundPackage?.SourceFilePath;
             byte[] buffer = new byte[foundData.CompressedSize];
 
             using (FileStream stream = new(fullPath, FileMode.Open, FileAccess.Read))
