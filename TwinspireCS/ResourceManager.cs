@@ -66,11 +66,20 @@ namespace TwinspireCS
         /// 
         /// If the given path does not exist, a directory will be created.
         /// </summary>
+        /// <remarks>
+        /// The path cannot be empty.
+        /// </remarks>
         /// <param name="path">The local path to add.</param>
         /// <param name="success"><c>False</c> if the directory could not be created.</param>
         /// <returns>The full absolute path.</returns>
         public string AddLocalDirectory(string path, out bool success)
         {
+            if (string.IsNullOrEmpty(path))
+            {
+                success = false;
+                return string.Empty;
+            }
+
             var fullPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), path);
             try
             {
@@ -92,11 +101,20 @@ namespace TwinspireCS
         /// 
         /// If the given path does not exist, a directory will be created.
         /// </summary>
+        /// <remarks>
+        /// The path cannot be empty.
+        /// </remarks>
         /// <param name="path">The common path to add.</param>
         /// <param name="success"><c>False</c> if the directory could not be created.</param>
         /// <returns>The full absolute path.</returns>
         public string AddCommonDirectory(string path, out bool success)
         {
+            if (string.IsNullOrEmpty(path))
+            {
+                success = false;
+                return string.Empty;
+            }
+
             var fullPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), path);
             try
             {
@@ -118,11 +136,20 @@ namespace TwinspireCS
         /// 
         /// If the given path does not exist, a directory will be created.
         /// </summary>
+        /// <remarks>
+        /// The path cannot be empty.
+        /// </remarks>
         /// <param name="path">The application directory to add.</param>
         /// <param name="success"><c>False</c> if the directory could not be created.</param>
         /// <returns>The full absolute path.</returns>
         public string AddApplicationDirectory(string path, out bool success)
         {
+            if (string.IsNullOrEmpty(path))
+            {
+                success = false;
+                return string.Empty;
+            }
+
             var fullPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), path);
             try
             {
@@ -144,11 +171,20 @@ namespace TwinspireCS
         /// 
         /// If the given path does not exist, a directory will be created.
         /// </summary>
+        /// <remarks>
+        /// The path cannot be empty.
+        /// </remarks>
         /// <param name="path">The application directory to add.</param>
         /// <param name="success"><c>False</c> if the directory could not be created.</param>
         /// <returns>The full absolute path.</returns>
         public string AddNetworkDirectory(string path, out bool success)
         {
+            if (string.IsNullOrEmpty(path))
+            {
+                success = false;
+                return string.Empty;
+            }
+
             var fullPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), path);
             try
             {
@@ -163,6 +199,25 @@ namespace TwinspireCS
                 success = false;
                 return string.Empty;
             }
+        }
+
+        /// <summary>
+        /// Sets the path to the directory to read from. If the path is not part of a path
+        /// created by <c>ResourceManager</c>, the reading directory defaults to the <c>AssetDirectory</c>.
+        /// </summary>
+        /// <param name="path">The path to read from.</param>
+        public void SetReadingDirectory(string path)
+        {
+            foreach (var dir in altDirectories)
+            {
+                if (dir == path)
+                {
+                    readFromDirectory = path;
+                    return;
+                }
+            }
+
+            readFromDirectory = AssetDirectory;
         }
 
         /// <summary>
@@ -535,9 +590,12 @@ namespace TwinspireCS
             if (packagesEncrypted[packageIndex])
                 return;
 
+            if (string.IsNullOrEmpty(readFromDirectory))
+                readFromDirectory = AssetDirectory;
+
             await Task.Run(() => Encrypt(packageIndex, cryptKey, authKey));
             packagesEncrypted[packageIndex] = true;
-            var encPath = Path.Combine(AssetDirectory, packages[packageIndex].SourceFilePath, ".enc");
+            var encPath = Path.Combine(readFromDirectory, packages[packageIndex].SourceFilePath, ".enc");
 
             File.WriteAllText(encPath, "1");
             File.SetAttributes(encPath, FileAttributes.Hidden | FileAttributes.ReadOnly | FileAttributes.NotContentIndexed);
@@ -564,10 +622,11 @@ namespace TwinspireCS
             if (packageIndex < 0 || packageIndex > packages.Count - 1)
                 return;
 
+            var temp = readFromDirectory;
             readFromDirectory = Path.GetDirectoryName(packages[packageIndex].SourceFilePath);
             var fileName = Path.GetFileName(packages[packageIndex].SourceFilePath);
             ReadHeaders(fileName);
-            readFromDirectory = AssetDirectory;
+            readFromDirectory = temp;
         }
 
 
@@ -669,6 +728,9 @@ namespace TwinspireCS
         /// <param name="packageIndex">The index of the package to re-write.</param>
         public void RewriteHeader(int packageIndex)
         {
+            if (string.IsNullOrEmpty(readFromDirectory))
+                readFromDirectory = AssetDirectory;
+
             currentlyOpen.Add(packageIndex);
             var package = packages[packageIndex];
             var currentHeaderSize = package.HeaderSize;
@@ -683,14 +745,14 @@ namespace TwinspireCS
                 headerSize += kv.Value.OriginalSourceFile.Length + 1;
             }
 
-            var packageStream = File.OpenRead(Path.Combine(AssetDirectory, package.SourceFilePath));
+            var packageStream = File.OpenRead(Path.Combine(readFromDirectory, package.SourceFilePath));
             var packageLength = packageStream.Length - currentHeaderSize;
             var contentBytes = new byte[packageLength];
             packageStream.Position = currentHeaderSize;
             packageStream.Read(contentBytes, 0, (int)packageLength);
             packageStream.Close();
 
-            using (var stream = new FileStream(Path.Combine(AssetDirectory, package.SourceFilePath), FileMode.Create))
+            using (var stream = new FileStream(Path.Combine(readFromDirectory, package.SourceFilePath), FileMode.Create))
             {
                 using (BinaryWriter writer = new BinaryWriter(stream))
                 {
@@ -744,6 +806,9 @@ namespace TwinspireCS
         /// <param name="packageIndex"></param>
         public void DeleteItemsFromPackage(int packageIndex)
         {
+            if (string.IsNullOrEmpty(readFromDirectory))
+                readFromDirectory = AssetDirectory;
+
             currentlyOpen.Add(packageIndex);
             var package = packages[packageIndex];
             var itemsToRemove = new List<int>();
@@ -777,7 +842,7 @@ namespace TwinspireCS
             }
 
             index = 0;
-            var streamData = File.OpenRead(Path.Combine(AssetDirectory, package.SourceFilePath));
+            var streamData = File.OpenRead(Path.Combine(readFromDirectory, package.SourceFilePath));
             var newStreamSize = streamData.Length - package.HeaderSize - dataToDelete;
             var contentBytes = new byte[newStreamSize];
             var offset = 0L;
@@ -822,7 +887,7 @@ namespace TwinspireCS
                 headerSize += kv.Value.OriginalSourceFile.Length + 1;
             }
 
-            using (var stream = new FileStream(Path.Combine(AssetDirectory, package.SourceFilePath), FileMode.Create))
+            using (var stream = new FileStream(Path.Combine(readFromDirectory, package.SourceFilePath), FileMode.Create))
             {
                 using (BinaryWriter writer = new BinaryWriter(stream))
                 {
