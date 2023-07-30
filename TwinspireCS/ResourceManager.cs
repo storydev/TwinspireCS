@@ -279,6 +279,22 @@ namespace TwinspireCS
         }
 
         /// <summary>
+        /// A convenience function for adding text as a resource to a given package, returning the resulting
+        /// <c>Blob</c> with the formatted text.
+        /// </summary>
+        /// <param name="packageIndex">The index of the package to access.</param>
+        /// <param name="identifier">The identifier used as the name for the resource.</param>
+        /// <param name="text">The text data to add.</param>
+        /// <param name="encoding">The encoding to use to format the text data. Uses the default encoding if none specified.</param>
+        public Blob AddResource(int packageIndex, string identifier, string text, Encoding? encoding = null)
+        {
+            encoding ??= Encoding.Default;
+            var blob = Blob.FromString(text, encoding);
+            AddResource(packageIndex, identifier, blob.Data);
+            return blob;
+        }
+
+        /// <summary>
         /// Add the raw bytes of a binary file into a package at the given package
         /// index and identifier. Identifiers should be unique across all packages.
         /// </summary>
@@ -573,6 +589,7 @@ namespace TwinspireCS
             for (int i = 0; i < files.Length; i++)
             {
                 var found = -1;
+                var file = Path.GetFileName(files[i]);
 
                 for (int j = 0; j < packages.Count; j++)
                 {
@@ -581,7 +598,7 @@ namespace TwinspireCS
                     var dir = Path.GetDirectoryName(package.SourceFilePath);
                     var absoluteAssetPath = Path.GetFullPath(AssetDirectory);
 
-                    if (fileName == files[i] && dir == absoluteAssetPath)
+                    if (fileName == file && dir == absoluteAssetPath)
                     {
                         found = j;
                         break;
@@ -591,7 +608,12 @@ namespace TwinspireCS
                 if (found == -1)
                 {
                     var package = new DataPackage();
-                    package.SourceFilePath = files[i];
+                    package.SourceFilePath = Path.Combine(readFromDirectory, file);
+                    if (!File.Exists(package.SourceFilePath))
+                    {
+                        File.WriteAllText(package.SourceFilePath, "");
+                    }
+
                     ReadHeader_(package);
 
                     packagesEncrypted.Add(false);
