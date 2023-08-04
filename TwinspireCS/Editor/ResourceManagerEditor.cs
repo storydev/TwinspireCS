@@ -935,12 +935,36 @@ namespace TwinspireCS.Editor
                 total = max;
 
             var totalCells = 6 * total;
+
+            int index = min;
+            while (index < max)
+            {
+                if (index >= resources.Count)
+                    break;
+
+                var resource = resources[index];
+                var filteredPackage = -1;
+                if (selectedPackage > 0)
+                {
+                    filteredPackage = selectedPackage - 1;
+                }
+
+                if (filteredPackage > -1 && resource.PackageIndex != filteredPackage)
+                {
+                    totalCells -= 6;
+                    index += 1;
+                    continue;
+                }
+
+                index += 1;
+            }
+
             tableCells = new string[totalCells];
 
             var rm = Application.Instance.ResourceManager;
             
             var cellIndex = 0;
-            int index = min;
+            index = min;
             while (index < max)
             {
                 if (index >= resources.Count)
@@ -969,8 +993,6 @@ namespace TwinspireCS.Editor
 
                 index += 1;
             }
-
-
         }
 
         string ConvertBytesToString(long bytes)
