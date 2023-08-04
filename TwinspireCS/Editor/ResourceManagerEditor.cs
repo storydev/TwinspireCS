@@ -955,6 +955,7 @@ namespace TwinspireCS.Editor
 
                 if (filteredPackage > -1 && resource.PackageIndex != filteredPackage)
                 {
+                    index += 1;
                     continue;
                 }
 
