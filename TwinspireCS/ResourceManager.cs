@@ -324,13 +324,23 @@ namespace TwinspireCS
 
             package.FileCursor = package.FileBufferCount;
             package.FileBufferCount += compSize;
-            package.FileMapping.Add(identifier, new DataSegment()
+            if (package.FileMapping.ContainsKey(identifier))
             {
-                Cursor = package.FileCursor,
-                Size = buffer.Length,
-                CompressedSize = compSize,
-                Data = buffer
-            });
+                package.FileMapping[identifier].Size = buffer.Length;
+                package.FileMapping[identifier].CompressedSize = compSize;
+                package.FileMapping[identifier].Data = buffer;
+            }
+            else
+            {
+                package.FileMapping.Add(identifier, new DataSegment()
+                {
+                    Cursor = package.FileCursor,
+                    Size = buffer.Length,
+                    CompressedSize = compSize,
+                    Data = buffer,
+                    FileExt = "dat"
+                });
+            }
         }
 
         /// <summary>
@@ -548,8 +558,6 @@ namespace TwinspireCS
 
                                 writer.Write(compressedBuffer);
                             }
-
-                            data.Data = null;
                         }
 
                         WriteItemsProgress += 1;
@@ -780,6 +788,35 @@ namespace TwinspireCS
             }
 
             currentlyOpen.Remove(packageIndex);
+        }
+
+        /// <summary>
+        /// Clear all file mappings from the given package.
+        /// </summary>
+        /// <remarks>
+        /// Useful when dealing with a package only containing text data which needs updating frequently.
+        /// </remarks>
+        /// <param name="packageIndex">The index of the package to clear the file mappings.</param>
+        public void ClearAll(int packageIndex)
+        {
+            if (packageIndex < 0 || packageIndex > packages.Count - 1)
+                return;
+
+            var package = packages[packageIndex];
+            foreach (var kv in package.FileMapping)
+            {
+                if (DoesIdentifierExist(kv.Key))
+                {
+                    Unload(kv.Key);
+                }
+            }
+
+            package.FileCursor = 0;
+            package.Version = 0;
+            package.HeaderSize = 0;
+            package.FileBufferCount = 0;
+            package.ToDelete.Clear();
+            package.FileMapping.Clear();
         }
 
         /// <summary>
@@ -1416,7 +1453,7 @@ namespace TwinspireCS
                 return;
             }
 
-            if (fontCache.ContainsKey(identifier))
+            if (blobCache.ContainsKey(identifier))
             {
                 success = false;
                 return;

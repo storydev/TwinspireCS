@@ -13,7 +13,7 @@ namespace TwinspireCS.Engine.Graphics
         public string ImageName;
         public List<Frame> Frames;
         public Dictionary<string, int[]> Groups;
-
+        public int TileSize;
 
         public Spritesheet()
         {
@@ -84,6 +84,7 @@ namespace TwinspireCS.Engine.Graphics
 
             var spritesheet = new Spritesheet();
             spritesheet.ImageName = imageName;
+            spritesheet.TileSize = tileSize;
 
             var rows = image.height / tileSize;
             var columns = image.width / tileSize;
@@ -100,6 +101,39 @@ namespace TwinspireCS.Engine.Graphics
 
             _spritesheets.Add(spritesheet);
             return _spritesheets.Count - 1;
+        }
+
+        /// <summary>
+        /// Create an array of <c>Frame</c> containing dimensions automatically defined from the given
+        /// indices, based on a given spritesheet.
+        /// </summary>
+        /// <param name="spritesheetIndex">The spritesheet index referring to the spritesheet from which to determine the subject image.</param>
+        /// <param name="indices">The array of indices used to determine frame locations.</param>
+        /// <returns></returns>
+        public static Frame[] CreateFramesFromIndices(int spritesheetIndex, params int[] indices)
+        {
+            if (spritesheetIndex < 0 || spritesheetIndex > _spritesheets.Count - 1)
+            {
+                throw new Exception("Spritesheet index falls out of bounds of the spritesheets.");
+            }
+
+            var spritesheet = _spritesheets[spritesheetIndex];
+            var image = Application.Instance.ResourceManager.GetImage(spritesheet.ImageName);
+            var columns = image.width / spritesheet.TileSize;
+            var results = new Frame[indices.Length];
+
+            for (int i = 0; i < indices.Length; i++)
+            {
+                var index = indices[i];
+                results[i] = new Frame() {
+                    Dimension = new Rectangle(
+                        (float)Math.Floor((float)(index % columns)) * spritesheet.TileSize,
+                        (float)Math.Floor((float)(index / columns)) * spritesheet.TileSize,
+                        spritesheet.TileSize, spritesheet.TileSize)
+                };
+            }
+
+            return results;
         }
 
     }
