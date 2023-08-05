@@ -676,6 +676,9 @@ namespace TwinspireCS
                 {
                     var package = new DataPackage();
                     package.SourceFilePath = Path.Combine(readFromDirectory, file);
+                    var dir = Path.GetDirectoryName(package.SourceFilePath);
+                    Directory.CreateDirectory(dir);
+
                     if (!File.Exists(package.SourceFilePath))
                     {
                         File.WriteAllText(package.SourceFilePath, "");

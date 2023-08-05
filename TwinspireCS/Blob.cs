@@ -198,8 +198,6 @@ namespace TwinspireCS
             }
         }
 
-
-
         /// <summary>
         /// Create a blob from text data.
         /// </summary>
@@ -314,6 +312,18 @@ namespace TwinspireCS
             get
             {
                 return _default ??= new DefaultBlobFormatter();
+            }
+        }
+
+        private static JsonBlobFormatter _jsonFormatter;
+        /// <summary>
+        /// The native JSON formatter for parsing and reading text data.
+        /// </summary>
+        public static JsonBlobFormatter Json
+        {
+            get
+            {
+                return _jsonFormatter ??= new JsonBlobFormatter();
             }
         }
 

@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace TwinspireCS.Engine.Graphics
@@ -9,10 +11,15 @@ namespace TwinspireCS.Engine.Graphics
     public class TileSet
     {
 
+        [JsonInclude]
         public string Image;
+        [JsonInclude]
         public int TileSize;
+        [JsonInclude]
         public bool[] EntranceDirections;
+        [JsonInclude]
         public bool[] ExitDirections;
+        [JsonInclude]
         public uint[] Flags;
 
         public TileSet()
@@ -31,6 +38,33 @@ namespace TwinspireCS.Engine.Graphics
         public static IEnumerable<TileSet> TileSets
         {
             get => tilesets;
+        }
+
+        /// <summary>
+        /// Loads tilesets from a blob object formatted as a UTF-8 string representing JSON text.
+        /// </summary>
+        /// <param name="blob">The blob object containing the JSON data.</param>
+        public static void LoadFromBlob(Blob blob)
+        {
+            var content = blob.UTF8Text;
+            // not json format, return.
+            // expand later
+            if (content[0] != '[')
+                return;
+
+            tilesets = JsonSerializer.Deserialize<List<TileSet>>(content);
+        }
+
+        /// <summary>
+        /// Get JSON-formatted text of all the tilesets as a Blob.
+        /// </summary>
+        /// <returns></returns>
+        public static Blob GetBlobData()
+        {
+            var blob = new Blob();
+            var data = JsonSerializer.Serialize(tilesets);
+            blob.LoadFromMemory(data, Encoding.UTF8);
+            return blob;
         }
 
         public static void AddTileSet(TileSet set)

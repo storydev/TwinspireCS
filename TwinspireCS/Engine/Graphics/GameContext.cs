@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TwinspireCS.Engine.Render
+namespace TwinspireCS.Engine.Graphics
 {
     public class GameContext
     {
