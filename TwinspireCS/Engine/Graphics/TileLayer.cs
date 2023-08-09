@@ -10,6 +10,7 @@ namespace TwinspireCS.Engine.Graphics
     public class TileLayer
     {
 
+        public TileLayerType Type;
         public Tile[] Tiles;
         public float Opacity;
         public Vector2 Offset;
@@ -18,6 +19,7 @@ namespace TwinspireCS.Engine.Graphics
 
         public TileLayer()
         {
+            Type = TileLayerType.Tiles;
             Tiles = Array.Empty<Tile>();
             Opacity = 1.0f;
             Offset = Vector2.Zero;

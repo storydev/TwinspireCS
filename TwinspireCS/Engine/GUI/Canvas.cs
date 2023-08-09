@@ -31,6 +31,7 @@ namespace TwinspireCS.Engine.GUI
         private bool customElementDrawing;
         private Rectangle customElementDrawingDim;
         private bool customElementDrawWrapping;
+        private RenderTexture2D customBuffer;
 
         private bool elementsChanged;
         private int forceChangeElementIndex;
@@ -331,15 +332,25 @@ namespace TwinspireCS.Engine.GUI
         /// Unless specified, all routines using custom context ignores event simulation and should
         /// not be used for event handling within Canvas context. You can, on the other hand, use
         /// custom context to build more specific event handling use cases.
+        /// <br/><br/>
+        /// If using a buffer, only one may be allowed to exist. If more than one custom context exists,
+        /// the first context takes precedence. Other existing contexts will attempt to render into the
+        /// first context buffer and may cause issues.
         /// </remarks>
         /// <param name="dim">The dimension for this custom canvas.</param>
+        /// <param name="buffered">Determines if this custom canvas should have its own buffer to draw onto.</param>
         /// <param name="wrap">Forces the custom context to be wrapped and its content clipped within the given dimension.</param>
         /// <returns></returns>
-        public bool BeginCustom(Rectangle dim, bool wrap = false)
+        public bool BeginCustom(Rectangle dim, bool buffered = false, bool wrap = false)
         {
             customElementDrawing = true;
             customElementDrawingDim = dim;
             customElementDrawWrapping = wrap;
+
+            if (buffered && !Raylib.IsRenderTextureReady(customBuffer))
+            {
+                customBuffer = Raylib.LoadRenderTexture((int)dim.width, (int)dim.height);
+            }
 
             if (wrap)
             {
@@ -351,7 +362,10 @@ namespace TwinspireCS.Engine.GUI
         /// <summary>
         /// End the drawing of a custom canvas.
         /// </summary>
-        public void EndCustom()
+        /// <returns>
+        /// Returns <c>true</c> if a buffer for this custom context exists.
+        /// </returns>
+        public bool EndCustom()
         {
             customElementDrawing = false;
             if (customElementDrawWrapping)
@@ -359,6 +373,7 @@ namespace TwinspireCS.Engine.GUI
                 Raylib.EndScissorMode();
             }
 
+            return Raylib.IsRenderTextureReady(customBuffer);
         }
 
         public int GetLastElementIndex()
@@ -2001,10 +2016,66 @@ namespace TwinspireCS.Engine.GUI
         private Rectangle customFixedGridDimension;
         private Vector2 customFixedGridOffset;
         private Rectangle customGridConstraints = new Rectangle(0, 0, 0, 0);
+        private Action<int, int, int> customGridOnEachCell;
+        private bool customRequestUpdate;
+
+        /// <summary>
+        /// Requests that the custom buffer be updated.
+        /// </summary>
+        /// <param name="value">The value to set whether or not the custom buffer needs updating.</param>
+        public void CustomUpdate(bool value)
+        {
+            customRequestUpdate = value;
+        }
+
+        /// <summary>
+        /// Gets a value determining if custom context needs updating.
+        /// </summary>
+        /// <returns></returns>
+        public bool CustomNeedsUpdate()
+        {
+            return customRequestUpdate;
+        }
+
+        /// <summary>
+        /// Gets the custom buffer.
+        /// </summary>
+        /// <returns></returns>
+        public RenderTexture2D GetCustomBuffer()
+        {
+            return customBuffer;
+        }
+
+        /// <summary>
+        /// Clears the buffer of the custom context, if one exists.
+        /// </summary>
+        /// <param name="color">The color to clear to.</param>
+        public void CustomBufferClear(Color color)
+        {
+            if (!Raylib.IsRenderTextureReady(customBuffer))
+                return;
+
+            Raylib.BeginTextureMode(customBuffer);
+            Raylib.ClearBackground(Color.BLACK);
+            Raylib.EndTextureMode();
+        }
 
         public void CustomSetGridConstraints(Rectangle constraints)
         {
             customGridConstraints = constraints;
+        }
+
+        /// <summary>
+        /// Set a callback method that uses the position of each cell within a grid
+        /// and performs any extra instructions while the cell is drawn.
+        /// </summary>
+        /// <remarks>
+        /// The callback gives the index, x and y positions of the cell in question.
+        /// </remarks>
+        /// <param name="cellCallback">The callback for the cell.</param>
+        public void CustomFixedEachCell(Action<int, int, int> cellCallback)
+        {
+            customGridOnEachCell = cellCallback;
         }
 
         /// <summary>
@@ -2039,6 +2110,10 @@ namespace TwinspireCS.Engine.GUI
 
             if (!requestRebuild && elementIdCache.ContainsKey(generatedName))
             {
+                var hasCustomBuffer = Raylib.IsRenderTextureReady(customBuffer);
+                if (hasCustomBuffer)
+                    Raylib.BeginTextureMode(customBuffer);
+
                 var index = elementIdCache[generatedName];
                 var element = elements[index[0]];
                 
@@ -2062,6 +2137,16 @@ namespace TwinspireCS.Engine.GUI
                             2.0f, lineColor);
                         Raylib.DrawLineEx(new Vector2((int)startX, (int)startY), new Vector2((int)startX, (int)startY + (int)element.Dimension.y),
                             2.0f, lineColor);
+
+                        if (HasCustomConstraints())
+                        {
+                            var xyCell = new Vector2((int)startX, (int)startY);
+                            if (Raylib.CheckCollisionPointRec(xyCell, customGridConstraints))
+                            {
+                                int cellIndex = y * columns + x;
+                                customGridOnEachCell?.Invoke(cellIndex, (int)startX, (int)startY);
+                            }
+                        }
                     }
                 }
 
@@ -2069,6 +2154,9 @@ namespace TwinspireCS.Engine.GUI
                 {
                     Raylib.EndScissorMode();
                 }
+
+                if (hasCustomBuffer)
+                    Raylib.EndTextureMode();
 
                 var mousePos = GetMousePosition();
                 var actualFinalState = element.State;
@@ -2126,9 +2214,16 @@ namespace TwinspireCS.Engine.GUI
         /// <param name="lineThickness">(Optional) The thickness of the line.</param>
         public void CustomFixedGridHighlightCell(int index, Color lineColor, float lineThickness = 1f)
         {
+            var hasCustomBuffer = Raylib.IsRenderTextureReady(customBuffer);
+            if (hasCustomBuffer)
+                Raylib.BeginTextureMode(customBuffer);
+
             var posX = (int)Math.Floor((float)index % CustomGetFixedGridColumnCount());
             var posY = (int)Math.Floor((float)index / CustomGetFixedGridColumnCount());
             CustomFixedGridHighlightCell(new Vector2(posX, posY), lineColor, lineThickness);
+
+            if (hasCustomBuffer)
+                Raylib.EndTextureMode();
         }
 
         /// <summary>
@@ -2144,6 +2239,10 @@ namespace TwinspireCS.Engine.GUI
             {
                 throw new Exception("Must be within custom context to draw custom non-element items.");
             }
+
+            var hasCustomBuffer = Raylib.IsRenderTextureReady(customBuffer);
+            if (hasCustomBuffer)
+                Raylib.BeginTextureMode(customBuffer);
 
             if (HasCustomConstraints())
             {
@@ -2162,6 +2261,9 @@ namespace TwinspireCS.Engine.GUI
             {
                 Raylib.EndScissorMode();
             }
+
+            if (hasCustomBuffer)
+                Raylib.EndTextureMode();
         }
 
         public Vector2 CustomGetFixedGridMouseOverCell()
@@ -2204,6 +2306,10 @@ namespace TwinspireCS.Engine.GUI
                 throw new Exception("Must be within custom context to draw custom non-element items.");
             }
 
+            var hasCustomBuffer = Raylib.IsRenderTextureReady(customBuffer);
+            if (hasCustomBuffer)
+                Raylib.BeginTextureMode(customBuffer);
+
             if (HasCustomConstraints())
             {
                 Raylib.BeginScissorMode((int)customGridConstraints.x, (int)customGridConstraints.y, (int)customGridConstraints.width, (int)customGridConstraints.height);
@@ -2217,6 +2323,99 @@ namespace TwinspireCS.Engine.GUI
             {
                 Raylib.EndScissorMode();
             }
+
+            if (hasCustomBuffer)
+                Raylib.EndTextureMode();
+        }
+
+        /// <summary>
+        /// Draws a triangle in custom context within the given dimension and direction the triangle points towards.
+        /// </summary>
+        /// <param name="rect">The dimension the triangle should be bound.</param>
+        /// <param name="direction">The direction the triangle points towards.</param>
+        /// <param name="color">The color the triangle is filled.</param>
+        public void CustomDrawTriangle(Rectangle rect, TriangleDirection direction, Color color)
+        {
+            var hasCustomBuffer = Raylib.IsRenderTextureReady(customBuffer);
+            if (hasCustomBuffer)
+                Raylib.BeginTextureMode(customBuffer);
+
+            if (direction == TriangleDirection.Up)
+            {
+                var centerTop = new Vector2(rect.width / 2 + rect.x, rect.y);
+                var bottomLeft = new Vector2(rect.x, rect.y + rect.height);
+                var bottomRight = new Vector2(rect.x + rect.width, rect.y + rect.height);
+                Raylib.DrawTriangle(centerTop, bottomLeft, bottomRight, color);
+            }
+            else if (direction == TriangleDirection.Down)
+            {
+                var centerBottom = new Vector2(rect.width / 2 + rect.x, rect.y + rect.height);
+                var topRight = new Vector2(rect.x + rect.width, rect.y);
+                var topLeft = new Vector2(rect.x, rect.y);
+                Raylib.DrawTriangle(centerBottom, topRight, topLeft, color);
+            }
+            else if (direction == TriangleDirection.Left)
+            {
+                var middleLeft = new Vector2(rect.x, rect.y + (rect.height / 2));
+                var bottomRight = new Vector2(rect.x + rect.width, rect.y + rect.height);
+                var topRight = new Vector2(rect.x + rect.width, rect.y);
+                Raylib.DrawTriangle(middleLeft, bottomRight, topRight, color);
+            }
+            else if (direction == TriangleDirection.Right)
+            {
+                var middleRight = new Vector2(rect.x + rect.width, rect.y + (rect.height / 2));
+                var topLeft = new Vector2(rect.x, rect.y);
+                var bottomLeft = new Vector2(rect.x, rect.y + rect.height);
+                Raylib.DrawTriangle(middleRight, topLeft, bottomLeft, color);
+            }
+            else if (direction == TriangleDirection.TopRight)
+            {
+                var topRight = new Vector2(rect.x + rect.width, rect.y);
+                var topLeft = new Vector2(rect.x, rect.y);
+                var bottomRight = new Vector2(rect.x + rect.width, rect.y + rect.height);
+                Raylib.DrawTriangle(topLeft, bottomRight, topRight, color);
+            }
+            else if (direction == TriangleDirection.TopLeft)
+            {
+                var topLeft = new Vector2(rect.x, rect.y);
+                var bottomLeft = new Vector2(rect.x, rect.y + rect.height);
+                var topRight = new Vector2(rect.x + rect.width, rect.y);
+                Raylib.DrawTriangle(topLeft, bottomLeft, topRight, color);
+            }
+            else if (direction == TriangleDirection.BottomLeft)
+            {
+                var bottomLeft = new Vector2(rect.x, rect.y + rect.height);
+                var bottomRight = new Vector2(rect.x + rect.width, rect.y + rect.height);
+                var topLeft = new Vector2(rect.x, rect.y);
+                Raylib.DrawTriangle(topLeft, bottomLeft, bottomRight, color);
+            }
+            else if (direction == TriangleDirection.BottomRight)
+            {
+                var bottomRight = new Vector2(rect.x + rect.width, rect.y + rect.height);
+                var topRight = new Vector2(rect.x + rect.width, rect.y);
+                var bottomLeft = new Vector2(rect.x, rect.y + rect.height);
+                Raylib.DrawTriangle(bottomRight, topRight, bottomLeft, color);
+            }
+
+            if (hasCustomBuffer)
+                Raylib.EndTextureMode();
+        }
+
+        /// <summary>
+        /// Draw a circle in custom context using the given dimension as the bounds for the circle.
+        /// </summary>
+        /// <param name="rect">The dimension of the circle.</param>
+        /// <param name="color">The color the circle should be filled.</param>
+        public void CustomDrawCircle(Rectangle rect, Color color)
+        {
+            var hasCustomBuffer = Raylib.IsRenderTextureReady(customBuffer);
+            if (hasCustomBuffer)
+                Raylib.BeginTextureMode(customBuffer);
+
+            Raylib.DrawCircle((int)(rect.width / 2 + rect.x), (int)(rect.height / 2 + rect.y), rect.width / 2, color);
+
+            if (hasCustomBuffer)
+                Raylib.EndTextureMode();
         }
 
         private bool HasCustomConstraints()
