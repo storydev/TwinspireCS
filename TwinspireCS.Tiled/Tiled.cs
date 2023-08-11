@@ -68,7 +68,7 @@ namespace TwinspireCS.Tiled
         /// <param name="identifier">The identifier to give to the JSON file in the package.</param>
         /// <param name="path">The full path to the JSON file.</param>
         /// <param name="options">An option determining if the resources supplied by the Tiled-formatted JSON file should also be added.</param>
-        public static void Import(int packageIndex, string identifier, string path, ImportOptions options)
+        public static void Import(int packageIndex, string identifier, string path, ImportOptions options = ImportOptions.None)
         {
             if (!File.Exists(path))
                 return;
@@ -85,6 +85,11 @@ namespace TwinspireCS.Tiled
                 {
                     var resource = resources[i];
                     var resIdentifier = Path.GetFileNameWithoutExtension(resource);
+                    if (Application.Instance.ResourceManager.DoesNameExist(resIdentifier))
+                    {
+                        continue;
+                    }
+
                     var resBlob = new Blob();
                     var resContent = File.ReadAllText(resource);
                     resBlob.LoadFromMemory(resContent, Encoding.UTF8);
