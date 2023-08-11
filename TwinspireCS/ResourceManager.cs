@@ -301,6 +301,12 @@ namespace TwinspireCS
         /// Add the raw bytes of a binary file into a package at the given package
         /// index and identifier. Identifiers should be unique across all packages.
         /// </summary>
+        /// <remarks>
+        /// Using this method does not store the original file path as one is not given.
+        /// In order to overwrite any identifiers using this method, this method must be
+        /// used for all resources written using this method to avoid accidental removal
+        /// of existing files from the package.
+        /// </remarks>
         /// <param name="packageIndex">The index of the package to access.</param>
         /// <param name="identifier">The identifier used as the name for the resource.</param>
         /// <param name="buffer">The raw bytes buffer of the file to add to this package.</param>

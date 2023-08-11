@@ -27,7 +27,7 @@ namespace TwinspireCS.Tiled.Json
         public string staggerindex;
         public string tiledversion;
         public int tileheight;
-        public TiledTileset tilesets;
+        public TiledTileset[] tilesets;
         public int tilewidth;
         public string type;
         public string version;
