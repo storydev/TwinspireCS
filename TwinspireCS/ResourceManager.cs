@@ -1107,6 +1107,9 @@ namespace TwinspireCS
         /// <returns>Returns true if successful.</returns>
         public bool UnloadImage(string identifier)
         {
+            if (string.IsNullOrEmpty(identifier))
+                return false;
+
             if (imageCache.ContainsKey(identifier))
             {
                 Raylib.UnloadImage(GetImage(identifier));
@@ -1147,6 +1150,9 @@ namespace TwinspireCS
         /// <returns>Returns true if successful.</returns>
         public bool UnloadTexture(string identifier)
         {
+            if (string.IsNullOrEmpty(identifier))
+                return false;
+
             if (textureCache.ContainsKey(identifier))
             {
                 Raylib.UnloadTexture(textureCache[identifier]);
@@ -1179,6 +1185,9 @@ namespace TwinspireCS
         /// <returns>Returns true if successful.</returns>
         public bool UnloadRenderTexture(string identifier)
         {
+            if (string.IsNullOrEmpty(identifier))
+                return false;
+
             if (renderTextureCache.ContainsKey(identifier))
             {
                 Raylib.UnloadRenderTexture(renderTextureCache[identifier]);
@@ -1263,6 +1272,9 @@ namespace TwinspireCS
         /// <returns>Returns true if successful.</returns>
         public bool UnloadMusic(string identifier)
         {
+            if (string.IsNullOrEmpty(identifier))
+                return false;
+
             if (musicCache.ContainsKey(identifier))
             {
                 Raylib.UnloadMusicStream(GetMusic(identifier));
@@ -1347,6 +1359,9 @@ namespace TwinspireCS
         /// <returns>Returns true if successful.</returns>
         public bool UnloadWave(string identifier)
         {
+            if (string.IsNullOrEmpty(identifier))
+                return false;
+
             if (waveCache.ContainsKey(identifier))
             {
                 Raylib.UnloadWave(GetWave(identifier));
@@ -1436,6 +1451,9 @@ namespace TwinspireCS
         /// <returns>Returns true if successful.</returns>
         public bool UnloadFont(string identifier)
         {
+            if (string.IsNullOrEmpty(identifier))
+                return false;
+
             if (fontCache.ContainsKey(identifier))
             {
                 Raylib.UnloadFont(GetFont(identifier));
@@ -1504,6 +1522,9 @@ namespace TwinspireCS
         /// <returns>Returns true if successful.</returns>
         public bool UnloadBlob(string identifier)
         {
+            if (string.IsNullOrEmpty(identifier))
+                return false;
+
             if (blobCache.ContainsKey(identifier))
             {
                 blobCache.Remove(identifier);

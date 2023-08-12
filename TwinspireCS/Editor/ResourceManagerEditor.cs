@@ -326,6 +326,11 @@ namespace TwinspireCS.Editor
                         }
                         else
                         {
+                            if (ImGui.Button("Import...##ImportFromFormats"))
+                            {
+
+                            }
+
                             var packageIndex = selectedPackage - 1;
                             if (Raylib.IsFileDropped() && ImGuiController.IsImGuiInteracted())
                             {
