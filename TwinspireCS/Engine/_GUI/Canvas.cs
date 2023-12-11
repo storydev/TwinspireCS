@@ -188,11 +188,11 @@ namespace TwinspireCS.Engine.GUI
             var image = Application.Instance.ResourceManager.GetImage(imageName);
 
             var grid = new Grid();
-            grid.Dimension = new Rectangle(position.X, position.Y, image.width, image.height);
+            grid.Dimension = new Rectangle(position.X, position.Y, image.Width, image.Height);
             grid.Columns = new float[1];
-            grid.Columns[0] = image.width;
+            grid.Columns[0] = image.Width;
             grid.Rows = new float[1];
-            grid.Rows[0] = image.height;
+            grid.Rows[0] = image.Height;
 
             grid.BackgroundColors = new Extras.ColorMethod[1];
             grid.BackgroundImages = new string[1];
@@ -218,11 +218,11 @@ namespace TwinspireCS.Engine.GUI
             var image = Application.Instance.ResourceManager.GetImage(imageName);
 
             var grid = new Grid();
-            grid.Dimension = CalculateDimension(new Vector2(0, 0), new Vector2(image.width, image.height), alignment, alignTo, outside);
+            grid.Dimension = CalculateDimension(new Vector2(0, 0), new Vector2(image.Width, image.Height), alignment, alignTo, outside);
             grid.Columns = new float[1];
-            grid.Columns[0] = image.width;
+            grid.Columns[0] = image.Width;
             grid.Rows = new float[1];
-            grid.Rows[0] = image.height;
+            grid.Rows[0] = image.Height;
 
             grid.BackgroundColors = new Extras.ColorMethod[1];
             grid.BackgroundImages = new string[1];
@@ -349,12 +349,12 @@ namespace TwinspireCS.Engine.GUI
 
             if (buffered && !Raylib.IsRenderTextureReady(customBuffer))
             {
-                customBuffer = Raylib.LoadRenderTexture((int)dim.width, (int)dim.height);
+                customBuffer = Raylib.LoadRenderTexture((int)dim.Width, (int)dim.Height);
             }
 
             if (wrap)
             {
-                Raylib.BeginScissorMode((int)dim.x, (int)dim.y, (int)dim.width, (int)dim.height);
+                Raylib.BeginScissorMode((int)dim.X, (int)dim.Y, (int)dim.Width, (int)dim.Height);
             }
             return customElementDrawing;
         }
@@ -454,7 +454,7 @@ namespace TwinspireCS.Engine.GUI
                     fadingIn = false;
                 }
 
-                var color = new Color(fadeInEffectFromColor.r, fadeInEffectFromColor.g, fadeInEffectFromColor.b, (byte)(255 - (Animate.GetRatio(fadeInEffectAnimateIndex) * 255)));
+                var color = new Color(fadeInEffectFromColor.R, fadeInEffectFromColor.G, fadeInEffectFromColor.B, (byte)(255 - (Animate.GetRatio(fadeInEffectAnimateIndex) * 255)));
                 Raylib.DrawRectangle(0, 0, backBufferWidth, backBufferHeight, color);
             }
 
@@ -465,7 +465,7 @@ namespace TwinspireCS.Engine.GUI
                     fadingOut = false;
                 }
 
-                var color = new Color(fadeOutEffectToColor.r, fadeOutEffectToColor.g, fadeOutEffectToColor.b, (byte)(Animate.GetRatio(fadeOutEffectAnimateIndex) * 255));
+                var color = new Color(fadeOutEffectToColor.R, fadeOutEffectToColor.G, fadeOutEffectToColor.B, (byte)(Animate.GetRatio(fadeOutEffectAnimateIndex) * 255));
                 Raylib.DrawRectangle(0, 0, backBufferWidth, backBufferHeight, color);
             }
 
@@ -1317,8 +1317,8 @@ namespace TwinspireCS.Engine.GUI
                 }
 
                 var imageTexture = Application.Instance.ResourceManager.GetTexture(imageName);
-                Raylib.DrawTexturePro(imageTexture, new Rectangle(0, 0, imageTexture.width, imageTexture.height), 
-                    new Rectangle(imageElement.Dimension.x, imageElement.Dimension.y, imageElement.Dimension.width, imageElement.Dimension.height), new Vector2(0, 0), 0, Color.WHITE);
+                Raylib.DrawTexturePro(imageTexture, new Rectangle(0, 0, imageTexture.Width, imageTexture.Height), 
+                    new Rectangle(imageElement.Dimension.X, imageElement.Dimension.Y, imageElement.Dimension.Width, imageElement.Dimension.Height), new Vector2(0, 0), 0, Color.WHITE);
 
                 if (imageFormat == ButtonImageFormat.ImageAndText)
                 {
@@ -1335,8 +1335,8 @@ namespace TwinspireCS.Engine.GUI
                 Rectangle elementDim = CalculateNextDimension(elements.Count, text + "<image:" + imageName + ">", true);
                 if (imageFormat == ButtonImageFormat.Image || imageFormat == ButtonImageFormat.ImageTextAsTooltip)
                 {
-                    elementDim.width = imageSize.X + childInnerPadding * 2;
-                    elementDim.height = imageSize.Y + childInnerPadding * 2;
+                    elementDim.Width = imageSize.X + childInnerPadding * 2;
+                    elementDim.Height = imageSize.Y + childInnerPadding * 2;
                 }
 
                 var build = BuildElementsFromComponent("ButtonImage", elementDim);
@@ -1372,7 +1372,7 @@ namespace TwinspireCS.Engine.GUI
                                 if (alignment == ContentAlignment.Bottom || alignment == ContentAlignment.BottomLeft || alignment == ContentAlignment.BottomRight)
                                 {
                                     // if alignment at bottom, set label alignment first, then image
-                                    build[i + 1].Dimension = CalculateDimension(build[0].Dimension, new Vector2(childInnerPadding, childInnerPadding), new Vector2(build[i].Dimension.width, build[i].Dimension.height), alignment);
+                                    build[i + 1].Dimension = CalculateDimension(build[0].Dimension, new Vector2(childInnerPadding, childInnerPadding), new Vector2(build[i].Dimension.Width, build[i].Dimension.Height), alignment);
                                     if (alignment == ContentAlignment.Bottom)
                                     {
                                         build[i].Dimension = CalculateDimension(build[0].Dimension, new Vector2(childInnerPadding, childInnerPadding), textInfo.ContentSize, ContentAlignment.Top);
@@ -1512,7 +1512,7 @@ namespace TwinspireCS.Engine.GUI
 
             if (buffered)
             {
-                layout.BackBuffer = Raylib.LoadRenderTexture((int)dimension.width, (int)dimension.height);
+                layout.BackBuffer = Raylib.LoadRenderTexture((int)dimension.Width, (int)dimension.Height);
                 Raylib.BeginTextureMode(layout.BackBuffer);
                 Raylib.ClearBackground(Color.WHITE);
                 Raylib.EndTextureMode();
@@ -1646,8 +1646,8 @@ namespace TwinspireCS.Engine.GUI
                 elements[i].Shape = compElement.Shape;
 
                 Vector2 offset = new Vector2();
-                offset.X = compElement.HorizontalMeasureType == MeasureType.Percentage ? compElement.Offset.X * dimension.width : compElement.Offset.X;
-                offset.Y = compElement.VerticalMeasureType == MeasureType.Percentage ? compElement.Offset.Y * dimension.height : compElement.Offset.Y;
+                offset.X = compElement.HorizontalMeasureType == MeasureType.Percentage ? compElement.Offset.X * dimension.Width : compElement.Offset.X;
+                offset.Y = compElement.VerticalMeasureType == MeasureType.Percentage ? compElement.Offset.Y * dimension.Height : compElement.Offset.Y;
 
                 Vector2 measure = new Vector2();
                 var pixelWidth = compElement.Measure.X;
@@ -1657,12 +1657,12 @@ namespace TwinspireCS.Engine.GUI
                 // to perform the correct content alignment
                 if (compInterpreted == InterpretedType.Text && i == 0)
                 {
-                    pixelWidth = dimension.width;
-                    pixelHeight = dimension.height;
+                    pixelWidth = dimension.Width;
+                    pixelHeight = dimension.Height;
                 }
 
-                measure.X = compElement.HorizontalMeasureType == MeasureType.Percentage ? compElement.Measure.X * dimension.width : pixelWidth;
-                measure.Y = compElement.HorizontalMeasureType == MeasureType.Percentage ? compElement.Measure.Y * dimension.height : pixelHeight;
+                measure.X = compElement.HorizontalMeasureType == MeasureType.Percentage ? compElement.Measure.X * dimension.Width : pixelWidth;
+                measure.Y = compElement.HorizontalMeasureType == MeasureType.Percentage ? compElement.Measure.Y * dimension.Height : pixelHeight;
 
                 if (compElement.AlignAgainstIndex == -1)
                 {
@@ -1681,55 +1681,55 @@ namespace TwinspireCS.Engine.GUI
         protected Rectangle CalculateDimension(Rectangle constraints, Vector2 offset, Vector2 measure, ContentAlignment alignment)
         {
             Rectangle result = new Rectangle();
-            var fullWidth = measure.X > constraints.width;
-            var fullHeight = measure.Y > constraints.height;
+            var fullWidth = measure.X > constraints.Width;
+            var fullHeight = measure.Y > constraints.Height;
 
             if (fullWidth) // ignore any horizontal alignment + offset
             {
-                result.width = constraints.width;
-                result.x = 0;
+                result.Width = constraints.Width;
+                result.X = 0;
             }
 
             if (fullHeight) // ignore any vertical alignment + offset
             {
-                result.height = constraints.height;
-                result.y = 0;
+                result.Height = constraints.Height;
+                result.Y = 0;
             }
 
             if (!fullWidth)
             {
                 if (alignment == ContentAlignment.Left || alignment == ContentAlignment.BottomLeft || alignment == ContentAlignment.TopLeft)
                 {
-                    result.x = offset.X + constraints.x;
+                    result.X = offset.X + constraints.X;
                 }
                 else if (alignment == ContentAlignment.Center || alignment == ContentAlignment.Bottom || alignment == ContentAlignment.Top)
                 {
-                    result.x = ((constraints.width - measure.X) / 2) + constraints.x;
+                    result.X = ((constraints.Width - measure.X) / 2) + constraints.X;
                 }
                 else if (alignment == ContentAlignment.Right || alignment == ContentAlignment.BottomRight || alignment == ContentAlignment.TopRight)
                 {
-                    result.x = constraints.width - measure.X - offset.X + constraints.x;
+                    result.X = constraints.Width - measure.X - offset.X + constraints.X;
                 }
 
-                result.width = measure.X;
+                result.Width = measure.X;
             }
 
             if (!fullHeight)
             {
                 if (alignment == ContentAlignment.Top || alignment == ContentAlignment.TopLeft || alignment == ContentAlignment.TopRight)
                 {
-                    result.y = constraints.y + offset.Y;
+                    result.Y = constraints.Y + offset.Y;
                 }
                 else if (alignment == ContentAlignment.Center || alignment == ContentAlignment.Left || alignment == ContentAlignment.Right)
                 {
-                    result.y = ((constraints.height - measure.Y) / 2) + constraints.y;
+                    result.Y = ((constraints.Height - measure.Y) / 2) + constraints.Y;
                 }
                 else if (alignment == ContentAlignment.Bottom || alignment == ContentAlignment.BottomLeft || alignment == ContentAlignment.BottomRight)
                 {
-                    result.y = constraints.height - measure.Y - offset.Y + constraints.y;
+                    result.Y = constraints.Height - measure.Y - offset.Y + constraints.Y;
                 }
 
-                result.height = measure.Y;
+                result.Height = measure.Y;
             }
 
             return result;
@@ -1738,8 +1738,8 @@ namespace TwinspireCS.Engine.GUI
         protected Rectangle CalculateDimension(Vector2 offset, Vector2 measure, ContentAlignment alignment, Rectangle against, bool outside = false)
         {
             Rectangle result = new Rectangle();
-            result.width = measure.X;
-            result.height = measure.Y;
+            result.Width = measure.X;
+            result.Height = measure.Y;
 
             if (!outside)
             {
@@ -1749,48 +1749,48 @@ namespace TwinspireCS.Engine.GUI
             {
                 if (alignment == ContentAlignment.Bottom)
                 {
-                    result.y = against.height + against.y + offset.Y;
-                    result.x = ((against.width - measure.X) / 2) + against.x;
+                    result.Y = against.Height + against.Y + offset.Y;
+                    result.X = ((against.Width - measure.X) / 2) + against.X;
                 }
                 else if (alignment == ContentAlignment.BottomLeft)
                 {
-                    result.y = against.height + against.y + offset.Y;
-                    result.x = against.x;
+                    result.Y = against.Height + against.Y + offset.Y;
+                    result.X = against.X;
                 }
                 else if (alignment == ContentAlignment.BottomRight)
                 {
-                    result.y = against.height + against.y + offset.Y;
-                    result.x = (against.width - measure.X) + against.x;
+                    result.Y = against.Height + against.Y + offset.Y;
+                    result.X = (against.Width - measure.X) + against.X;
                 }
                 else if (alignment == ContentAlignment.Center)
                 {
-                    result.x = against.x + ((against.width - measure.X) / 2) + offset.X;
-                    result.y = against.y + ((against.height - measure.Y) / 2) + offset.Y;
+                    result.X = against.X + ((against.Width - measure.X) / 2) + offset.X;
+                    result.Y = against.Y + ((against.Height - measure.Y) / 2) + offset.Y;
                 }
                 else if (alignment == ContentAlignment.Left)
                 {
-                    result.x = against.x - measure.X - offset.X;
-                    result.y = against.y + (((against.height - measure.Y) / 2) + offset.Y);
+                    result.X = against.X - measure.X - offset.X;
+                    result.Y = against.Y + (((against.Height - measure.Y) / 2) + offset.Y);
                 }
                 else if (alignment == ContentAlignment.Right)
                 {
-                    result.x = against.x + against.width + offset.X;
-                    result.y = against.y + (((against.height - measure.Y) / 2) + offset.Y);
+                    result.X = against.X + against.Width + offset.X;
+                    result.Y = against.Y + (((against.Height - measure.Y) / 2) + offset.Y);
                 }
                 else if (alignment == ContentAlignment.Top)
                 {
-                    result.x = against.x + (((against.width - measure.X) / 2) + offset.X);
-                    result.y = against.y - measure.Y - offset.Y;
+                    result.X = against.X + (((against.Width - measure.X) / 2) + offset.X);
+                    result.Y = against.Y - measure.Y - offset.Y;
                 }
                 else if (alignment == ContentAlignment.TopLeft)
                 {
-                    result.x = against.x;
-                    result.y = against.y - measure.Y - offset.Y;
+                    result.X = against.X;
+                    result.Y = against.Y - measure.Y - offset.Y;
                 }
                 else if (alignment == ContentAlignment.TopRight)
                 {
-                    result.x = (against.x + against.width) - measure.X - offset.X;
-                    result.y = against.y - measure.Y - offset.Y;
+                    result.X = (against.X + against.Width) - measure.X - offset.X;
+                    result.Y = against.Y - measure.Y - offset.Y;
                 }
             }
             return result;
@@ -1798,42 +1798,42 @@ namespace TwinspireCS.Engine.GUI
 
         protected Rectangle ConformToRec(Rectangle constraits, Rectangle obj)
         {
-            var result = new Rectangle(obj.x, obj.y, obj.width, obj.height);
+            var result = new Rectangle(obj.X, obj.Y, obj.Width, obj.Height);
             // check top-left
-            if (obj.x < constraits.x)
+            if (obj.X < constraits.X)
             {
-                result.x = constraits.x + childInnerPadding;
+                result.X = constraits.X + childInnerPadding;
             }
 
-            if (obj.y < constraits.y)
+            if (obj.Y < constraits.Y)
             {
-                result.y = constraits.y + childInnerPadding;
+                result.Y = constraits.Y + childInnerPadding;
             }
 
             float ratio = 1.0f;
-            float aspectRatio = obj.height / obj.width;
+            float aspectRatio = obj.Height / obj.Width;
             // check bottom-right
-            if (result.x + obj.width > constraits.x + constraits.width)
+            if (result.X + obj.Width > constraits.X + constraits.Width)
             {
-                result.width = (result.x + obj.width) - (constraits.x + constraits.width) - childInnerPadding;
-                ratio = result.width / obj.width;
+                result.Width = (result.X + obj.Width) - (constraits.X + constraits.Width) - childInnerPadding;
+                ratio = result.Width / obj.Width;
             }
 
             if (aspectRatio == 1.0f)
             {
-                result.height = ratio * result.width;
+                result.Height = ratio * result.Width;
             }
             else
             {
-                result.height = aspectRatio * result.width;
+                result.Height = aspectRatio * result.Width;
             }
 
-            var lastHeight = result.height;
-            if (result.y + result.height > constraits.y + constraits.height)
+            var lastHeight = result.Height;
+            if (result.Y + result.Height > constraits.Y + constraits.Height)
             {
-                result.height = (result.y + result.height) - (constraits.y + constraits.height) - childInnerPadding;
-                ratio = result.height / lastHeight;
-                result.width = ratio * result.width;
+                result.Height = (result.Y + result.Height) - (constraits.Y + constraits.Height) - childInnerPadding;
+                ratio = result.Height / lastHeight;
+                result.Width = ratio * result.Width;
             }
 
             return result;
@@ -1866,7 +1866,7 @@ namespace TwinspireCS.Engine.GUI
                 var color = new Color(255, 255, 255, (int)(style.Opacity * 255));
 
                 Raylib.DrawTexturePro(bgImageTexture,
-                    new Rectangle(0, 0, bgImageTexture.width, bgImageTexture.height),
+                    new Rectangle(0, 0, bgImageTexture.Width, bgImageTexture.Height),
                     rect,
                     new Vector2(0, 0), 0, color);
             }
@@ -1878,7 +1878,7 @@ namespace TwinspireCS.Engine.GUI
                     // cannot use gradient colours with background rectangles using radius corners.
                     // defaults to using first solid colour input
                     var backgroundColor = style.BackgroundColor.Colors[0];
-                    backgroundColor.a = (byte)(style.Opacity * 255);
+                    backgroundColor.A = (byte)(style.Opacity * 255);
                     Raylib.DrawRectangleRounded(rect,
                         style.RadiusCorners, (int)(style.RadiusCorners * Math.PI), backgroundColor);
                 }
@@ -1890,26 +1890,26 @@ namespace TwinspireCS.Engine.GUI
                     if (style.BackgroundColor.Type == Extras.ColorType.Solid)
                     {
                         var color = style.BackgroundColor.Colors[0];
-                        color.a = (byte)(style.Opacity * 255);
-                        Raylib.DrawRectangle((int)rect.x, (int)rect.y, (int)rect.width, (int)rect.height, color);
+                        color.A = (byte)(style.Opacity * 255);
+                        Raylib.DrawRectangle((int)rect.X, (int)rect.Y, (int)rect.Width, (int)rect.Height, color);
                     }
                     else if (style.BackgroundColor.Type == Extras.ColorType.GradientHorizontal)
                     {
                         var color1 = style.BackgroundColor.Colors[0];
                         var color2 = style.BackgroundColor.Colors[1];
-                        color1.a = (byte)(style.Opacity * 255);
-                        color2.a = (byte)(style.Opacity * 255);
+                        color1.A = (byte)(style.Opacity * 255);
+                        color2.A = (byte)(style.Opacity * 255);
 
-                        Raylib.DrawRectangleGradientH((int)rect.x, (int)rect.y, (int)rect.width, (int)rect.height, color1, color2);
+                        Raylib.DrawRectangleGradientH((int)rect.X, (int)rect.Y, (int)rect.Width, (int)rect.Height, color1, color2);
                     }
                     else if (style.BackgroundColor.Type == Extras.ColorType.GradientVertical)
                     {
                         var color1 = style.BackgroundColor.Colors[0];
                         var color2 = style.BackgroundColor.Colors[1];
-                        color1.a = (byte)(style.Opacity * 255);
-                        color2.a = (byte)(style.Opacity * 255);
+                        color1.A = (byte)(style.Opacity * 255);
+                        color2.A = (byte)(style.Opacity * 255);
 
-                        Raylib.DrawRectangleGradientV((int)rect.x, (int)rect.y, (int)rect.width, (int)rect.height, color1, color2);
+                        Raylib.DrawRectangleGradientV((int)rect.X, (int)rect.Y, (int)rect.Width, (int)rect.Height, color1, color2);
                     }
 
                     SKIP_TO_BORDERS:
@@ -1918,29 +1918,29 @@ namespace TwinspireCS.Engine.GUI
                     if (style.Borders[0]) // top
                     {
                         var color = style.BorderColors[0];
-                        color.a = (byte)(style.Opacity * 255);
-                        Raylib.DrawLineEx(new Vector2(rect.x, rect.y), new Vector2(rect.x + rect.width, rect.y), style.BorderThicknesses[0], color);
+                        color.A = (byte)(style.Opacity * 255);
+                        Raylib.DrawLineEx(new Vector2(rect.X, rect.Y), new Vector2(rect.X + rect.Width, rect.Y), style.BorderThicknesses[0], color);
                     }
 
                     if (style.Borders[1]) // left
                     {
                         var color = style.BorderColors[1];
-                        color.a = (byte)(style.Opacity * 255);
-                        Raylib.DrawLineEx(new Vector2(rect.x, rect.y), new Vector2(rect.x, rect.y + rect.height), style.BorderThicknesses[1], color);
+                        color.A = (byte)(style.Opacity * 255);
+                        Raylib.DrawLineEx(new Vector2(rect.X, rect.Y), new Vector2(rect.X, rect.Y + rect.Height), style.BorderThicknesses[1], color);
                     }
 
                     if (style.Borders[2]) // right
                     {
                         var color = style.BorderColors[2];
-                        color.a = (byte)(style.Opacity * 255);
-                        Raylib.DrawLineEx(new Vector2(rect.x + rect.width, rect.y), new Vector2(rect.x + rect.width, rect.y + rect.height), style.BorderThicknesses[2], color);
+                        color.A = (byte)(style.Opacity * 255);
+                        Raylib.DrawLineEx(new Vector2(rect.X + rect.Width, rect.Y), new Vector2(rect.X + rect.Width, rect.Y + rect.Height), style.BorderThicknesses[2], color);
                     }
 
                     if (style.Borders[3]) // bottom
                     {
                         var color = style.BorderColors[3];
-                        color.a = (byte)(style.Opacity * 255);
-                        Raylib.DrawLineEx(new Vector2(rect.x, rect.y + rect.height), new Vector2(rect.x + rect.width, rect.y + rect.height), style.BorderThicknesses[3], color);
+                        color.A = (byte)(style.Opacity * 255);
+                        Raylib.DrawLineEx(new Vector2(rect.X, rect.Y + rect.Height), new Vector2(rect.X + rect.Width, rect.Y + rect.Height), style.BorderThicknesses[3], color);
                     }
                 }
             }
@@ -1952,48 +1952,48 @@ namespace TwinspireCS.Engine.GUI
             var textY = 0.0f;
             if (alignment == ContentAlignment.Left)
             {
-                textX = elements[index].Dimension.x + childInnerPadding;
-                textY = ((elements[index].Dimension.height - textDim.ContentSize.Y) / 2) + elements[index].Dimension.y;
+                textX = elements[index].Dimension.X + childInnerPadding;
+                textY = ((elements[index].Dimension.Height - textDim.ContentSize.Y) / 2) + elements[index].Dimension.Y;
             }
             else if (alignment == ContentAlignment.Center)
             {
-                textX = ((elements[index].Dimension.width - textDim.ContentSize.X) / 2) + elements[index].Dimension.x;
-                textY = ((elements[index].Dimension.height - textDim.ContentSize.Y) / 2) + elements[index].Dimension.y;
+                textX = ((elements[index].Dimension.Width - textDim.ContentSize.X) / 2) + elements[index].Dimension.X;
+                textY = ((elements[index].Dimension.Height - textDim.ContentSize.Y) / 2) + elements[index].Dimension.Y;
             }
             else if (alignment == ContentAlignment.Right)
             {
-                textX = (elements[index].Dimension.x + elements[index].Dimension.width) - textDim.ContentSize.X - childInnerPadding;
-                textY = ((elements[index].Dimension.height - textDim.ContentSize.Y) / 2) + elements[index].Dimension.y;
+                textX = (elements[index].Dimension.X + elements[index].Dimension.Width) - textDim.ContentSize.X - childInnerPadding;
+                textY = ((elements[index].Dimension.Height - textDim.ContentSize.Y) / 2) + elements[index].Dimension.Y;
             }
             else if (alignment == ContentAlignment.TopLeft)
             {
-                textX = elements[index].Dimension.x + childInnerPadding;
-                textY = elements[index].Dimension.y + childInnerPadding;
+                textX = elements[index].Dimension.X + childInnerPadding;
+                textY = elements[index].Dimension.Y + childInnerPadding;
             }
             else if (alignment == ContentAlignment.Top)
             {
-                textX = ((elements[index].Dimension.width - textDim.ContentSize.X) / 2) + elements[index].Dimension.x;
-                textY = elements[index].Dimension.y + childInnerPadding;
+                textX = ((elements[index].Dimension.Width - textDim.ContentSize.X) / 2) + elements[index].Dimension.X;
+                textY = elements[index].Dimension.Y + childInnerPadding;
             }
             else if (alignment == ContentAlignment.TopRight)
             {
-                textX = (elements[index].Dimension.x + elements[index].Dimension.width) - textDim.ContentSize.X - childInnerPadding;
-                textY = elements[index].Dimension.y + childInnerPadding;
+                textX = (elements[index].Dimension.X + elements[index].Dimension.Width) - textDim.ContentSize.X - childInnerPadding;
+                textY = elements[index].Dimension.Y + childInnerPadding;
             }
             else if (alignment == ContentAlignment.BottomLeft)
             {
-                textX = elements[index].Dimension.x + childInnerPadding;
-                textY = elements[index].Dimension.y + elements[index].Dimension.height - textDim.ContentSize.Y - childInnerPadding;
+                textX = elements[index].Dimension.X + childInnerPadding;
+                textY = elements[index].Dimension.Y + elements[index].Dimension.Height - textDim.ContentSize.Y - childInnerPadding;
             }
             else if (alignment == ContentAlignment.Bottom)
             {
-                textX = ((elements[index].Dimension.width - textDim.ContentSize.X) / 2) + elements[index].Dimension.x;
-                textY = elements[index].Dimension.y + elements[index].Dimension.height - textDim.ContentSize.Y - childInnerPadding;
+                textX = ((elements[index].Dimension.Width - textDim.ContentSize.X) / 2) + elements[index].Dimension.X;
+                textY = elements[index].Dimension.Y + elements[index].Dimension.Height - textDim.ContentSize.Y - childInnerPadding;
             }
             else if (alignment == ContentAlignment.BottomRight)
             {
-                textX = (elements[index].Dimension.x + elements[index].Dimension.width) - textDim.ContentSize.X - childInnerPadding;
-                textY = elements[index].Dimension.y + elements[index].Dimension.height - textDim.ContentSize.Y - childInnerPadding;
+                textX = (elements[index].Dimension.X + elements[index].Dimension.Width) - textDim.ContentSize.X - childInnerPadding;
+                textY = elements[index].Dimension.Y + elements[index].Dimension.Height - textDim.ContentSize.Y - childInnerPadding;
             }
 
             Raylib.BeginScissorMode((int)textX, (int)textY, (int)textDim.ContentSize.X, (int)textDim.ContentSize.Y);
@@ -2090,12 +2090,12 @@ namespace TwinspireCS.Engine.GUI
         /// <exception cref="Exception">Fails if the given cellSize does not divide into the width or height of the given dimension.</exception>
         public ElementState CustomFixedGrid(int cellSize, Rectangle dim, Vector2 offset, Color lineColor)
         {
-            if (dim.width % cellSize != 0)
+            if (dim.Width % cellSize != 0)
             {
                 throw new Exception("Width of the grid does not divide exactly into cellSize.");
             }
 
-            if (dim.height % cellSize != 0)
+            if (dim.Height % cellSize != 0)
             {
                 throw new Exception("Height of the grid does not divide exactly into cellSize.");
             }
@@ -2104,7 +2104,7 @@ namespace TwinspireCS.Engine.GUI
                 return ElementState.Idle;
 
             var generatedName = "FixedGrid_" + cellSize + "_" + dim.ToString(true);
-            customFixedGridDimension = new Rectangle(dim.x, dim.y, dim.width, dim.height);
+            customFixedGridDimension = new Rectangle(dim.X, dim.Y, dim.Width, dim.Width);
             customFixedGridCellSize = cellSize;
             customFixedGridOffset = offset;
 
@@ -2117,25 +2117,25 @@ namespace TwinspireCS.Engine.GUI
                 var index = elementIdCache[generatedName];
                 var element = elements[index[0]];
                 
-                var rows = (int)Math.Floor(element.Dimension.height / cellSize);
-                var columns = (int)Math.Floor(element.Dimension.width / cellSize);
+                var rows = (int)Math.Floor(element.Dimension.Height / cellSize);
+                var columns = (int)Math.Floor(element.Dimension.Width / cellSize);
                 customFixedGridColumnCount = columns;
                 customFixedGridRowCount = rows;
 
-                if (customGridConstraints.width > 0 && customGridConstraints.height > 0)
+                if (customGridConstraints.Width > 0 && customGridConstraints.Height > 0)
                 {
-                    Raylib.BeginScissorMode((int)customGridConstraints.x, (int)customGridConstraints.y, (int)customGridConstraints.width, (int)customGridConstraints.height);
+                    Raylib.BeginScissorMode((int)customGridConstraints.X, (int)customGridConstraints.Y, (int)customGridConstraints.Width, (int)customGridConstraints.Height);
                 }
 
                 for (int y = 0; y < rows; y++)
                 {
                     for (int x = 0; x < columns; x++)
                     {
-                        var startX = (x * cellSize) + element.Dimension.x + offset.X;
-                        var startY = (y * cellSize) + element.Dimension.y + offset.Y;
-                        Raylib.DrawLineEx(new Vector2((int)startX, (int)startY), new Vector2((int)startX + (int)element.Dimension.x, (int)startY), 
+                        var startX = (x * cellSize) + element.Dimension.X + offset.X;
+                        var startY = (y * cellSize) + element.Dimension.Y + offset.Y;
+                        Raylib.DrawLineEx(new Vector2((int)startX, (int)startY), new Vector2((int)startX + (int)element.Dimension.X, (int)startY), 
                             2.0f, lineColor);
-                        Raylib.DrawLineEx(new Vector2((int)startX, (int)startY), new Vector2((int)startX, (int)startY + (int)element.Dimension.y),
+                        Raylib.DrawLineEx(new Vector2((int)startX, (int)startY), new Vector2((int)startX, (int)startY + (int)element.Dimension.Y),
                             2.0f, lineColor);
 
                         if (HasCustomConstraints())
@@ -2150,7 +2150,7 @@ namespace TwinspireCS.Engine.GUI
                     }
                 }
 
-                if (customGridConstraints.width > 0 && customGridConstraints.height > 0)
+                if (customGridConstraints.Width > 0 && customGridConstraints.Height > 0)
                 {
                     Raylib.EndScissorMode();
                 }
@@ -2165,7 +2165,7 @@ namespace TwinspireCS.Engine.GUI
                     actualFinalState = ElementState.Inactive;
                 }
 
-                var relPos = new Vector2(mousePos.X - (element.Dimension.x + offset.X), mousePos.Y - (element.Dimension.y + offset.Y));
+                var relPos = new Vector2(mousePos.X - (element.Dimension.X + offset.X), mousePos.Y - (element.Dimension.Y + offset.Y));
                 var relColumn = (int)Math.Floor(relPos.X / cellSize);
                 var relRow = (int)Math.Floor(relPos.Y / cellSize);
 
@@ -2192,7 +2192,7 @@ namespace TwinspireCS.Engine.GUI
                 element.Type = ElementType.Interactive;
                 element.DrawContext = DrawContext.CommonLayouts;
                 element.Visible = true;
-                element.Dimension = new Rectangle(dim.x, dim.y, dim.width, dim.height);
+                element.Dimension = new Rectangle(dim.X, dim.Y, dim.Width, dim.Height);
 
                 elements.Add(element);
                 elementIdCache.Add(generatedName, new int[] { elements.Count - 1, 1 });
@@ -2246,14 +2246,14 @@ namespace TwinspireCS.Engine.GUI
 
             if (HasCustomConstraints())
             {
-                Raylib.BeginScissorMode((int)customGridConstraints.x, (int)customGridConstraints.y, (int)customGridConstraints.width, (int)customGridConstraints.height);
+                Raylib.BeginScissorMode((int)customGridConstraints.X, (int)customGridConstraints.Y, (int)customGridConstraints.Width, (int)customGridConstraints.Height);
             }
 
             var rectangle = new Rectangle(position.X * customFixedGridCellSize + (lineThickness / 2), 
                 position.Y * customFixedGridCellSize + (lineThickness / 2), 
                 customFixedGridCellSize - (lineThickness * 1.5f), customFixedGridCellSize - (lineThickness * 1.5f));
-            rectangle.x += customFixedGridDimension.x + customFixedGridOffset.X;
-            rectangle.y += customFixedGridDimension.y + customFixedGridOffset.Y;
+            rectangle.X += customFixedGridDimension.X + customFixedGridOffset.X;
+            rectangle.Y += customFixedGridDimension.Y + customFixedGridOffset.Y;
 
             Raylib.DrawRectangleLinesEx(rectangle, lineThickness, lineColor);
 
@@ -2312,11 +2312,11 @@ namespace TwinspireCS.Engine.GUI
 
             if (HasCustomConstraints())
             {
-                Raylib.BeginScissorMode((int)customGridConstraints.x, (int)customGridConstraints.y, (int)customGridConstraints.width, (int)customGridConstraints.height);
+                Raylib.BeginScissorMode((int)customGridConstraints.X, (int)customGridConstraints.Y, (int)customGridConstraints.Width, (int)customGridConstraints.Height);
             }
 
-            Raylib.DrawTexturePro(texture, new Rectangle(0, 0, texture.width, texture.height), 
-                new Rectangle(customGridConstraints.x + dim.x, customGridConstraints.y + dim.y, dim.width, dim.height),
+            Raylib.DrawTexturePro(texture, new Rectangle(0, 0, texture.Width, texture.Height), 
+                new Rectangle(customGridConstraints.X + dim.X, customGridConstraints.Y + dim.Y, dim.Width, dim.Height),
                 new Vector2(0, 0), 0f, Color.WHITE);
 
             if (HasCustomConstraints())
@@ -2342,58 +2342,58 @@ namespace TwinspireCS.Engine.GUI
 
             if (direction == TriangleDirection.Up)
             {
-                var centerTop = new Vector2(rect.width / 2 + rect.x, rect.y);
-                var bottomLeft = new Vector2(rect.x, rect.y + rect.height);
-                var bottomRight = new Vector2(rect.x + rect.width, rect.y + rect.height);
+                var centerTop = new Vector2(rect.Width / 2 + rect.X, rect.Y);
+                var bottomLeft = new Vector2(rect.X, rect.Y + rect.Height);
+                var bottomRight = new Vector2(rect.X + rect.Width, rect.Y + rect.Height);
                 Raylib.DrawTriangle(centerTop, bottomLeft, bottomRight, color);
             }
             else if (direction == TriangleDirection.Down)
             {
-                var centerBottom = new Vector2(rect.width / 2 + rect.x, rect.y + rect.height);
-                var topRight = new Vector2(rect.x + rect.width, rect.y);
-                var topLeft = new Vector2(rect.x, rect.y);
+                var centerBottom = new Vector2(rect.Width / 2 + rect.X, rect.Y + rect.Height);
+                var topRight = new Vector2(rect.X + rect.Width, rect.Y);
+                var topLeft = new Vector2(rect.X, rect.Y);
                 Raylib.DrawTriangle(centerBottom, topRight, topLeft, color);
             }
             else if (direction == TriangleDirection.Left)
             {
-                var middleLeft = new Vector2(rect.x, rect.y + (rect.height / 2));
-                var bottomRight = new Vector2(rect.x + rect.width, rect.y + rect.height);
-                var topRight = new Vector2(rect.x + rect.width, rect.y);
+                var middleLeft = new Vector2(rect.X, rect.Y + (rect.Height / 2));
+                var bottomRight = new Vector2(rect.X + rect.Width, rect.Y + rect.Height);
+                var topRight = new Vector2(rect.X + rect.Width, rect.Y);
                 Raylib.DrawTriangle(middleLeft, bottomRight, topRight, color);
             }
             else if (direction == TriangleDirection.Right)
             {
-                var middleRight = new Vector2(rect.x + rect.width, rect.y + (rect.height / 2));
-                var topLeft = new Vector2(rect.x, rect.y);
-                var bottomLeft = new Vector2(rect.x, rect.y + rect.height);
+                var middleRight = new Vector2(rect.X + rect.Width, rect.Y + (rect.Height / 2));
+                var topLeft = new Vector2(rect.X, rect.Y);
+                var bottomLeft = new Vector2(rect.X, rect.Y + rect.Height);
                 Raylib.DrawTriangle(middleRight, topLeft, bottomLeft, color);
             }
             else if (direction == TriangleDirection.TopRight)
             {
-                var topRight = new Vector2(rect.x + rect.width, rect.y);
-                var topLeft = new Vector2(rect.x, rect.y);
-                var bottomRight = new Vector2(rect.x + rect.width, rect.y + rect.height);
+                var topRight = new Vector2(rect.X + rect.Width, rect.Y);
+                var topLeft = new Vector2(rect.X, rect.Y);
+                var bottomRight = new Vector2(rect.X + rect.Width, rect.Y + rect.Height);
                 Raylib.DrawTriangle(topLeft, bottomRight, topRight, color);
             }
             else if (direction == TriangleDirection.TopLeft)
             {
-                var topLeft = new Vector2(rect.x, rect.y);
-                var bottomLeft = new Vector2(rect.x, rect.y + rect.height);
-                var topRight = new Vector2(rect.x + rect.width, rect.y);
+                var topLeft = new Vector2(rect.X, rect.Y);
+                var bottomLeft = new Vector2(rect.X, rect.Y + rect.Height);
+                var topRight = new Vector2(rect.X + rect.Width, rect.Y);
                 Raylib.DrawTriangle(topLeft, bottomLeft, topRight, color);
             }
             else if (direction == TriangleDirection.BottomLeft)
             {
-                var bottomLeft = new Vector2(rect.x, rect.y + rect.height);
-                var bottomRight = new Vector2(rect.x + rect.width, rect.y + rect.height);
-                var topLeft = new Vector2(rect.x, rect.y);
+                var bottomLeft = new Vector2(rect.X, rect.Y + rect.Height);
+                var bottomRight = new Vector2(rect.X + rect.Width, rect.Y + rect.Height);
+                var topLeft = new Vector2(rect.X, rect.Y);
                 Raylib.DrawTriangle(topLeft, bottomLeft, bottomRight, color);
             }
             else if (direction == TriangleDirection.BottomRight)
             {
-                var bottomRight = new Vector2(rect.x + rect.width, rect.y + rect.height);
-                var topRight = new Vector2(rect.x + rect.width, rect.y);
-                var bottomLeft = new Vector2(rect.x, rect.y + rect.height);
+                var bottomRight = new Vector2(rect.X + rect.Width, rect.Y + rect.Height);
+                var topRight = new Vector2(rect.X + rect.Width, rect.Y);
+                var bottomLeft = new Vector2(rect.X, rect.Y + rect.Height);
                 Raylib.DrawTriangle(bottomRight, topRight, bottomLeft, color);
             }
 
@@ -2412,7 +2412,7 @@ namespace TwinspireCS.Engine.GUI
             if (hasCustomBuffer)
                 Raylib.BeginTextureMode(customBuffer);
 
-            Raylib.DrawCircle((int)(rect.width / 2 + rect.x), (int)(rect.height / 2 + rect.y), rect.width / 2, color);
+            Raylib.DrawCircle((int)(rect.Width / 2 + rect.X), (int)(rect.Height / 2 + rect.Y), rect.Width / 2, color);
 
             if (hasCustomBuffer)
                 Raylib.EndTextureMode();
@@ -2420,8 +2420,8 @@ namespace TwinspireCS.Engine.GUI
 
         private bool HasCustomConstraints()
         {
-            return customGridConstraints.x > 0 || customGridConstraints.y > 0
-                || customGridConstraints.width > 0 || customGridConstraints.height > 0;
+            return customGridConstraints.X > 0 || customGridConstraints.Y > 0
+                || customGridConstraints.Width > 0 || customGridConstraints.Height > 0;
         }
 
         #endregion
@@ -2461,8 +2461,8 @@ namespace TwinspireCS.Engine.GUI
                         var actualTileResult = TileSet.GetTileSetFromTileIndex(tile.Index);
                         var tileset = TileSet.TileSets.ElementAt(actualTileResult.TileSetIndex);
                         var texture = Application.Instance.ResourceManager.GetTexture(tileset.Image);
-                        var tilesetX = tileset.TileSize * Math.Floor((float)(actualTileResult.TileIndex % (texture.width / tileset.TileSize)));
-                        var tilesetY = tileset.TileSize * Math.Floor((float)(actualTileResult.TileIndex / (texture.width / tileset.TileSize)));
+                        var tilesetX = tileset.TileSize * Math.Floor((float)(actualTileResult.TileIndex % (texture.Width / tileset.TileSize)));
+                        var tilesetY = tileset.TileSize * Math.Floor((float)(actualTileResult.TileIndex / (texture.Width / tileset.TileSize)));
 
                         Raylib.DrawTexturePro(texture,
                             new Rectangle((float)tilesetX, (float)tilesetY, tileset.TileSize, tileset.TileSize),
@@ -2522,9 +2522,9 @@ namespace TwinspireCS.Engine.GUI
             //}
 
             mapBuffer = Application.Instance.ResourceManager.GetRenderTexture("TileMap_" + map.Name);
-            Raylib.DrawTexturePro(mapBuffer.texture,
-                new Rectangle(0, 0, mapBuffer.texture.width, -mapBuffer.texture.height),
-                new Rectangle(0, 0, mapBuffer.texture.width, mapBuffer.texture.height), 
+            Raylib.DrawTexturePro(mapBuffer.Texture,
+                new Rectangle(0, 0, mapBuffer.Texture.Width, -mapBuffer.Texture.Height),
+                new Rectangle(0, 0, mapBuffer.Texture.Width, mapBuffer.Texture.Height), 
                 new Vector2(0, 0), 0, Color.WHITE);
         }
 
@@ -2563,12 +2563,12 @@ namespace TwinspireCS.Engine.GUI
             {
                 gridContentDim = dynamicLayouts.ElementAt(currentGridIndex).Value.GetContentDimension(currentCellIndex);
             }
-            var remainingWidth = gridContentDim.width;
+            var remainingWidth = gridContentDim.Width;
             var xToBecome = 0.0f;
             var yToBecome = 0.0f;
             if (currentFlowDirection == FlowDirection.RightToLeft)
             {
-                xToBecome = gridContentDim.width;
+                xToBecome = gridContentDim.Width;
             }
 
             var lastRowHeight = 0.0f;
@@ -2580,35 +2580,35 @@ namespace TwinspireCS.Engine.GUI
                     var element = currentRowElements.ElementAt(i);
                     if (currentFlowDirection == FlowDirection.RightToLeft)
                     {
-                        xToBecome -= element.Dimension.width;
+                        xToBecome -= element.Dimension.Width;
                     }
                     else
                     {
-                        xToBecome += element.Dimension.x;
+                        xToBecome += element.Dimension.X;
                     }
-                    remainingWidth -= element.Dimension.width;
+                    remainingWidth -= element.Dimension.Width;
 
-                    if (element.Dimension.y > lastRowHeight && currentLayoutFlags.HasFlag(LayoutFlags.DynamicRows))
+                    if (element.Dimension.Y > lastRowHeight && currentLayoutFlags.HasFlag(LayoutFlags.DynamicRows))
                     {
-                        lastRowHeight = element.Dimension.y;
+                        lastRowHeight = element.Dimension.Y;
                     }
 
-                    if ((xToBecome > gridContentDim.width && currentFlowDirection == FlowDirection.LeftToRight) || (xToBecome < 0 && currentFlowDirection == FlowDirection.RightToLeft))
+                    if ((xToBecome > gridContentDim.Width && currentFlowDirection == FlowDirection.LeftToRight) || (xToBecome < 0 && currentFlowDirection == FlowDirection.RightToLeft))
                     {
                         if (currentLayoutFlags.HasFlag(LayoutFlags.DynamicRows))
                             yToBecome += lastRowHeight;
                         else if (currentLayoutFlags.HasFlag(LayoutFlags.StaticRows))
                             yToBecome += fixedRowHeight;
 
-                        xToBecome = gridContentDim.width;
+                        xToBecome = gridContentDim.Width;
                         lastRowHeight = 0;
-                        remainingWidth = gridContentDim.width;
+                        remainingWidth = gridContentDim.Width;
                     }
                 }
             }
 
-            xToBecome += gridContentDim.x;
-            yToBecome += gridContentDim.y;
+            xToBecome += gridContentDim.X;
+            yToBecome += gridContentDim.Y;
 
             var widthToBecome = 0.0f;
             var heightToBecome = 0.0f;
@@ -2622,7 +2622,7 @@ namespace TwinspireCS.Engine.GUI
             }
             else if (currentLayoutFlags.HasFlag(LayoutFlags.SpanColumn))
             {
-                heightToBecome = gridContentDim.height;
+                heightToBecome = gridContentDim.Height;
             }
             else
             {
@@ -2635,7 +2635,7 @@ namespace TwinspireCS.Engine.GUI
             }
             else if (currentLayoutFlags.HasFlag(LayoutFlags.SpanRow))
             {
-                widthToBecome = gridContentDim.width;
+                widthToBecome = gridContentDim.Width;
             }
             else
             {
@@ -2645,8 +2645,8 @@ namespace TwinspireCS.Engine.GUI
             if (currentRowElements.Any())
             {
                 var lastElement = currentRowElements.Last();
-                lastPosition = new Vector2(lastElement.Dimension.x, lastElement.Dimension.y);
-                lastSize = new Vector2(lastElement.Dimension.width, lastElement.Dimension.height);
+                lastPosition = new Vector2(lastElement.Dimension.X, lastElement.Dimension.Y);
+                lastSize = new Vector2(lastElement.Dimension.Width, lastElement.Dimension.Height);
             }
 
             TextDim textDim = null;
@@ -2686,42 +2686,42 @@ namespace TwinspireCS.Engine.GUI
                 {
                     yToBecome += lastRowHeight;
                     if (currentFlowDirection == FlowDirection.LeftToRight)
-                        xToBecome = gridContentDim.x;
+                        xToBecome = gridContentDim.X;
                     else
-                        xToBecome = gridContentDim.x + gridContentDim.width;
+                        xToBecome = gridContentDim.X + gridContentDim.Width;
                 }
                 else if (currentLayoutFlags.HasFlag(LayoutFlags.StaticRows) && widthToBecome >= remainingWidth)
                 {
                     yToBecome += fixedRowHeight;
                     if (currentFlowDirection == FlowDirection.LeftToRight)
-                        xToBecome = gridContentDim.x;
+                        xToBecome = gridContentDim.X;
                     else
-                        xToBecome = gridContentDim.x + gridContentDim.width;
+                        xToBecome = gridContentDim.X + gridContentDim.Width;
                 }
                 else if (currentLayoutFlags.HasFlag(LayoutFlags.SpanRow))
                 {
-                    yToBecome += gridContentDim.height;
+                    yToBecome += gridContentDim.Height;
                     if (currentFlowDirection == FlowDirection.LeftToRight)
-                        xToBecome = gridContentDim.x;
+                        xToBecome = gridContentDim.X;
                     else
-                        xToBecome = gridContentDim.x + gridContentDim.width;
+                        xToBecome = gridContentDim.X + gridContentDim.Width;
                 }
             }
 
             if (usingImage && !currentLayoutFlags.HasFlag(LayoutFlags.SpanRow) && !currentLayoutFlags.HasFlag(LayoutFlags.SpanColumn)
                 && !currentLayoutFlags.HasFlag(LayoutFlags.FixedComponentHeights) && !currentLayoutFlags.HasFlag(LayoutFlags.FixedComponentWidths))
             {
-                widthToBecome += imageToUse.width;
+                widthToBecome += imageToUse.Width;
                 if (!includeImage)
-                    heightToBecome += imageToUse.height;
+                    heightToBecome += imageToUse.Height;
 
                 if (widthToBecome > remainingWidth && currentLayoutFlags.HasFlag(LayoutFlags.DynamicRows))
                 {
                     yToBecome += lastRowHeight;
                     if (currentFlowDirection == FlowDirection.LeftToRight)
-                        xToBecome = gridContentDim.x;
+                        xToBecome = gridContentDim.X;
                     else
-                        xToBecome = gridContentDim.x + gridContentDim.width;
+                        xToBecome = gridContentDim.X + gridContentDim.Width;
                 }
             }
 
@@ -2924,7 +2924,7 @@ namespace TwinspireCS.Engine.GUI
 
                 var textureBG = Application.Instance.ResourceManager.GetTexture(image);
                 Raylib.DrawTexturePro(textureBG,
-                    new Rectangle(0, 0, textureBG.width, textureBG.height),
+                    new Rectangle(0, 0, textureBG.Width, textureBG.Height),
                     new Rectangle(0, 0, backBufferWidth, backBufferHeight),
                     new Vector2(0, 0), 0, Color.WHITE);
             }
@@ -2966,16 +2966,16 @@ namespace TwinspireCS.Engine.GUI
                 var name = Name + "_Grid_" + gridIndex + "_Cell_" + i + "_Shadow";
                 if (!Application.Instance.ResourceManager.DoesIdentifierExist(name))
                 {
-                    var shadowImage = Raylib.GenImageColor((int)cellDim.width + (grid.Shadows[i].BlurRadius * 2), (int)cellDim.height + (grid.Shadows[i].BlurRadius * 2), Color.WHITE);
+                    var shadowImage = Raylib.GenImageColor((int)cellDim.Width + (grid.Shadows[i].BlurRadius * 2), (int)cellDim.Height + (grid.Shadows[i].BlurRadius * 2), Color.WHITE);
                     Raylib.ImageDrawRectangle(ref shadowImage, grid.Shadows[i].BlurRadius, grid.Shadows[i].BlurRadius,
-                        (int)(cellDim.width - grid.Shadows[i].BlurRadius), (int)(cellDim.height - grid.Shadows[i].BlurRadius), grid.Shadows[i].Color);
+                        (int)(cellDim.Width - grid.Shadows[i].BlurRadius), (int)(cellDim.Height - grid.Shadows[i].BlurRadius), grid.Shadows[i].Color);
                     Raylib.ImageBlurGaussian(&shadowImage, grid.Shadows[i].BlurRadius);
                     Application.Instance.ResourceManager.AddResourceImage(name, shadowImage);
                 }
                 else
                 {
                     var shadowTexture = Application.Instance.ResourceManager.GetTexture(name);
-                    Raylib.DrawTexture(shadowTexture, (int)grid.Shadows[i].OffsetX + (int)cellDim.x, (int)grid.Shadows[i].OffsetY + (int)cellDim.y, Color.WHITE);
+                    Raylib.DrawTexture(shadowTexture, (int)grid.Shadows[i].OffsetX + (int)cellDim.X, (int)grid.Shadows[i].OffsetY + (int)cellDim.Y, Color.WHITE);
                 }
             }
 
@@ -2986,8 +2986,8 @@ namespace TwinspireCS.Engine.GUI
 
                 var bgImageTexture = Application.Instance.ResourceManager.GetTexture(grid.BackgroundImages[i]);
                 Raylib.DrawTexturePro(bgImageTexture,
-                    new Rectangle(0, 0, bgImageTexture.width, bgImageTexture.height),
-                    new Rectangle(cellDim.x + grid.Offsets[i].X, cellDim.y + grid.Offsets[i].Y, cellDim.width, cellDim.height),
+                    new Rectangle(0, 0, bgImageTexture.Width, bgImageTexture.Height),
+                    new Rectangle(cellDim.X + grid.Offsets[i].X, cellDim.Y + grid.Offsets[i].Y, cellDim.Width, cellDim.Height),
                     new Vector2(0, 0), 0, Color.WHITE);
             }
             else
@@ -2999,7 +2999,7 @@ namespace TwinspireCS.Engine.GUI
                     // cannot use gradient colours with background rectangles using radius corners.
                     // defaults to using first solid colour input
                     var backgroundColor = grid.BackgroundColors[i].Colors[0];
-                    Raylib.DrawRectangleRounded(new Rectangle(cellDim.x, cellDim.y, cellDim.width, cellDim.height),
+                    Raylib.DrawRectangleRounded(new Rectangle(cellDim.X, cellDim.Y, cellDim.Width, cellDim.Height),
                         grid.RadiusCorners[i], (int)(grid.RadiusCorners[i] * Math.PI), backgroundColor);
                 }
                 else
@@ -3009,15 +3009,15 @@ namespace TwinspireCS.Engine.GUI
 
                     if (grid.BackgroundColors[i].Type == Extras.ColorType.Solid)
                     {
-                        Raylib.DrawRectangle((int)cellDim.x, (int)cellDim.y, (int)cellDim.width, (int)cellDim.height, grid.BackgroundColors[i].Colors[0]);
+                        Raylib.DrawRectangle((int)cellDim.X, (int)cellDim.Y, (int)cellDim.Width, (int)cellDim.Height, grid.BackgroundColors[i].Colors[0]);
                     }
                     else if (grid.BackgroundColors[i].Type == Extras.ColorType.GradientHorizontal)
                     {
-                        Raylib.DrawRectangleGradientH((int)cellDim.x, (int)cellDim.y, (int)cellDim.width, (int)cellDim.height, grid.BackgroundColors[i].Colors[0], grid.BackgroundColors[i].Colors[1]);
+                        Raylib.DrawRectangleGradientH((int)cellDim.X, (int)cellDim.Y, (int)cellDim.Width, (int)cellDim.Height, grid.BackgroundColors[i].Colors[0], grid.BackgroundColors[i].Colors[1]);
                     }
                     else if (grid.BackgroundColors[i].Type == Extras.ColorType.GradientVertical)
                     {
-                        Raylib.DrawRectangleGradientV((int)cellDim.x, (int)cellDim.y, (int)cellDim.width, (int)cellDim.height, grid.BackgroundColors[i].Colors[0], grid.BackgroundColors[i].Colors[1]);
+                        Raylib.DrawRectangleGradientV((int)cellDim.X, (int)cellDim.Y, (int)cellDim.Width, (int)cellDim.Height, grid.BackgroundColors[i].Colors[0], grid.BackgroundColors[i].Colors[1]);
                     }
 
                 DRAW_BORDERS:
@@ -3025,22 +3025,22 @@ namespace TwinspireCS.Engine.GUI
                     // draw borders
                     if (grid.Borders[cellItemIndex]) // top
                     {
-                        Raylib.DrawLineEx(new Vector2(cellDim.x, cellDim.y), new Vector2(cellDim.x + cellDim.width, cellDim.y), grid.BorderThicknesses[cellItemIndex], grid.BorderColors[cellItemIndex]);
+                        Raylib.DrawLineEx(new Vector2(cellDim.X, cellDim.Y), new Vector2(cellDim.X + cellDim.Width, cellDim.Y), grid.BorderThicknesses[cellItemIndex], grid.BorderColors[cellItemIndex]);
                     }
 
                     if (grid.Borders[cellItemIndex + 1]) // left
                     {
-                        Raylib.DrawLineEx(new Vector2(cellDim.x, cellDim.y), new Vector2(cellDim.x, cellDim.y + cellDim.height), grid.BorderThicknesses[cellItemIndex + 1], grid.BorderColors[cellItemIndex + 1]);
+                        Raylib.DrawLineEx(new Vector2(cellDim.X, cellDim.Y), new Vector2(cellDim.X, cellDim.Y + cellDim.Height), grid.BorderThicknesses[cellItemIndex + 1], grid.BorderColors[cellItemIndex + 1]);
                     }
 
                     if (grid.Borders[cellItemIndex + 2]) // right
                     {
-                        Raylib.DrawLineEx(new Vector2(cellDim.x + cellDim.width, cellDim.y), new Vector2(cellDim.x + cellDim.width, cellDim.y + cellDim.height), grid.BorderThicknesses[cellItemIndex + 2], grid.BorderColors[cellItemIndex + 2]);
+                        Raylib.DrawLineEx(new Vector2(cellDim.X + cellDim.Width, cellDim.Y), new Vector2(cellDim.X + cellDim.Width, cellDim.Y + cellDim.Height), grid.BorderThicknesses[cellItemIndex + 2], grid.BorderColors[cellItemIndex + 2]);
                     }
 
                     if (grid.Borders[cellItemIndex + 3]) // bottom
                     {
-                        Raylib.DrawLineEx(new Vector2(cellDim.x, cellDim.y + cellDim.height), new Vector2(cellDim.x + cellDim.width, cellDim.y + cellDim.height), grid.BorderThicknesses[cellItemIndex + 3], grid.BorderColors[cellItemIndex + 3]);
+                        Raylib.DrawLineEx(new Vector2(cellDim.X, cellDim.Y + cellDim.Height), new Vector2(cellDim.X + cellDim.Width, cellDim.Y + cellDim.Height), grid.BorderThicknesses[cellItemIndex + 3], grid.BorderColors[cellItemIndex + 3]);
                     }
                 }
             }

@@ -54,12 +54,12 @@ namespace TwinspireCS.Engine.GUI
 
         public static Rectangle CentreRectangleHorizontally(Rectangle a, Rectangle b)
         {
-            return new Rectangle(((a.width - b.width) / 2) + a.x, b.y, b.width, b.height);
+            return new Rectangle(((a.Width - b.Width) / 2) + a.X, b.Y, b.Width, b.Height);
         }
 
         public static Rectangle CentreRectangleVertically(Rectangle a, Rectangle b)
         {
-            return new Rectangle(b.x, ((a.height - b.height) / 2) + b.y, b.width, b.height);
+            return new Rectangle(b.X, ((a.Height - b.Height) / 2) + b.Y, b.Width, b.Height);
         }
 
         public static Rectangle CentreRectangle(Rectangle a, Rectangle b)

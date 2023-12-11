@@ -96,18 +96,18 @@ namespace TwinspireCS.Engine.Graphics
             tileset.Image = imageName;
             tileset.TileSize = tileSize;
             var actualImage = Application.Instance.ResourceManager.GetImage(imageName);
-            if (actualImage.width % tileSize != 0)
+            if (actualImage.Width % tileSize != 0)
             {
                 throw new Exception("The width of the image for this tileset does not divide into the given tile size.");
             }
 
-            if (actualImage.height % tileSize != 0)
+            if (actualImage.Height % tileSize != 0)
             {
                 throw new Exception("The height of the image for this tileset does not divide into the given tile size.");
             }
 
-            var numColumns = Math.Floor((float)(actualImage.width / tileSize));
-            var numRows = Math.Floor((float)(actualImage.height / tileSize));
+            var numColumns = Math.Floor((float)(actualImage.Width / tileSize));
+            var numRows = Math.Floor((float)(actualImage.Height / tileSize));
             int cellCount = (int)numColumns * (int)numRows * 4;
             tileset.EntranceDirections = new bool[cellCount];
             tileset.ExitDirections = new bool[cellCount];
@@ -118,8 +118,8 @@ namespace TwinspireCS.Engine.Graphics
             {
                 var lastTileset = tilesets[^2];
                 var tilesetImage = Application.Instance.ResourceManager.GetImage(lastTileset.Image);
-                var columns = Math.Floor((float)(tilesetImage.width / lastTileset.TileSize));
-                var rows = Math.Floor((float)(tilesetImage.height / lastTileset.TileSize));
+                var columns = Math.Floor((float)(tilesetImage.Width / lastTileset.TileSize));
+                var rows = Math.Floor((float)(tilesetImage.Height / lastTileset.TileSize));
                 int cells = (int)(columns * rows);
                 var lastStartID = startIDs[^0];
                 startIDs.Add(lastStartID + cells);

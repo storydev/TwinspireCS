@@ -8,7 +8,6 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
-using static System.Formats.Asn1.AsnWriter;
 
 namespace TwinspireCS
 {
@@ -1075,7 +1074,7 @@ namespace TwinspireCS
             fixed (byte* ptrData = data.AsSpan())
             {
                 var result = Raylib.LoadImageFromMemory(fileType, data);
-                if (result.data == (void*)0)
+                if (result.Data == (void*)0)
                 {
                     success = false;
                     return;
@@ -1242,7 +1241,7 @@ namespace TwinspireCS
             }
 
             var result = Raylib.LoadMusicStreamFromMemory(fileType, data);
-            if (result.ctxData == (void*)0)
+            if (result.CtxData == (void*)0)
             {
                 success = false;
                 return;
@@ -1329,7 +1328,7 @@ namespace TwinspireCS
             }
 
             var result = Raylib.LoadWaveFromMemory(fileType, data);
-            if (result.data == (void*)0)
+            if (result.Data == (void*)0)
             {
                 success = false;
                 return;
@@ -1421,7 +1420,7 @@ namespace TwinspireCS
             }
 
             var result = Raylib.LoadFontFromMemory(fileType, data, fontSize, fontChars, fontChars == null ? 0 : fontChars.Length);
-            if (result.texture.id == 0)
+            if (result.Texture.Id == 0)
             {
                 success = false;
                 return;

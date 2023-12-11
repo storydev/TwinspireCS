@@ -14,7 +14,7 @@ namespace TwinspireCS.Engine.GUI
         {
             if (formatted)
             {
-                return string.Format("{0},{1},{2},{3}", a.x, a.y, a.width, a.height);
+                return string.Format("{0},{1},{2},{3}", a.X, a.Y, a.Width, a.Height);
             }
 
             return string.Empty;

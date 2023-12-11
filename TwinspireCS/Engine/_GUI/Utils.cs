@@ -25,8 +25,8 @@ namespace TwinspireCS.Engine.GUI
             var currentLineWidth = 0f;
             var tempLineWidth = 0.0f;
 
-            float textHeight = font.baseSize * 1.5f;
-            float scaleFactor = (float)fontSize / (float)font.baseSize;
+            float textHeight = font.BaseSize * 1.5f;
+            float scaleFactor = (float)fontSize / (float)font.BaseSize;
 
             int letter = 0;
             int index = 0;
@@ -41,8 +41,8 @@ namespace TwinspireCS.Engine.GUI
                 letter = Raylib.GetCodepoint(text, ref next);
                 index = Raylib.GetGlyphIndex(font, letter);
 
-                if (font.glyphs[index].advanceX != 0) currentLineWidth += font.glyphs[index].advanceX * scaleFactor;
-                else currentLineWidth += (font.recs[index].width + font.glyphs[index].offsetX) * scaleFactor;
+                if (font.Glyphs[index].AdvanceX != 0) currentLineWidth += font.Glyphs[index].AdvanceX * scaleFactor;
+                else currentLineWidth += (font.Recs[index].Width + font.Glyphs[index].OffsetX) * scaleFactor;
 
                 if (currentLineWidth >= maxWidth)
                 {
@@ -89,7 +89,7 @@ namespace TwinspireCS.Engine.GUI
         public static void RenderMultilineText(Font font, float fontSize, Vector2 pos, int spacing, TextDim textDim, Color color, ContentAlignment alignment = ContentAlignment.Center)
         {
             var startY = pos.Y;
-            Raylib.SetTextureFilter(font.texture, TextureFilter.TEXTURE_FILTER_BILINEAR);
+            Raylib.SetTextureFilter(font.Texture, TextureFilter.TEXTURE_FILTER_BILINEAR);
             if (textDim.Breaks.Length > 0)
             {
                 for (int i = 0; i < textDim.Breaks.Length + 1; i++)

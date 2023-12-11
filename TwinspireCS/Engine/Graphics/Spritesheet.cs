@@ -72,12 +72,12 @@ namespace TwinspireCS.Engine.Graphics
             }
 
             var image = Application.Instance.ResourceManager.GetImage(imageName);
-            if (image.data == null)
+            if (image.Data == null)
             {
                 throw new Exception("The image name given does not relate to an image.");
             }
 
-            if (tileSize % image.width != 0 || tileSize % image.height != 0)
+            if (tileSize % image.Width != 0 || tileSize % image.Height != 0)
             {
                 throw new Exception("The given tile size is not divisible by the width or height of the image.");
             }
@@ -86,8 +86,8 @@ namespace TwinspireCS.Engine.Graphics
             spritesheet.ImageName = imageName;
             spritesheet.TileSize = tileSize;
 
-            var rows = image.height / tileSize;
-            var columns = image.width / tileSize;
+            var rows = image.Height / tileSize;
+            var columns = image.Width / tileSize;
             
             for (int y = 0; y < rows; y++)
             {
@@ -119,7 +119,7 @@ namespace TwinspireCS.Engine.Graphics
 
             var spritesheet = _spritesheets[spritesheetIndex];
             var image = Application.Instance.ResourceManager.GetImage(spritesheet.ImageName);
-            var columns = image.width / spritesheet.TileSize;
+            var columns = image.Width / spritesheet.TileSize;
             var results = new Frame[indices.Length];
 
             for (int i = 0; i < indices.Length; i++)
