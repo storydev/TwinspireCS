@@ -14,7 +14,7 @@ namespace TwinspireCS.Engine.GUI
     public class Canvas
     {
 
-        private GameContext gameContext;
+        private RenderContext gameContext;
         private List<Grid> layouts;
         private IDictionary<string, DynamicGrid> dynamicLayouts;
         private int currentDynamicLayout;
@@ -243,12 +243,12 @@ namespace TwinspireCS.Engine.GUI
             return layouts.Count - 1;
         }
 
-        public void SetGameContext(GameContext context)
+        public void SetGameContext(RenderContext context)
         {
             gameContext = context;
         }
 
-        public GameContext GetCurrentGameContext()
+        public RenderContext GetCurrentGameContext()
         {
             return gameContext;
         }

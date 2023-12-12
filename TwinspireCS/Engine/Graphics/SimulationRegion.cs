@@ -6,22 +6,16 @@ using System.Threading.Tasks;
 
 namespace TwinspireCS.Engine.Graphics
 {
-    public class GameContext
+    public struct SimulationRegion
     {
 
-        public GameContext()
+        public float Hot;
+        public float Cold;
+
+        public SimulationRegion(float hot, float cold)
         {
-
-        }
-
-        public void Init()
-        {
-
-        }
-
-        public void Render()
-        {
-
+            Hot = hot;
+            Cold = cold;
         }
 
     }
