@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TwinspireCS.Engine.UI;
 
 namespace TwinspireCS.Engine.Graphics
 {
@@ -40,7 +41,7 @@ namespace TwinspireCS.Engine.Graphics
         /// Initialise the render target for the current scope.
         /// </summary>
         /// <param name="target">Gets the <c>RenderTarget</c> for rendering.</param>
-        /// <returns>Returns <c>false</c> if the target needs creating, otherwise <c>true</c.></returns>
+        /// <returns>Returns <c>false</c> if the target had to be created, otherwise <c>true</c.></returns>
         public bool InitTarget(out RenderTarget target)
         {
             var results = targets.Where((t) => t.ExpectedScope == currentScope);
@@ -60,6 +61,8 @@ namespace TwinspireCS.Engine.Graphics
 
             return true;
         }
+
+
 
         public void Render()
         {

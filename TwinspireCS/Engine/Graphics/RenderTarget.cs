@@ -17,6 +17,10 @@ namespace TwinspireCS.Engine.Graphics
         /// Specifies the source for this target, if any.
         /// </summary>
         public Rectangle SourceRect { get; set; }
+        /// <summary>
+        /// A callback that obtains all the elements drawn to this render target.
+        /// </summary>
+        public OnGetElements GetElements { get; set; }
 
         internal RenderScope ExpectedScope { get; set; }
 

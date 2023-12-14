@@ -24,5 +24,12 @@ namespace TwinspireCS.Engine.UI
         /// </summary>
         public Vector4 Border { get; set; }
 
+
+
+        public InterfaceProperties()
+        {
+
+        }
+
     }
 }
